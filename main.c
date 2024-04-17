@@ -308,4 +308,6 @@ int main(int argc, char *argv[])
 
     NNEW(ipoinp, ITG, 2 * nentries);
 
+    /* conservative estimate of the fields to be allocated */
+
 }

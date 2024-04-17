@@ -7,6 +7,7 @@ openfile.f
 SCCXC = \
 strcmp1.c \
 strcmp2.c \
-strcpy1.c
+strcpy1.c \
+u_calloc.c
 
 SCCXCXX = umat_dl.cpp
