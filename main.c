@@ -49,23 +49,72 @@ int main(int argc, char *argv[])
                                          nzsprevstep[3], memmpcref_, mpcfreeref = -1, maxlenmpcref, *nodempcref = NULL,
                                          *ikmpcref = NULL, isens = 0, namtot = 0, nstam = 0, ndamp = 0, nef = 0;   
 
-    ITG *kon = NULL, *nodeboun = NULL, *ndirboun = NULL, *ipompc = NULL,
-      *nodempc = NULL, *nodeforc = NULL, *ndirforc = NULL,
-      *nelemload = NULL, im, *inodesd = NULL, nload1, *idefforc = NULL,
-      *nactdof = NULL, *icol = NULL, *ics = NULL,
-      *jq = NULL, *mast1 = NULL, *irow = NULL, *rig = NULL, *idefbody = NULL,
-      *ikmpc = NULL, *ilmpc = NULL, *ikboun = NULL, *ilboun = NULL,
-      *nreorder = NULL, *ipointer = NULL, *idefload = NULL,
-      *istartset = NULL, *iendset = NULL, *ialset = NULL, *ielmat = NULL,
-      *ielorien = NULL, *nrhcon = NULL, *nodebounold = NULL, *ndirbounold = NULL,
-      *nelcon = NULL, *nalcon = NULL, *iamforc = NULL, *iamload = NULL,
-      *iamt1 = NULL, *namta = NULL, *ipkon = NULL, *iamboun = NULL,
-      *nplicon = NULL, *nplkcon = NULL, *inotr = NULL, *iponor = NULL, *knor = NULL,
-      *ikforc = NULL, *ilforc = NULL, *iponoel = NULL, *inoel = NULL, *nshcon = NULL,
-      *ncocon = NULL, *ibody = NULL, *ielprop = NULL, *islavsurf = NULL,
-      *ipoinpc = NULL, mt, nxstate, nload0, iload, *iuel = NULL;
+    ITG *kon = NULL;/*!< \brief Field containing connectivity lists of the elements in sucessive order.*/
+    ITG *nodeboun = NULL;/*!< \brief SPC node.*/
+    ITG *ndirboun = NULL; /*!< \brief SPC direction.*/
+    ITG *ipompc = NULL;/*!< \brief starting location in nodempc and coefmpc of MPC i*/
+    ITG *nodempc = NULL;/*!< \brief node of first term of MPC i.*/
+    ITG *nodeforc = NULL;/*!< \brief node in which force is applied.*/
+    ITG *ndirforc = NULL; /*!< \brief direction of force.*/
+    ITG *nelemload = NULL;/*!< \brief element to which distributed load is applied.*/
+    ITG im;/*!< \brief Undefined.*/
+    ITG *inodesd = NULL;/*!< \brief Undefined.*/              
+    ITG nload1;/*!< \brief # of facial distributed loads.*/
+    ITG *idefforc = NULL;/*!< \brief 0: no force was defined for this node. 1: at least one force was applied.*/
+    ITG *nactdof = NULL;/*!< \brief actual degree of freedom (in the system of equations) of DOF i of node j*/
+    ITG *icol = NULL;/*!< \brief # of subdiagonal nonzero's in column i(only for symmteric matrices)*/
+    ITG *ics = NULL;/*!< \brief one-dimensional field; contains all independent nodes, one part after the other, and stored within each part.*/  
+    ITG *jq = NULL; /*!< \brief location in field irow of the first subdiagonal nonzero in column i (only for symmetric matrices)*/
+    ITG *mast1 = NULL;/*!< \brief Undefined.*/
+    ITG *irow = NULL;/*!< \brief row of element i in field au.*/
+    ITG *rig = NULL;/*!< \brief integer field indicating whether node i is a rigid node (non-zero value) or not (zero value)*/
+    ITG *idefbody = NULL;/*!< \brief 0: no body load was defined on the same set with the same code and the same load case number before within the actual step.*/
+    ITG *ikmpc = NULL;/*!< \brief ordered array of the dependent DOFs corresping to the MPCs*/
+    ITG *ilmpc = NULL;/*!< \brief original MPC number for ikmpc(i)*/
+    ITG *ikboun = NULL;/*!< \brief ordered array of the DOFs corresponding to the SPC's.*/          
+    ITG *ilboun = NULL;/*!< \brief original SPC number for ikboun(i).*/
+    ITG *nreorder = NULL;/*!< \brief Undefined.*/
+    ITG *ipointer = NULL;/*!< \brief Undefined.*/
+    ITG *idefload = NULL;/*!< \brief 0: no load was defned on the same element with the same label and on the same sector 1: at least one load was defined on the same element with the same label.*/
+    ITG *istartset = NULL;/*!< \brief pointer into ialset containing the first set member.*/        
+    ITG *iendset = NULL; /*!< \brief pointer into ialset containing the last set member. */
+    ITG *ialset = NULL;/*!< \brief member of a set or surface: this is a node for a node or nodal surface, element for an element set.*/
+    ITG *ielmat = NULL;/*!< \brief material number of layer j.*/
+    ITG *ielorien = NULL;/*!< \brief orientation number of layer j. */
+    ITG *nrhcon = NULL;/*!< \brief temperature data points for the density of material i.*/
+    ITG *nodebounold = NULL;/*!< \brief SPC node old.*/
+    ITG *ndirbounold = NULL;/*!< \brief SPC node direction old.*/  
+    ITG *nelcon = NULL;/*!< \brief hyperelastic constants for material i (negative kode for nonlinear elastic constants.)*/
+    ITG *nalcon = NULL;/*!< \brief # of expansion constants for material i.*/
+    ITG *iamforc = NULL;/*!< \brief amplitude number.*/   
+    ITG *iamload = NULL;/*!< \brief amplitude number for xload(1,i).*/    
+    ITG *iamt1 = NULL;/*!< \brief amplitude number.*/      
+    ITG *namta = NULL;/*!< \brief location of first (time, amplitude) pair in amta. */ 
+    ITG *ipkon = NULL;/*!< \brief points to the location in field kon preceding the topology of element i.*/ 
+    ITG *iamboun = NULL;/*!< \brief amplitude number.*/ 
+    ITG *nplicon = NULL;/*!< \brief temperature data points for the isotropic hardening cruve of material i.*/ 
+    ITG *nplkcon = NULL; /*!< \brief temperature data points for the kinematic hardening curve of material i.*/ 
+    ITG *inotr = NULL;/*!< \brief transformation number applicable in node j.*/ 
+    ITG *iponor = NULL;/*!< \brief two pointers for entry i of kon. 1st ptr-> location of xnor precceding normals of entry i. 2nd ptr-> location of kow of newly generated dependent nodes of entry i.*/                                  
+    ITG *knor = NULL;/*!< \brief field containing extra nodes needed to expand the shell and beam elements to volume elements.*/ 
+    ITG *ikforc = NULL;/*!< \brief ordered array of the DOFs corresponding to the point loads*/ 
+    ITG *ilforc = NULL;/*!< \brief original SPC number for ikforc(i)*/ 
+    ITG *iponoel = NULL;/*!< \brief ptr to node i into field inoel, which stores the 1D and 2D elements belonging to the node.*/ 
+    ITG *inoel = NULL;/*!< \brief field containing an element number, a local node number within this element and a pointer to another array (or zero if there is no other.)*/ 
+    ITG *nshcon = NULL;/*!< \brief # temperature data points for the spaecific heat of material i.*/ 
+    ITG *ncocon = NULL;/*!< \brief # of conductivity constants for material i.*/ 
+    ITG *ibody = NULL;/*!< \brief code identifying the kind of body load: 1: centrifugal 2: gravity, 3: load case.*/ 
+    ITG *ielprop = NULL;/*!< \brief ptr to the position in field prop after which the properties for element i start.*/ 
+    ITG *islavsurf = NULL;/*!< \brief Undefined.*/
+    ITG *ipoinpc = NULL;/*!< \brief index of the first col in field inp containing info on a block of lines in the inputdeck corresponding to a fundamental key.*/     
+    ITG mt;/*!< \brief Undefined.*/
+    ITG nxstate;/*!< \brief Undefined.*/
+    ITG nload0;/*!< \brief # of facial distributed loads. */
+    ITG iload;/*!< \brief Undefined.*/
+    ITG *iuel = NULL;/*!< \brief type number of the user element, # of integration pts, max fof, # of nodes in any element.*/              
 
-    ITG *meminset = NULL, *rmeminset = NULL;
+    ITG *meminset = NULL; /*!< \brief Undefined.*/
+    ITG *rmeminset = NULL; /*!< \brief Undefined.*/
 
     ITG nzs_, nk_ = 0, ne_ = 0, nset_ = 0, nalset_ = 0, nmat_ = 0, norien_ = 0, nam_ = 0,
             ntrans_ = 0, ncs_ = 0, nstate_ = 0, ncmat_ = 0, memmpc_ = 0, nprint_ = 0, nuel_ = 0;
