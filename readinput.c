@@ -29,6 +29,7 @@ void readinput(char *jobnamec, char **inpcp, ITG *nline, ITG *nset,
   /*   reads and stores the input deck in inpcp; determines the
        number of sets  */
 
+
   FILE *f1[10];
 
   char buff[1320]="", fninp[132]="", includefn[132]="", *inpc=NULL,
@@ -49,16 +50,31 @@ void readinput(char *jobnamec, char **inpcp, ITG *nline, ITG *nset,
   /* nentries is the number of different keyword cards for which
      the input deck order is important, cf keystart.f */
 
+      
+
   NNEW(inpc,char,ncharmax);
   NNEW(ipoinpc,ITG,nlinemax+1);
   NNEW(inp,ITG,3*nlinemax);
+  
   *nline=0;
-  for(i=0;i<2*nentries;i++){ipoinp[i]=0;}
+
+  printf("Number of entries in ipoinp: %i \n", nentries);
+  fflush(stdout);
+  
+  
+  for(int i=0;i<2*nentries;i++)
+  {
+    ipoinp[i]=0;
+  }
+  printf("I am here! \n");
   ifreeinp=1;
   ikey=0;
 
   /* opening the input file */
 
+ 
+
+  printf("Opening input file \n");
   strcpy(fninp,jobnamec);
   strcat(fninp,".inp");
   if((f1[in]=fopen(fninp,"r"))==NULL){

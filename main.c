@@ -33,8 +33,8 @@ int main(int argc, char *argv[])
     char *heading = NULL;   /*!< \brief Undefined.*/
     char *objectset = NULL; /*!< \brief Undefined.*/
 
-      ITG nk, ne, nboun, nmpc, nforc, nload, nprint = 0, nset, nalset, nentries = 17,
-                                         nmethod, neq[3] = {0, 0, 0}, i, mpcfree = 1, mei[4], j, nzl, nam, nbounold = 0,
+    ITG nk, ne, nboun, nmpc, nforc, nload, nprint = 0, nset, nalset, 
+    nmethod, neq[3] = {0, 0, 0}, i, mpcfree = 1, mei[4], j, nzl, nam, nbounold = 0,
                                          nforcold = 0, nloadold = 0, nbody, nbody_ = 0, nbodyold = 0, network = 0, nheading_ = 0,
                                          k, nzs[3], nmpc_ = 0, nload_ = 0, nforc_ = 0, istep, istat, nboun_ = 0, nintpoint = 0,
                                          iperturb[2] = {0, 0}, nmat, ntmat_ = 0, norien, ithermal[2] = {0, 0}, nmpcold,
@@ -43,12 +43,13 @@ int main(int argc, char *argv[])
                                          iplas = 0, npmat_ = 0, mi[3] = {0, 3, 1}, ntrans, mpcend = -1, namtot_ = 0, iumat = 0,
                                          icascade = 0, maxlenmpc, mpcinfo[4], ne1d = 0, ne2d = 0, infree[4] = {0, 0, 0, 0},
                                          callfrommain, nflow = 0, jin = 0, irstrt[2] = {0, 0}, nener = 0, jrstrt = 0, nenerold,
-                                         nline, *ipoinp = NULL, *inp = NULL, ntie, ntie_ = 0, mcs = 0, nprop_ = 0,
+                                         nline, *inp = NULL, ntie, ntie_ = 0, mcs = 0, nprop_ = 0,
                                          nprop = 0, itpamp = 0, iviewfile, nkold, nevdamp_ = 0, npt_ = 0, cyclicsymmetry,
                                          nmethodl, iaxial = 1, inext = 0, icontact = 0, nobject = 0, nobject_ = 0, iit = -1,
                                          nzsprevstep[3], memmpcref_, mpcfreeref = -1, maxlenmpcref, *nodempcref = NULL,
                                          *ikmpcref = NULL, isens = 0, namtot = 0, nstam = 0, ndamp = 0, nef = 0;   
 
+    ITG *ipoinp = NULL;
     ITG *kon = NULL;/*!< \brief Field containing connectivity lists of the elements in sucessive order.*/
     ITG *nodeboun = NULL;/*!< \brief SPC node.*/
     ITG *ndirboun = NULL; /*!< \brief SPC direction.*/
@@ -111,7 +112,9 @@ int main(int argc, char *argv[])
     ITG nxstate;/*!< \brief Undefined.*/
     ITG nload0;/*!< \brief # of facial distributed loads. */
     ITG iload;/*!< \brief Undefined.*/
-    ITG *iuel = NULL;/*!< \brief type number of the user element, # of integration pts, max fof, # of nodes in any element.*/              
+    ITG *iuel = NULL;/*!< \brief type number of the user element, # of integration pts, max fof, # of nodes in any element.*/  
+
+    ITG nentries = 17;      
 
     ITG *meminset = NULL; /*!< \brief Undefined.*/
     ITG *rmeminset = NULL; /*!< \brief Undefined.*/
@@ -307,9 +310,13 @@ int main(int argc, char *argv[])
     #endif
 
     NNEW(ipoinp, ITG, 2 * nentries);
-
+    printf("Calling readinput.c \n");
     /* conservative estimate of the fields to be allocated */
     readinput(jobnamec, &inpc, &nline, &nset_, ipoinp, &inp, &ipoinpc, ithermal, &nuel_);
+
+    printf("Done! \n");
+
+    SFREE(ipoinp);
 
     NNEW(set, char, 81 * nset_);
     NNEW(meminset, ITG, nset_);
