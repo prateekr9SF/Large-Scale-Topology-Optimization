@@ -2432,49 +2432,47 @@ c      memmpc=memmpc+15*ne1d+24*ne2d
 !
       norien=norien+nesr*mi(3)
 !
+      ! Define a common format for headers and data lines
       write(*,*)
-      write(*,*) ' The numbers below are estimated upper bounds'
+      write(*,'(A)')'The numbers below are estimated upper bounds'
       write(*,*)
-      write(*,*) ' number of:'
-      write(*,*)
-      write(*,*) '  nodes: ',nk
-      write(*,*) '  elements: ',ne
-      write(*,*) '  one-dimensional elements: ',ne1d
-      write(*,*) '  two-dimensional elements: ',ne2d
-      write(*,*) '  integration points per element: ',mi(1)
-      write(*,*) '  degrees of freedom per node: ',mi(2)
-      write(*,*) '  layers per element: ',mi(3)
-      write(*,*)
-      write(*,*) '  distributed facial loads: ',nload
-      write(*,*) '  distributed volumetric loads: ',nbody
-      write(*,*) '  concentrated loads: ',nforc
-      write(*,*) '  single point constraints: ',nboun
-      write(*,*) '  multiple point constraints: ',nmpc
-      write(*,*) '  terms in all multiple point constraints: ',memmpc
-      write(*,*) '  tie constraints: ',ntie
-      write(*,*) '  dependent nodes tied by cyclic constraints: ',ncs
-      write(*,*) '  dependent nodes in pre-tension constraints: ',npt
-      write(*,*)
-      write(*,*) '  sets: ',nset
-      write(*,*) '  terms in all sets: ',nalset
-      write(*,*)
-      write(*,*) '  materials: ',nmat
-      write(*,*) '  constants per material and temperature: ',ncmat
-      write(*,*) '  temperature points per material: ',ntmat
-      write(*,*) '  plastic data points per material: ',npmat
-      write(*,*)
-      write(*,*) '  orientations: ',norien
-      write(*,*) '  amplitudes: ',nam
-      write(*,*) '  data points in all amplitudes: ',namtot
-      write(*,*) '  print requests: ',nprint
-      write(*,*) '  transformations: ',ntrans
-      write(*,*) '  property cards: ',nprop
-      write(*,*)
+      write(*,'(A, T30, I20)') 'Number of nodes:', nk
+      write(*,'(A, T30, I20)') 'Number of elements:', ne
+      write(*,'(A, T30, I20)') 'Integration points / element:', mi(1)
+      write(*,'(A, T30, I20)') 'Degrees of freedom / node:', mi(2)
+      write(*,'(A, T30, I20)') 'Layers per element:', mi(3)
+   !  write(*,*)
+      write(*,'(A, T30, I20)') 'Distributed facial loads:', nload
+      write(*,'(A, T30, I20)') 'Distributed volumetric loads:', nbody
+      write(*,'(A, T30, I20)') 'Concentrated loads:', nforc
+      write(*,'(A, T30, I20)') 'Single point constraints:', nboun
+      write(*,'(A, T30, I20)') 'Multiple point constraints:', nmpc
+   !   write(*,'(A, T30, I20)') 'Terms in all multiple point constraints:', memmpc
+   !   write(*,'(A, T30, I20)') 'Tie constraints:', ntie
+   !   write(*,'(A, T30, I20)') 'Dependent nodes tied by cyclic constraints:', ncs
+   !   write(*,'(A, I10)') '  Dependent nodes in pre-tension constraints:', npt
+   !   write(*,*)
+   !  write(*,'(A, I10)') '  Sets:', nset
+   !   write(*,'(A, I10)') '  Terms in all sets:', nalset
+   !   write(*,*)
+   !   write(*,'(A, I10)') '  Materials:', nmat
+   !   write(*,'(A, I10)') '  Constants per material and temperature:', ncmat
+   !   write(*,'(A, I10)') '  Temperature points per material:', ntmat
+   !   write(*,'(A, I10)') '  Plastic data points per material:', npmat
+   !   write(*,*)
+   !   write(*,'(A, I10)') '  Orientations:', norien
+   !   write(*,'(A, I10)') '  Amplitudes:', nam
+   !   write(*,'(A, I10)') '  Data points in all amplitudes:', namtot
+   !   write(*,'(A, I10)') '  Print requests:', nprint
+   !   write(*,'(A, I10)') '  Transformations:', ntrans
+   !   write(*,'(A, I10)') '  Property cards:', nprop
+   !   write(*,*)
 !
-      if(ier.eq.1) then
-         write(*,*) '*ERROR in allocation: at least one fatal'
-         write(*,*) '       error message while reading the'
-         write(*,*) '       input deck: CalculiX stops.'
+! Handle potential errors with consistent formatting
+      if (ier.eq.1) then
+         write(*,'(A)') '*ERROR in allocation: at least one fatal'
+         write(*,'(A)') '       error message while reading the'
+         write(*,'(A)') '       input deck: CalculiX stops.'
          write(*,*)
          call exit(201)
       endif

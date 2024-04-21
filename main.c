@@ -330,4 +330,331 @@ int main(int argc, char *argv[])
                        &nkon_, &mcs, &mortar, &ifacecount, &nintpoint, infree, &nheading_, &nobject_,
                        iuel, &iprestr, &nstam, &ndamp, &nef));
 
+    SFREE(set);
+    SFREE(meminset);
+    SFREE(rmeminset);
+    mt = mi[1] + 1;
+    NNEW(heading, char, 66 * nheading_);
+
+    nzs_ = 20000000;
+
+    nload = 0;
+    nbody = 0;
+    nforc = 0;
+    nboun = 0;
+    nk = 0;
+    nmpc = 0;
+    nam = 0;
+
+    nlabel = 48;
+
+    while (istat >= 0)
+    {
+        fflush(stdout);
+    
+        
+        /* in order to reduce the number of variables to be transferred to
+       the subroutines, the max. field sizes are (for most fields) copied
+       into the real sizes */
+
+       nzs[1] = nzs_;
+
+       if ((istep == 0) || (irstrt[0] < 0))
+       {
+            ne = ne_;
+            nset = nset_;
+            nmat = nmat_;
+            norien = norien_;
+            ntrans = ntrans_;
+            ntie = ntie_;
+
+            /* allocating space before the first step */
+            /* coordinates and topology */
+
+            NNEW(co, double, 3 * nk_);
+            NNEW(kon, ITG, nkon_);
+            NNEW(ipkon, ITG, ne_);
+            NNEW(lakon, char, 8 * ne_);
+            NNEW(design, double, ne_);
+
+            /* property cards */
+            if (nprop_ > 0)
+            {
+                NNEW(ielprop, ITG, ne_);
+                for (i = 0; i < ne_; i++)
+                {
+                    ielprop[i] = -1;
+                }
+                NNEW(prop, double, nprop_);
+            }
+
+            /* fields for 1-D and 2-D elements */
+            if ((ne1d != 0) || (ne2d != 0))
+                {
+                    NNEW(iponor, ITG, 2 * nkon_);
+                    for (i = 0; i < 2 * nkon_; i++)
+                        iponor[i] = -1;
+                    NNEW(xnor, double, 36 * ne1d + 24 * ne2d);
+                    NNEW(knor, ITG, 24 * (ne1d + ne2d) * (mi[2] + 1));
+                    NNEW(thickn, double, 2 * nk_);
+                    NNEW(thicke, double, mi[2] * nkon_);
+                    NNEW(offset, double, 2 * ne_);
+                    NNEW(iponoel, ITG, nk_);
+                    NNEW(inoel, ITG, 9 * ne1d + 24 * ne2d);
+                    NNEW(rig, ITG, nk_);
+                    if (infree[2] == 0)
+                        infree[2] = 1;
+                 }
+
+            /* SPC's */
+            NNEW(nodeboun, ITG, nboun_);
+            NNEW(ndirboun, ITG, nboun_);
+            NNEW(typeboun, char, nboun_ + 1);
+
+            if ((istep == 0) || ((irstrt[0] < 0) && (nam_ > 0)))
+                NNEW(iamboun, ITG, nboun_);
+
+            NNEW(xboun, double, nboun_);
+            NNEW(ikboun, ITG, nboun_);
+            NNEW(ilboun, ITG, nboun_);
+
+            /* MPC's */
+            NNEW(ipompc, ITG, nmpc_);
+            NNEW(nodempc, ITG, 3 * memmpc_);
+
+            for (i = 0; i < 3 * memmpc_; i += 3)
+            {
+                nodempc[i + 2] = i / 3 + 2;
+            }
+
+            nodempc[3 * memmpc_ - 1] = 0;
+            NNEW(coefmpc, double, memmpc_);
+            NNEW(labmpc, char, 20 * nmpc_ + 1);
+            NNEW(ikmpc, ITG, nmpc_);
+            NNEW(ilmpc, ITG, nmpc_);
+            NNEW(fmpc, double, nmpc_);
+
+            /* nodal loads */
+            NNEW(nodeforc, ITG, 2 * nforc_);
+            NNEW(ndirforc, ITG, nforc_);
+
+            if ((istep == 0) || ((irstrt[0] < 0) && (nam_ > 0)))
+                NNEW(iamforc, ITG, nforc_);
+
+            NNEW(idefforc, ITG, nforc_);
+            NNEW(xforc, double, nforc_);
+            NNEW(ikforc, ITG, nforc_);
+            NNEW(ilforc, ITG, nforc_);
+
+            /* distributed facial loads */
+            NNEW(nelemload, ITG, 2 * nload_);
+
+            if ((istep == 0) || ((irstrt[0] < 0) && (nam_ > 0)))
+                NNEW(iamload, ITG, 2 * nload_);
+
+            NNEW(idefload, ITG, nload_);
+            NNEW(sideload, char, 20 * nload_);
+            NNEW(xload, double, 2 * nload_);
+
+            /* distributed volumetric loads */
+            NNEW(cbody, char, 81 * nbody_);
+            NNEW(idefbody, ITG, nbody_);
+            NNEW(ibody, ITG, 3 * nbody_);
+            NNEW(xbody, double, 7 * nbody_);
+            NNEW(xbodyold, double, 7 * nbody_);
+
+            /* printing output */
+            NNEW(prlab, char, 6 * nprint_);
+            NNEW(prset, char, 81 * nprint_);
+
+            /* set definitions */
+            NNEW(set, char, 81 * nset);
+            NNEW(istartset, ITG, nset);
+            NNEW(iendset, ITG, nset);
+            NNEW(ialset, ITG, nalset);
+
+            /* (hyper)elastic constants */
+            NNEW(elcon, double, (ncmat_ + 1) * ntmat_ * nmat);
+            NNEW(nelcon, ITG, 2 * nmat);
+
+            /* density */
+            NNEW(rhcon, double, 2 * ntmat_ * nmat);
+            NNEW(nrhcon, ITG, nmat);
+
+            /* damping */
+            if (ndamp > 0)
+            {
+                NNEW(dacon, double, nmat);
+            }
+
+            /* specific heat */
+            NNEW(shcon, double, 4 * ntmat_ * nmat);
+            NNEW(nshcon, ITG, nmat);
+
+            /* thermal expansion coefficients */
+            NNEW(alcon, double, 7 * ntmat_ * nmat);
+            NNEW(nalcon, ITG, 2 * nmat);
+            NNEW(alzero, double, nmat);
+
+             /* conductivity */
+            NNEW(cocon, double, 7 * ntmat_ * nmat);
+            NNEW(ncocon, ITG, 2 * nmat);
+
+            /* isotropic and kinematic hardening coefficients*/
+
+            if (npmat_ > 0)
+            {
+                NNEW(plicon, double, (2 * npmat_ + 1) * ntmat_ * nmat);
+                NNEW(nplicon, ITG, (ntmat_ + 1) * nmat);
+                NNEW(plkcon, double, (2 * npmat_ + 1) * ntmat_ * nmat);
+                NNEW(nplkcon, ITG, (ntmat_ + 1) * nmat);
+            }
+
+            /* linear dynamic properties */
+            NNEW(xmodal, double, 11 + nevdamp_);
+            xmodal[10] = nevdamp_ + 0.5;
+
+            /* internal state variables (nslavs is needed for restart
+            calculations) */
+
+            if (mortar != 1)
+            {
+                NNEW(xstate, double, nstate_ *mi[0] * (ne + nslavs));
+                nxstate = nstate_ * mi[0] * (ne + nslavs);
+            }
+
+            else if (mortar == 1)
+            {
+                NNEW(xstate, double, nstate_ *mi[0] * (ne + nintpoint));
+                nxstate = nstate_ * mi[0] * (ne + nintpoint);
+            }
+
+            /* material orientation */
+            if ((istep == 0) || ((irstrt[0] < 0) && (norien > 0)))
+            {
+                NNEW(orname, char, 80 * norien);
+                NNEW(orab, double, 7 * norien);
+                NNEW(ielorien, ITG, mi[2] * ne_);
+            }
+
+            /* transformations */
+            if ((istep == 0) || ((irstrt[0] < 0) && (ntrans > 0)))
+            {
+                NNEW(trab, double, 7 * ntrans);
+                NNEW(inotr, ITG, 2 * nk_);
+            }
+
+            /* amplitude definitions */
+            if ((istep == 0) || ((irstrt[0] < 0) && (nam_ > 0)))
+            {
+                NNEW(amname, char, 80 * nam_);
+                NNEW(amta, double, 2 * namtot_);
+                NNEW(namta, ITG, 3 * nam_);
+            }
+
+            if ((istep == 0) || ((irstrt[0] < 0) && (ithermal[0] > 0)))
+            {
+                NNEW(t0, double, nk_);
+                NNEW(t1, double, nk_);
+                if ((ne1d != 0) || (ne2d != 0))
+                {
+                    NNEW(t0g, double, 2 * nk_);
+                    NNEW(t1g, double, 2 * nk_);
+                }
+            }
+
+            /* the number in next line is NOT 1.2357111317 -> points
+            to user input; instead it is a generic nonzero
+            initialization */
+
+            if (istep == 0)
+            {
+                DMEMSET(t0, 0, nk_, 1.2357111319);
+                DMEMSET(t1, 0, nk_, 1.2357111319);
+            }
+
+            if ((istep == 0) || ((irstrt[0] < 0) && (ithermal[0] > 0) && (nam_ > 0)))
+                NNEW(iamt1, ITG, nk_);
+
+            if ((istep == 0) || ((irstrt[0] < 0) && (iprestr > 0)))
+                NNEW(prestr, double, 6 * mi[0] * ne_);
+
+            NNEW(vold, double, mt *nk_);
+            NNEW(veold, double, mt *nk_);
+
+            /* CFD-results */
+            NNEW(vel, double, 8 * nef);
+            NNEW(velo, double, 8 * nef);
+            NNEW(veloo, double, 8 * nef);
+
+            NNEW(ielmat, ITG, mi[2] * ne_);
+
+            NNEW(matname, char, 80 * nmat);
+
+            NNEW(filab, char, 87 * nlabel);
+
+            /* tied constraints */
+            if (ntie_ > 0)
+            {
+                NNEW(tieset, char, 243 * ntie_);
+                NNEW(tietol, double, 3 * ntie_);
+                NNEW(cs, double, 17 * ntie_);
+            }
+
+            /* objectives for sensitivity analysis */
+            if ((ncs_ > 0) || (npt_ > 0))
+            {
+                if (2 * npt_ > 24 * ncs_)
+                {
+                    NNEW(ics, ITG, 2 * npt_);
+                }
+                else
+                {
+                    NNEW(ics, ITG, 24 * ncs_);
+                }
+                if (npt_ > 30 * ncs_)
+                {
+                NNEW(dcs, double, npt_);
+                }
+                else
+                {
+                NNEW(dcs, double, 30 * ncs_);
+                }
+            }
+
+            /* temporary fields for cyclic symmetry calculations */
+
+            if ((ncs_ > 0) || (npt_ > 0))
+            {
+                if (2 * npt_ > 24 * ncs_)
+                {       
+                    NNEW(ics, ITG, 2 * npt_);
+                }
+                else
+                {
+                NNEW(ics, ITG, 24 * ncs_);
+                }
+                if (npt_ > 30 * ncs_)
+                {
+                    NNEW(dcs, double, npt_);
+                }
+                else
+                {
+                    NNEW(dcs, double, 30 * ncs_);
+                }
+            }
+
+             /* slave faces */
+            NNEW(islavsurf, ITG, 2 * ifacecount + 2);
+            printf("Istep was zero \n");
+       } // end if istep == 0 
+
+        else
+        {
+            printf("Istep is not zero \n");
+        }
+
+    }
+
+
 }
