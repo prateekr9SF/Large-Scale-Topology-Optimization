@@ -82,7 +82,8 @@ cident.f \
 gen3dboun.f \
 mpcrem.f \
 forcadd.f \
-selectcyclicsymmetrymodess.f
+selectcyclicsymmetrymodess.f \
+spcmatch.f 
 
 
 
@@ -95,6 +96,9 @@ u_calloc.c \
 u_realloc.c \
 readinput.c \
 u_free.c \
+rho.c \
+writeheading.c \
+linstatic.c
 
 
 SCCXCXX = umat_dl.cpp
