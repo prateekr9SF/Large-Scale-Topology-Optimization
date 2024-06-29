@@ -45,7 +45,7 @@ int main(int argc,char *argv[])
       *inpc=NULL,*tieset=NULL,*cbody=NULL,fneig[132]="",*sideloadtemp=NULL,
       kind1[2]="T",kind2[2]="T",*heading=NULL,*objectset=NULL;
 
-ITG *kon=NULL, *nodeboun=NULL, *ndirboun=NULL, *ipompc=NULL,
+  ITG *kon=NULL, *nodeboun=NULL, *ndirboun=NULL, *ipompc=NULL,
     *nodempc=NULL, *nodeforc=NULL, *ndirforc=NULL,
     *nelemload=NULL,im,*inodesd=NULL,nload1,*idefforc=NULL,
     *nactdof=NULL, *icol=NULL,*ics=NULL,
@@ -61,7 +61,7 @@ ITG *kon=NULL, *nodeboun=NULL, *ndirboun=NULL, *ipompc=NULL,
     *ncocon=NULL,*ibody=NULL,*ielprop=NULL,*islavsurf=NULL,
     *ipoinpc=NULL,mt,nxstate,nload0,iload,*iuel=NULL;
 
-ITG nk,ne,nboun,nmpc,nforc,nload,nprint=0,nset,nalset,nentries=17,
+  ITG nk,ne,nboun,nmpc,nforc,nload,nprint=0,nset,nalset,nentries=17,
   nmethod,neq[3]={0,0,0},i,mpcfree=1,mei[4],j,nzl,nam,nbounold=0,
   nforcold=0,nloadold=0,nbody,nbody_=0,nbodyold=0,network=0,nheading_=0,
   k,nzs[3],nmpc_=0,nload_=0,nforc_=0,istep,istat,nboun_=0,nintpoint=0,
@@ -77,13 +77,13 @@ ITG nk,ne,nboun,nmpc,nforc,nload,nprint=0,nset,nalset,nentries=17,
   nzsprevstep[3],memmpcref_,mpcfreeref=-1,maxlenmpcref,*nodempcref=NULL,
   *ikmpcref=NULL,isens=0,namtot=0,nstam=0,ndamp=0,nef=0;
 
-ITG *meminset=NULL,*rmeminset=NULL;
+  ITG *meminset=NULL,*rmeminset=NULL;
 
-ITG nzs_,nk_=0,ne_=0,nset_=0,nalset_=0,nmat_=0,norien_=0,nam_=0,
+  ITG nzs_,nk_=0,ne_=0,nset_=0,nalset_=0,nmat_=0,norien_=0,nam_=0,
     ntrans_=0,ncs_=0,nstate_=0,ncmat_=0,memmpc_=0,nprint_=0,nuel_=0;
 
 
-double *co=NULL, *xboun=NULL, *coefmpc=NULL, *xforc=NULL,*clearini=NULL,
+  double *co=NULL, *xboun=NULL, *coefmpc=NULL, *xforc=NULL,*clearini=NULL,
 	*xload=NULL, *xbounold=NULL, *xforcold=NULL,
 	*vold=NULL, *sti=NULL, *xloadold=NULL, *xnor=NULL,
 	*reorder=NULL,*dcs=NULL, *thickn=NULL, *thicke=NULL, *offset=NULL,
