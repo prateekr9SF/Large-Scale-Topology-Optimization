@@ -755,6 +755,7 @@ while(istat>=0)
   /* reading the input file */
   if(istep==0)mortar=-1;
 
+  printf("Calling caliinput to parse inp file \n");
   FORTRAN(calinput,(co,&nk,kon,ipkon,lakon,&nkon,&ne,
             nodeboun,ndirboun,xboun,&nboun,
 	    ipompc,nodempc,coefmpc,&nmpc,&nmpc_,nodeforc,ndirforc,xforc,&nforc,
