@@ -247,12 +247,34 @@ FORTRAN(uexternaldb,(&lop,&lrestart,time,&dtime,&kstep,&kinc));
 
 FORTRAN(openfile,(jobnamef,output));
 
-printf("\n************************************************************\n\n");
-printf("CalculiX Version 2.15 Topology Optimization with SIMP Method, Ghanendra Kumar Das, CDILab, Aerospace Dept, UIUC \n");
-printf("Original FEA source code:CalculiX by G Dhond.\n");
+printf("************************************************************\n");
+printf("*                                                          *\n");
+printf("*                     CalTOP Framework                     *\n");
+printf("*                                                          *\n");
+printf("************************************************************\n");
+printf("*                                                          *\n");
+printf("*              _____________                               *\n");
+printf("*             /|          /|                               *\n");
+printf("*            /_|_________/ |                               *\n");
+printf("*           |  |   |    |  |                               *\n");
+printf("*           |  |___|____|  |                               *\n");
+printf("*           |  |   |    |  |                               *\n");
+printf("*           |  |___|____|  |                               *\n");
+printf("*           |  |   |    |  |                               *\n");
+printf("*           |  |___|____|_/                                *\n");
+printf("*           | /_________|/                                 *\n");
+printf("*                                                          *\n");
+printf("*    Calculix-based Topology Optimization Framework v1.0   *\n");
+printf("*                                                          *\n");
+printf("************************************************************\n");
+
+
+printf("Prateek Ranjan, Dept. of Aerospace Engineering, University of Illinois at Urbana-Champaign\n");
+printf("Ghanendra Kumar Das, Dept. of Aerospace Engineering, University of Illinois at Urbana-Champaign\n");
+printf("Kai A. James, Dept. of Aerospace Engineering, Georgia Institute of Technology\n");
+printf("\nOriginal FEA source code: CalculiX by G. Dhondt\n");
 printf("************************************************************\n\n");
-printf("\n\n");
-fflush(stdout);
+
 
 istep=0;
 istat=0;
@@ -755,7 +777,7 @@ while(istat>=0)
   /* reading the input file */
   if(istep==0)mortar=-1;
 
-  printf("Calling caliinput to parse inp file \n");
+
   FORTRAN(calinput,(co,&nk,kon,ipkon,lakon,&nkon,&ne,
             nodeboun,ndirboun,xboun,&nboun,
 	    ipompc,nodempc,coefmpc,&nmpc,&nmpc_,nodeforc,ndirforc,xforc,&nforc,
