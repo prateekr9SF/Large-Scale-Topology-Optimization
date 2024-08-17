@@ -872,7 +872,8 @@ writevfa.f \
 writeview.f \
 wye.f \
 zeta_calc.f \
-zienzhu.f  
+zienzhu.f  \
+tecplot.f
 
 SCCXC = \
 rho.c \

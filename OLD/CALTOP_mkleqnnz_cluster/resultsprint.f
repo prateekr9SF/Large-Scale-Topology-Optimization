@@ -116,13 +116,20 @@
 !
 !     output in dat file (with *NODE PRINT or *EL PRINT)
 !
-      call printout(set,nset,istartset,iendset,ialset,nprint,
+   !   call printout(set,nset,istartset,iendset,ialset,nprint,
+   !  &  prlab,prset,v,t1,fn,ipkon,lakon,stx,eei,xstate,ener,
+   !  &  mi(1),nstate_,ithermal,co,kon,qfx,ttime,trab,inotr,ntrans,
+   !  &  orab,ielorien,norien,nk,ne,inum,filab,vold,ikin,ielmat,thicke,
+   !  &  eme,islavsurf,mortar,time,ielprop,prop,veold,orname,
+   !  &  nelemload,nload,sideload,xload)
+!     
+      call tecplot(set,nset,istartset,iendset,ialset,nprint,
      &  prlab,prset,v,t1,fn,ipkon,lakon,stx,eei,xstate,ener,
      &  mi(1),nstate_,ithermal,co,kon,qfx,ttime,trab,inotr,ntrans,
      &  orab,ielorien,norien,nk,ne,inum,filab,vold,ikin,ielmat,thicke,
      &  eme,islavsurf,mortar,time,ielprop,prop,veold,orname,
      &  nelemload,nload,sideload,xload)
-!
+
 !     for facial information (*section print): if forces and/or
 !     moments in sections are requested, the stresses have to be
 !     extrapolated from the integration points to the nodes first
