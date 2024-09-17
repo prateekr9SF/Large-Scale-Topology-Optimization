@@ -81,51 +81,51 @@ int main(int argc,char *argv[])
   ITG  *jq=NULL;          /**< stores the row numbers for the spatse matrix structure of global stiffness matrix */
   ITG *mast1=NULL;        /**< master D.O.Fs for the MPC system */
   ITG *irow=NULL;         /**< row indices of non-zero entries in a sparse matrix represenation */
-  ITG *rig=NULL;
-  ITG *idefbody=NULL;
-  ITG  *ikmpc=NULL;
-  ITG *ilmpc=NULL;
-  ITG *ikboun=NULL;
-  ITG *ilboun=NULL;
-  ITG  *nreorder=NULL;
-  ITG *ipointer=NULL;
-  ITG *idefload=NULL;
-  ITG  *istartset=NULL;
-  ITG *iendset=NULL;
-  ITG *ialset=NULL;
-  ITG *ielmat=NULL;
-  ITG *ielorien=NULL;
-  ITG *nrhcon=NULL;
-  ITG *nodebounold=NULL;
-  ITG *ndirbounold=NULL;
-  ITG *nelcon=NULL;
-  ITG *nalcon=NULL;
-  ITG *iamforc=NULL;
-  ITG *iamload=NULL;
-  ITG *iamt1=NULL;
-  ITG *namta=NULL;
-  ITG *ipkon=NULL;
-  ITG *iamboun=NULL;
-  ITG *nplicon=NULL;
-  ITG *nplkcon=NULL;
-  ITG *inotr=NULL;
-  ITG *iponor=NULL;
-  ITG *knor=NULL;
-  ITG *ikforc=NULL;
-  ITG *ilforc=NULL;
-  ITG *iponoel=NULL;
-  ITG *inoel=NULL;
-  ITG *nshcon=NULL;
-  ITG *ncocon=NULL;
-  ITG *ibody=NULL;
-  ITG *ielprop=NULL;
-  ITG *islavsurf=NULL;
-  ITG *ipoinpc=NULL;
-  ITG mt;
-  ITG nxstate;
-  ITG nload0;
-  ITG iload;
-  ITG *iuel=NULL;
+  ITG *rig=NULL;          /**< rigid body modes */
+  ITG *idefbody=NULL;     /**< body force definition */
+  ITG  *ikmpc=NULL;       /**< global D.O.Fs of the dependent terms in MPCs */
+  ITG *ilmpc=NULL;        /**< MPICs indices in relation to their dependent terms */
+  ITG *ikboun=NULL;       /**< sorted D.O.Fs for SPCs */
+  ITG *ilboun=NULL;       /**< B.C node indices for SPCs */
+  ITG  *nreorder=NULL;    /**< Re-order node/element array for refinement */
+  ITG *ipointer=NULL;     /**< pointer for sparse matrix storage */
+  ITG *idefload=NULL;     /**< Load defined on same element/load label previously during analysis */
+  ITG  *istartset=NULL;   /**< stores starting position of element or node sets in certain operations */
+  ITG *iendset=NULL;      /**< stores starting position of element or node sets in certain operations */
+  ITG *ialset=NULL;       /**< information about the lements or nodes that belong to a set */
+  ITG *ielmat=NULL;       /**< material properties associated with each element */
+  ITG *ielorien=NULL;     /**< oreientation data for each element */
+  ITG *nrhcon=NULL;       /**< element heat conductivity values */
+  ITG *nodebounold=NULL;  /**< node numbers of SPCs from previous step/increment */
+  ITG *ndirbounold=NULL;  /**< node direction of SPCs from previous step/increment */
+  ITG *nelcon=NULL;        /**< elasticity constants for each element */
+  ITG *nalcon=NULL;       /**< load and boundary condition amplitude definition */
+  ITG *iamforc=NULL;      /**< concentrated force definition */
+  ITG *iamload=NULL;     /**< amplitude definition for distributed loads */
+  ITG *iamt1=NULL;      /**< amplitude definition for temperature loads */
+  ITG *namta=NULL;     /**< amplitude values for temperature definitions */
+  ITG *ipkon=NULL;    /** < element connectivity */
+  ITG *iamboun=NULL; /**< ampplitude definitins associated with SPCs */
+  ITG *nplicon=NULL; /**< number of plasticity constants for material */
+  ITG *nplkcon=NULL; /**< number of plasticity constants associated with elements */
+  ITG *inotr=NULL;   /**< nodal transformation data */
+  ITG *iponor=NULL; /**< node-element connectivity */
+  ITG *knor=NULL;  /**< face-normal vectors */
+  ITG *ikforc=NULL; /**< ordered D.O.Fs for concentrated loads */
+  ITG *ilforc=NULL; /**< load indices for concentrated loads */
+  ITG *iponoel=NULL; /**< node-element connectivity for each node */
+  ITG *inoel=NULL; /**< node numbers associated with each element */
+  ITG *nshcon=NULL; /**< number of shell conductivity values per element */
+  ITG *ncocon=NULL; /**< number of convection-related constants for the material */
+  ITG *ibody=NULL; /**< body-forces-relatred information for the elements */
+  ITG *ielprop=NULL; /**< element properties */
+  ITG *islavsurf=NULL; /**< surface-slave information for contact surfaces */
+  ITG *ipoinpc=NULL; /**< MPC location in input deck */
+  ITG mt; /**< number of D.O.Fs in the system */
+  ITG nxstate; /**< number of state variabels */
+  ITG nload0; /**< number of load aplications at the start of analysis */
+  ITG iload; /**< loop counter for handling loads in system */
+  ITG *iuel=NULL; /**< element numbers involved in user-defined subroutines */
 
   ITG nk;
   ITG ne;
