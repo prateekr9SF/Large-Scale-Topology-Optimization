@@ -20,41 +20,56 @@
 #include <stdlib.h>
 #include "CalculiX.h"
 
-int log_realloc=-1;
-
-/*
- Diehl program
+/*! \var int log_realloc
+    \brief Variable to log memory reallocation, initialized to -1.
 */
 
-void *u_calloc(size_t num,size_t size,const char *file,const int line, const char* ptr_name){
 
-    /* allocating num elements of size bytes and initializing them to zero */
+
+int log_realloc=-1;
+
+
+
+void *u_calloc(size_t num,size_t size,const char *file,const int line, const char* ptr_name)
+{
+
+  /* allocating num elements of size bytes and initializing them to zero */
 
   void *a;
   char *env;
 
-  if(num==0){
+  if(num==0)
+  {
     a=NULL;
     return(a);
   }
       
   a=calloc(num,size);
-  if(a==NULL){
+
+  if(a==NULL)
+  {
     printf("*ERROR in u_calloc: error allocating memory\n");
     printf("variable=%s, file=%s, line=%d, num=%ld, size=%ld\n",ptr_name,file,line,num,size);
-    if(num<0){
-	printf("\n It looks like you may need the i8 (integer*8) version of CalculiX\n");
+
+    if(num<0)
+    {
+	    printf("\n It looks like you may need the i8 (integer*8) version of CalculiX\n");
     }
     exit(16);
   }
-  else {
-    if(log_realloc==-1) {
+
+  else 
+  {
+    if(log_realloc==-1) 
+    {
       log_realloc=0;
       env=getenv("CCX_LOG_ALLOC");
       if(env) {log_realloc=atoi(env);}
-    }      
-    if(log_realloc==1) {
-	printf("ALLOCATION of variable %s, file %s, line=%d, num=%ld, size=%ld, address= %ld\n",ptr_name,file,line,num,size,(long int)a);
+    }
+
+    if(log_realloc==1) 
+    {
+	    printf("ALLOCATION of variable %s, file %s, line=%d, num=%ld, size=%ld, address= %ld\n",ptr_name,file,line,num,size,(long int)a);
     }      
     return(a);
   }

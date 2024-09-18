@@ -39,13 +39,53 @@
 #define CEE(A,B) A##B
 #endif
 
+/*--------------------------------------MACRO DEFINITIONS----------------------------*/
+
+/*
+ \def NNEW(a,b,c)
+ \brief A macro to allocate memory using u_calloc and provide detailed error reporting.
+
+ This macro simplifies dynamic memory allocation by calling the custom memory allocation function 
+ `u_calloc` and automatically handling the type casting. It also passes file name and line number 
+ information to `u_calloc` to assist in error reporting.
+*/
 #define NNEW(a,b,c) a=(b *)u_calloc((c),sizeof(b),__FILE__,__LINE__,#a)
+
+/*
+ \def RENEW(a,b,c)
+ \brief A macro to reallocate memory for a given pointer with type casting and error reporting.
+
+ This macro simplifies dynamic memory reallocation by calling the custom `u_realloc` function. 
+ It handles type casting and automatically passes file name and line number information to assist in error reporting. 
+ */
 #define RENEW(a,b,c) a=(b *)u_realloc((b *)(a),(c)*sizeof(b),__FILE__,__LINE__,#a)
+
+
+/*
+ \def SFREE(a)
+ \brief A macro to free dynamically allocated memory and provide logging support.
+
+ This macro calls the custom `u_free` function to deallocate memory for a given pointer `a`. 
+ It also provides file name and line number information for error tracking and logging.
+*/
 #define SFREE(a) u_free(a,__FILE__,__LINE__,#a)
+
 
 // #define RENEW(a,b,c) a=(b *) realloc((b *)(a),(c)*sizeof(b))
 
+/*
+ \def DMEMSET(a,b,c,d)
+ \brief A macro to set a range of elements in an array to a specified value.
+
+ This macro iterates through a range of indices in the array `a` and assigns each element in that range the value `d`.
+
+ \note The loop iteration variable `im` must be declared in the scope where the macro is used, as it is not defined within the macro itself.
+ */
 #define DMEMSET(a,b,c,d) for(im=b;im<c;im++)a[im]=d
+
+
+
+/*------------------------------------------------------------------------------------------*/
 
 #ifdef LONGLONG
 #define ITG long long
@@ -4712,10 +4752,74 @@ void FORTRAN(updatecontpen,(ITG *koncont,ITG *ncont,double *co,double *vold,
                          ITG *iendset,ITG *ialset,ITG *ipkon,char *lakon,
 			 ITG *kon,double *cs,ITG *mcs,ITG *ics));
 
+
+/*!
+ \brief Allocates memory and initializes it to zero.
+
+ \param[in] num The number of elements to allocate.
+ \param[in] size The size of each element in bytes.
+ \param[in] file The source file name where this function is invoked (used for error reporting).
+ \param[in] line The line number in the source file where this function is invoked (used for error reporting).
+ \param[in] ptr_name A string representing the name of the variable being allocated (used for logging purposes).
+
+ \return A pointer to the allocated memory. If allocation fails, the program will print an error message and exit.
+
+ \details
+ This function uses `calloc` to allocate memory and initializes it to zero. If the memory allocation fails, it 
+ prints an error message containing details such as the variable name, file name, and line number, then exits 
+ the program. If the environment variable `CCX_LOG_ALLOC` is set, the function logs the memory allocation details.
+ */
 void *u_calloc(size_t num,size_t size,const char *file,const int line,const char *ptr_name);
 
+
+/*!
+ \brief A function that frees dynamically allocated memory with optional logging.
+
+ \param[in] ptr The pointer to the memory block to be freed.
+ \param[in] file The name of the file where the free operation is invoked (used for logging purposes).
+ \param[in] line The line number in the file where the free operation is invoked (used for logging purposes).
+ \param[in] ptr_name The name of the pointer being freed (used for logging purposes).
+
+ \return Always returns `NULL` after freeing the memory.
+
+ \details
+ The `u_free` function frees the memory block pointed to by `ptr` using the standard `free` function. 
+ If the environment variable `CCX_LOG_ALLOC` is set, or if the `log_realloc` flag is manually set to 1, 
+ the function logs details about the memory deallocation, including the variable name, file name, 
+ line number, and memory address. After freeing, the function returns `NULL` to ensure the pointer is reset.
+
+ Example usage:
+ \code
+ int *arr = malloc(100 * sizeof(int));  // Allocate memory for an array of 100 integers
+ arr = u_free(arr, __FILE__, __LINE__, "arr");  // Free memory and log the deallocation
+ \endcode
+
+ \note 
+ Always make sure to free dynamically allocated memory once it is no longer needed to avoid memory leaks. 
+ The program will not check if the pointer is already freed, so avoid double freeing.
+*/
 void *u_free(void* num,const char *file,const int line,const char *ptr_name);
 
+
+/*!
+ \brief A function that reallocates memory for a given pointer.
+
+ \param[in] ptr The original memory pointer to reallocate.
+ \param[in] size The new size in bytes for the reallocated memory.
+ \param[in] file The name of the file calling this function (for error reporting).
+ \param[in] line The line number in the file where the call is made.
+ \param[in] ptr_name The name of the variable being reallocated (used for logging purposes).
+
+ \return A pointer to the reallocated memory, or exits the program if reallocation fails.
+
+ \details
+ This function uses `realloc` to resize an existing memory block. If memory allocation fails, 
+ it prints an error message containing details such as the variable name, file name, and line number, 
+ then exits the program. If the environment variable `CCX_LOG_ALLOC` is set, the function logs 
+ the memory reallocation details, including the old and new memory addresses.
+
+ If the reallocation fails, the program will exit with an error message.
+*/
 void *u_realloc(void* num,size_t size,const char *file,const int line,const char *ptr_name);
 
 void FORTRAN(velsolve,(ITG *nef,ITG *ipnei,double *bv,double *auv,double *adv,

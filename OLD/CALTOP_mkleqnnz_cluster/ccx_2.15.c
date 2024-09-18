@@ -574,6 +574,7 @@ nam=0;
 
 nlabel=48;
 
+/* While the status variable istat is non-negative */
 while(istat>=0)
 {
   fflush(stdout);
@@ -1081,10 +1082,17 @@ while(istat>=0)
 
   if((istep==1)&&(mortar==-1))
   {
-    mortar=0;}else{icontact=1;
+    mortar=0;
+  }
+  else
+  {
+    icontact=1;
   }
 
-  nload0=nload;SFREE(idefforc);SFREE(idefload);SFREE(idefbody);
+  nload0=nload;
+  SFREE(idefforc);
+  SFREE(idefload);
+  SFREE(idefbody);
 
   if(nheading_>=0)
   {
@@ -2323,21 +2331,21 @@ while(istat>=0)
 	      pslavsurf,clearini,irstrt,vel,&nef,velo,veloo));
     }
   }
-} // end while(istat>=0)
+ } // end while(istat>=0)
 
-FORTRAN(closefile,());
+  FORTRAN(closefile,());
 
-strcpy(fneig,jobnamec);
-strcat(fneig,".frd");
+  strcpy(fneig,jobnamec);
+  strcat(fneig,".frd");
 
-if((f1=fopen(fneig,"ab"))==NULL)
-{
-  printf("*ERROR in frd: cannot open frd file for writing...");
-  exit(0);
-}
+  if((f1=fopen(fneig,"ab"))==NULL)
+  {
+    printf("*ERROR in frd: cannot open frd file for writing...");
+    exit(0);
+  }
 
-fprintf(f1," 9999\n");
-fclose(f1);
+  fprintf(f1," 9999\n");
+  fclose(f1);
 
 /* deallocating the fields
    this section is addressed immediately after leaving calinput */
@@ -2348,88 +2356,205 @@ fclose(f1);
    SFREE(gradComplFiltered);SFREE(eleVolFiltered);SFREE(designFiltered);
  }*/
 
-
-SFREE(filternnzElems);SFREE(FilterMatrixs);SFREE(rowFilters);SFREE(colFilters);
-   SFREE(gradCompl);SFREE(elCompl);SFREE(eleVol);SFREE(elCG);
-   SFREE(gradComplFiltered);SFREE(eleVolFiltered);
+  /* Free topolology-optimization related fields */
+  SFREE(filternnzElems);
+  SFREE(FilterMatrixs);
+  SFREE(rowFilters);
+  SFREE(colFilters);
+  SFREE(gradCompl);
+  SFREE(elCompl);
+  SFREE(eleVol);
+  SFREE(elCG);
+  SFREE(gradComplFiltered);
+  SFREE(eleVolFiltered);
    
 //SFREE(designFiltered);
 
+  SFREE(ipoinpc);
+  SFREE(inpc);
+  SFREE(inp);
+  SFREE(ipoinp);
 
+  if(ncs_>0) SFREE(ics);
+  if(mcs>0) SFREE(cs);
+  SFREE(tieset);
+  SFREE(tietol);
 
+  SFREE(co);
+  SFREE(kon);
+  SFREE(ipkon);
+  SFREE(lakon);
+  SFREE(design);
+  SFREE(rhoPhys);
 
+  SFREE(nodeboun);
+  SFREE(ndirboun);
+  SFREE(typeboun);
+  SFREE(xboun);
+  SFREE(ikboun);
+  SFREE(ilboun);
+  SFREE(nodebounold);
+  SFREE(ndirbounold);
+  SFREE(xbounold);
 
+  SFREE(ipompc);
+  SFREE(labmpc);
+  SFREE(ikmpc);
+  SFREE(ilmpc);
+  SFREE(fmpc);
+  SFREE(nodempc);
+  SFREE(coefmpc);
 
-SFREE(ipoinpc);SFREE(inpc);SFREE(inp);SFREE(ipoinp);
+  SFREE(nodempcref);
+  SFREE(coefmpcref);
+  SFREE(ikmpcref);
 
-if(ncs_>0) SFREE(ics);
-if(mcs>0) SFREE(cs);
-SFREE(tieset);SFREE(tietol);
+  SFREE(nodeforc);
+  SFREE(ndirforc);
+  SFREE(xforc);
+  SFREE(ikforc);
+  SFREE(ilforc);
+  SFREE(xforcold);
 
-SFREE(co);SFREE(kon);SFREE(ipkon);SFREE(lakon);SFREE(design);SFREE(rhoPhys);
+  SFREE(nelemload);
+  SFREE(sideload);
+  SFREE(xload);
+  SFREE(xloadold);
 
-SFREE(nodeboun);SFREE(ndirboun);SFREE(typeboun);SFREE(xboun);SFREE(ikboun);
-SFREE(ilboun);SFREE(nodebounold);SFREE(ndirbounold);SFREE(xbounold);
+  SFREE(cbody);
+  SFREE(ibody);
+  SFREE(xbody);
+  SFREE(xbodyold);
 
-SFREE(ipompc);SFREE(labmpc);SFREE(ikmpc);SFREE(ilmpc);SFREE(fmpc);
-SFREE(nodempc);SFREE(coefmpc);
+  if(nam>0)
+  {
+    SFREE(iamboun);
+    SFREE(iamforc);
+    SFREE(iamload);
+    SFREE(amname);
+    SFREE(amta);
+    SFREE(namta);
+  }
 
-SFREE(nodempcref);SFREE(coefmpcref);SFREE(ikmpcref);
+  SFREE(set);
+  SFREE(istartset);
+  SFREE(iendset);
+  SFREE(ialset);
 
-SFREE(nodeforc);SFREE(ndirforc);SFREE(xforc);SFREE(ikforc);SFREE(ilforc);
-SFREE(xforcold);
+  SFREE(elcon);
+  SFREE(nelcon);
+  SFREE(rhcon);
+  SFREE(nrhcon);
+  SFREE(shcon);
+  SFREE(nshcon);
+  SFREE(cocon);
+  SFREE(ncocon);
+  SFREE(alcon);
+  SFREE(nalcon);
+  SFREE(alzero);
 
-SFREE(nelemload);SFREE(sideload);SFREE(xload);SFREE(xloadold);
+  if(nprop>0)
+  {
+    SFREE(ielprop);SFREE(prop);
+  }
 
-SFREE(cbody);SFREE(ibody);SFREE(xbody);SFREE(xbodyold);
+  if(npmat_>0)
+  {
+    SFREE(plicon);
+    SFREE(nplicon);
+    SFREE(plkcon);
+    SFREE(nplkcon);
+  }
 
-if(nam>0){SFREE(iamboun);SFREE(iamforc);SFREE(iamload);SFREE(amname);
-    SFREE(amta);SFREE(namta);}
+  if(ndamp>0)
+  {
+    SFREE(dacon);
+  }
 
-SFREE(set);SFREE(istartset);SFREE(iendset);SFREE(ialset);
+  if(norien>0)
+  {
+    SFREE(orname);
+    SFREE(orab);
+    SFREE(ielorien);
+  }
 
-SFREE(elcon);SFREE(nelcon);SFREE(rhcon);SFREE(nrhcon);SFREE(shcon);SFREE(nshcon);
-SFREE(cocon);SFREE(ncocon);SFREE(alcon);SFREE(nalcon);SFREE(alzero);
-if(nprop>0){SFREE(ielprop);SFREE(prop);}
-if(npmat_>0){SFREE(plicon);SFREE(nplicon);SFREE(plkcon);SFREE(nplkcon);}
-if(ndamp>0){SFREE(dacon);}
+  if(ntrans>0)
+  {
+    SFREE(trab);
+    SFREE(inotr);
+  }
 
-if(norien>0){SFREE(orname);SFREE(orab);SFREE(ielorien);}
-if(ntrans>0){SFREE(trab);SFREE(inotr);}
-if(iprestr>0){SFREE(prestr);}
+  if(iprestr>0)
+  {
+    SFREE(prestr);
+  }
 
-if(ithermal[0]!=0){
-    SFREE(t0);SFREE(t1);SFREE(t1old);
+  if(ithermal[0]!=0)
+  {
+    SFREE(t0);
+    SFREE(t1);
+    SFREE(t1old);
+
     if(nam>0) SFREE(iamt1);
-    if((ne1d!=0)||(ne2d!=0)){SFREE(t0g);SFREE(t1g);}
-}
 
-SFREE(prlab);SFREE(prset);SFREE(filab);SFREE(xmodal);
+    if((ne1d!=0)||(ne2d!=0))
+    {
+      SFREE(t0g);
+      SFREE(t1g);
+    }
+  }
 
-SFREE(ielmat);SFREE(matname);
+  SFREE(prlab);
+  SFREE(prset);
+  SFREE(filab);
+  SFREE(xmodal);
 
-SFREE(sti);SFREE(eme);SFREE(ener);SFREE(xstate);
+  SFREE(ielmat);
+  SFREE(matname);
 
-SFREE(vold);SFREE(veold);SFREE(vel);SFREE(velo);SFREE(veloo);
+  SFREE(sti);
+  SFREE(eme);
+  SFREE(ener);
+  SFREE(xstate);
 
-if((ne1d!=0)||(ne2d!=0)){
-    SFREE(iponor);SFREE(xnor);SFREE(knor);SFREE(thicke);SFREE(offset);
-    SFREE(iponoel);SFREE(inoel);SFREE(rig);
-}
+  SFREE(vold);
+  SFREE(veold);
+  SFREE(vel);
+  SFREE(velo);
+  SFREE(veloo);
 
-SFREE(islavsurf);
-if(mortar==1){SFREE(pslavsurf);SFREE(clearini);}
+  if((ne1d!=0)||(ne2d!=0))
+  {
+    SFREE(iponor);
+    SFREE(xnor);
+    SFREE(knor);
+    SFREE(thicke);
+    SFREE(offset);
+    SFREE(iponoel);
+    SFREE(inoel);
+    SFREE(rig);
+  }
 
-if(nobject_>0){SFREE(objectset);}
+  SFREE(islavsurf);
 
-#ifdef CALCULIX_MPI
-MPI_Finalize();
-#endif
+  if(mortar==1)
+  {
+    SFREE(pslavsurf);
+    SFREE(clearini);
+  }
 
-#ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
- calculix_freeExternalBehaviours();
-#endif /* CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT */
+  if(nobject_>0)
+  {
+    SFREE(objectset);
+  }
 
- return 0;
+  #ifdef CALCULIX_MPI
+  MPI_Finalize();
+  #endif
 
+  #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
+  calculix_freeExternalBehaviours();
+  #endif /* CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT */
+
+  return 0;
 }
