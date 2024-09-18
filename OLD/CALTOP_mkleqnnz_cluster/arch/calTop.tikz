@@ -1,0 +1,1753 @@
+
+%%% Preamble Requirements %%%
+% \usepackage{geometry}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{tikz}
+
+% Optional packages such as sfmath set through python interface
+% \usepackage{sfmath}
+
+% \usetikzlibrary{arrows,chains,positioning,scopes,shapes.geometric,shapes.misc,shadows}
+
+%%% End Preamble Requirements %%%
+
+\input{"/home/prateek/Documents/Github/pyXDSM/pyxdsm/diagram_styles"}
+\begin{tikzpicture}
+
+\matrix[MatrixSetup]{
+%Row 0
+\node [Optimization] (main) {$\text{main.c}$};&
+\node [DataInter] (main-readinput) {$\text{jobname,..,nuel}$};&
+\node [DataInter] (main-allocation) {$\text{nload,..,nef}$};&
+\node [DataInter] (main-calinput) {$\text{cp,..,veloo}$};&
+\node [DataInter] (main-rho) {$\text{design,ne}$};&
+\node [DataInter] (main-linstatic) {$\text{co,...,pstiff}$};&
+\node [DataInter] (main-nonlingeo) {$\text{co,..,pstiff}$};&
+\node [DataInter] (main-sensitivity) {$\text{co,..,eleVol}$};&
+\node [DataInter] (main-filterVector) {$\text{ipkon,..,qfilter}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 1
+&
+\node [Group] (readinput) {$\text{readinput.c}$};&
+&
+&
+&
+&
+&
+&
+&
+\node [DataInter] (readinput-includefilename) {$\text{buff,..,includefn}$};&
+&
+&
+&
+\node [DataInter] (readinput-restartshort) {$\text{nset,..,nef}$};&
+&
+\node [DataInter] (readinput-keystart) {$\text{ifreeinp,..,ikey}$};&
+\node [DataInter] (readinput-splitline) {$\text{buff,..,n}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 2
+&
+&
+\node [Group] (allocation) {$\text{allocation.f}$};&
+&
+&
+&
+&
+&
+&
+&
+\node [DataInter] (allocation-getnewline) {$\text{inpc,..,ipoinpc}$};&
+\node [DataInter] (allocation-inputerror) {$\text{inpc,..,iline}$};&
+\node [DataInter] (allocation-nidentk) {$\text{iuel,..,four}$};&
+\node [DataInter] (allocation-restartshort) {$\text{iuel,..,four}$};&
+\node [DataInter] (allocation-userelements) {$\text{textpart,..,ipol}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 3
+&
+&
+&
+\node [Group] (calinput) {$\text{calinput.f}$};&
+&
+&
+&
+&
+&
+&
+\node [DataInter] (calinput-getnewline) {$\text{inpc,..,ipoinpc}$};&
+&
+&
+&
+&
+&
+&
+\node [DataInter] (calinput-boundarys) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-buckles) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-cloads) {$\text{inpc,..,flag}$};&
+\node [DataInter] (calinput-dampings) {$\text{inpc,..,nmat}$};&
+\node [DataInter] (calinput-densitys) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-depvars) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-designvariables) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-dloads) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-elastics) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-noelfiles) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-elprints) {$\text{inpc,..,flag}$};&
+\node [DataInter] (calinput-noelsets) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-sectionprints) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-materials) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-nodes) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-nodeprints) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-objective) {$\text{inpc,..,flag}$};&
+\node [DataInter] (calinput-outputs) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-solidsections) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-statics) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-steps) {$\text{inpc,..,namtot}$};&
+\node [DataInter] (calinput-surfaces) {$\text{inpc,..,ier}$};&
+\node [DataInter] (calinput-gen3delem) {$\text{kin,..,jobname}$};\\
+%Row 4
+&
+&
+&
+&
+\node [Group] (rho) {$\text{rho.c}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 5
+&
+&
+&
+&
+&
+\node [Group] (linstatic) {$\text{linstatic.c}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 6
+&
+&
+&
+&
+&
+&
+\node [Group] (nonlingeo) {$\text{nonlingeo.c}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 7
+&
+&
+&
+&
+&
+&
+&
+\node [Group] (sensitivity) {$\text{sensitivity.c}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 8
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Group] (filterVector) {$\text{filterVector.c}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 9
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (includefilename) {$\text{includefilename.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 10
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (getnewline) {$\text{getnewline.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 11
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (inputerror) {$\text{inputerror.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 12
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (nidentk) {$\text{nidentk.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 13
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (restartshort) {$\text{restartshort.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 14
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (userelements) {$\text{userelements.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 15
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (keystart) {$\text{keystart.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 16
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (splitline) {$\text{splitline.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 17
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (boundarys) {$\text{boundarys.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 18
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (buckles) {$\text{buckles.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 19
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (cloads) {$\text{cloads.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 20
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (dampings) {$\text{dampings.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 21
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (densitys) {$\text{densitys.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 22
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (depvars) {$\text{depvars.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 23
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (designvariables) {$\text{designvariables.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 24
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (dloads) {$\text{dloads.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 25
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (elastics) {$\text{elastics.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 26
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (noelfiles) {$\text{noelfiles.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 27
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (elprints) {$\text{elprints.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 28
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (noelsets) {$\text{noelsets.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 29
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (sectionprints) {$\text{sectionprints.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 30
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (materials) {$\text{materials.f}$};&
+&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 31
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (nodes) {$\text{nodes.f}$};&
+&
+&
+&
+&
+&
+&
+&
+\\
+%Row 32
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (nodeprints) {$\text{nodeprints.f}$};&
+&
+&
+&
+&
+&
+&
+\\
+%Row 33
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (objective) {$\text{objective.f}$};&
+&
+&
+&
+&
+&
+\\
+%Row 34
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (outputs) {$\text{outputs.f}$};&
+&
+&
+&
+&
+\\
+%Row 35
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (solidsections) {$\text{solidsections.f}$};&
+&
+&
+&
+\\
+%Row 36
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (statics) {$\text{statics.f}$};&
+&
+&
+\\
+%Row 37
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (steps) {$\text{steps.f}$};&
+&
+\\
+%Row 38
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (surfaces) {$\text{surfaces.f}$};&
+\\
+%Row 39
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (gen3delem) {$\text{gen3delem.f}$};\\
+};
+
+% XDSM process chains
+
+
+\begin{pgfonlayer}{data}
+\path
+% Horizontal edges
+(readinput) edge [DataLine] (readinput-includefilename)
+(readinput) edge [DataLine] (readinput-keystart)
+(readinput) edge [DataLine] (readinput-splitline)
+(readinput) edge [DataLine] (readinput-restartshort)
+(allocation) edge [DataLine] (allocation-getnewline)
+(allocation) edge [DataLine] (allocation-inputerror)
+(allocation) edge [DataLine] (allocation-nidentk)
+(allocation) edge [DataLine] (allocation-restartshort)
+(allocation) edge [DataLine] (allocation-userelements)
+(calinput) edge [DataLine] (calinput-getnewline)
+(calinput) edge [DataLine] (calinput-boundarys)
+(calinput) edge [DataLine] (calinput-buckles)
+(calinput) edge [DataLine] (calinput-cloads)
+(calinput) edge [DataLine] (calinput-dampings)
+(calinput) edge [DataLine] (calinput-densitys)
+(calinput) edge [DataLine] (calinput-depvars)
+(calinput) edge [DataLine] (calinput-designvariables)
+(calinput) edge [DataLine] (calinput-dloads)
+(calinput) edge [DataLine] (calinput-elastics)
+(calinput) edge [DataLine] (calinput-noelfiles)
+(calinput) edge [DataLine] (calinput-elprints)
+(calinput) edge [DataLine] (calinput-noelsets)
+(calinput) edge [DataLine] (calinput-sectionprints)
+(calinput) edge [DataLine] (calinput-materials)
+(calinput) edge [DataLine] (calinput-nodes)
+(calinput) edge [DataLine] (calinput-nodeprints)
+(calinput) edge [DataLine] (calinput-objective)
+(calinput) edge [DataLine] (calinput-outputs)
+(calinput) edge [DataLine] (calinput-solidsections)
+(calinput) edge [DataLine] (calinput-statics)
+(calinput) edge [DataLine] (calinput-steps)
+(calinput) edge [DataLine] (calinput-surfaces)
+(calinput) edge [DataLine] (calinput-gen3delem)
+(main) edge [DataLine] (main-readinput)
+(main) edge [DataLine] (main-allocation)
+(main) edge [DataLine] (main-calinput)
+(main) edge [DataLine] (main-rho)
+(main) edge [DataLine] (main-linstatic)
+(main) edge [DataLine] (main-nonlingeo)
+(main) edge [DataLine] (main-sensitivity)
+(main) edge [DataLine] (main-filterVector)
+% Vertical edges
+(readinput-includefilename) edge [DataLine] (includefilename)
+(readinput-keystart) edge [DataLine] (keystart)
+(readinput-splitline) edge [DataLine] (splitline)
+(readinput-restartshort) edge [DataLine] (restartshort)
+(allocation-getnewline) edge [DataLine] (getnewline)
+(allocation-inputerror) edge [DataLine] (inputerror)
+(allocation-nidentk) edge [DataLine] (nidentk)
+(allocation-restartshort) edge [DataLine] (restartshort)
+(allocation-userelements) edge [DataLine] (userelements)
+(calinput-getnewline) edge [DataLine] (getnewline)
+(calinput-boundarys) edge [DataLine] (boundarys)
+(calinput-buckles) edge [DataLine] (buckles)
+(calinput-cloads) edge [DataLine] (cloads)
+(calinput-dampings) edge [DataLine] (dampings)
+(calinput-densitys) edge [DataLine] (densitys)
+(calinput-depvars) edge [DataLine] (depvars)
+(calinput-designvariables) edge [DataLine] (designvariables)
+(calinput-dloads) edge [DataLine] (dloads)
+(calinput-elastics) edge [DataLine] (elastics)
+(calinput-noelfiles) edge [DataLine] (noelfiles)
+(calinput-elprints) edge [DataLine] (elprints)
+(calinput-noelsets) edge [DataLine] (noelsets)
+(calinput-sectionprints) edge [DataLine] (sectionprints)
+(calinput-materials) edge [DataLine] (materials)
+(calinput-nodes) edge [DataLine] (nodes)
+(calinput-nodeprints) edge [DataLine] (nodeprints)
+(calinput-objective) edge [DataLine] (objective)
+(calinput-outputs) edge [DataLine] (outputs)
+(calinput-solidsections) edge [DataLine] (solidsections)
+(calinput-statics) edge [DataLine] (statics)
+(calinput-steps) edge [DataLine] (steps)
+(calinput-surfaces) edge [DataLine] (surfaces)
+(calinput-gen3delem) edge [DataLine] (gen3delem)
+(main-readinput) edge [DataLine] (readinput)
+(main-allocation) edge [DataLine] (allocation)
+(main-calinput) edge [DataLine] (calinput)
+(main-rho) edge [DataLine] (rho)
+(main-linstatic) edge [DataLine] (linstatic)
+(main-nonlingeo) edge [DataLine] (nonlingeo)
+(main-sensitivity) edge [DataLine] (sensitivity)
+(main-filterVector) edge [DataLine] (filterVector);
+\end{pgfonlayer}
+
+\end{tikzpicture}
