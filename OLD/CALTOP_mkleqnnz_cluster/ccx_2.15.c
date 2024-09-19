@@ -577,6 +577,7 @@ nlabel=48;
 /* While the status variable istat is non-negative */
 while(istat>=0)
 {
+  printf("iStep at begining of outer loop: %d ", istat);
   fflush(stdout);
 
   /* in order to reduce the number of variables to be transferred to
@@ -1507,10 +1508,10 @@ while(istat>=0)
      }
 
   /* not being used so free memory */
-  else 
-  {
-    SFREE(veold);
-  }
+  //else 
+  //{
+  //  SFREE(veold);
+ // }
 
   /* if solving linear dynamic system with geometric non-linearities */
 
@@ -1852,7 +1853,6 @@ while(istat>=0)
         nzsprevstep[i]=nzs[i];
       }
     } // end else
-    printf("Current STEP is: %d ", istep);
   } //end if((nmethod<=1)||(nmethod==11)||((iperturb[0]>1)&&(nmethod<8)))
   
   
@@ -2099,7 +2099,7 @@ while(istat>=0)
     /* adjoint sensitivity calculation */
     if(pSupplied!=0)
     {
-      printf("Performing adjoint sensitivty calculations...");
+      printf("Starting adjoint sensitivty calculations");
       //printf("\n For compliance, penalty=%f \n",pstiff);
 
       /* allocate memory for compliance gradient and initialize to zero */
@@ -2125,6 +2125,7 @@ while(istat>=0)
 
 
       /* Evaluate sensitivities */
+      printf("Adjoint sensitivity analysis...");
 	    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
              ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2143,16 +2144,18 @@ while(istat>=0)
 	     ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
              jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol);
+      printf("done! \n");
 
-
+      printf("Filter compliance gradient...");
       /* Filter compliance gradient */
       filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter); //Filter Compliance sensitivity
+      printf("done! \n");
 
+      printf("Filter element volume gradient...");
       /* Filter element volume gradient */
       filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter); //Filter volume sensitivity
       ends = time(NULL);
-      
-      printf("done! \n");
+      printf("done!\n");
 	    //printf("Time taken for sensitivity calculation: %.2f seconds \n", 
 		  //difftime(ends, starts)); 
 
@@ -2230,16 +2233,16 @@ while(istat>=0)
       mnd=(4*mnd*100/ne);
   
      /* print output */
-      printf("*************************");
-      printf("\n Total Compliance (No Scaling) : %.15f \n",compliance_sum);
-      printf("Total domain volume (No Scaling) : %.15f \n", initialVol_sum);
-      printf("Current domain volume (No Scaling) : %.15f \n", designVol_sum);
-      printf("Volume constraint violation (No Scaling) : %.15f \n",designVol_sum-volfrac*initialVol_sum);
-      printf("Discreteness, mnd, percent : %.15f \n",mnd);
-      printf("*************************");
+      
+      printf("\nTotal Compliance (No Scaling):          %.6f \n",compliance_sum);
+      printf("Total domain volume (No Scaling):         %.6f \n", initialVol_sum);
+      printf("Current domain volume (No Scaling):       %.6f \n", designVol_sum);
+      printf("Volume constraint violation (No Scaling): %.6f \n",designVol_sum-volfrac*initialVol_sum);
+      printf("Discreteness, mnd, percent:               %.6f \n",mnd);
+
     } // end adjoint calculation
 
-    
+    printf("\nWriting rhos.dat...");
     fflush(stdout);
 
     FILE *rho_file;
@@ -2256,6 +2259,8 @@ while(istat>=0)
 
     /* all operations done, close file */
     fclose(rho_file);
+
+    printf("done!\n");
 
 
     SFREE(nactdof);
@@ -2357,7 +2362,7 @@ while(istat>=0)
     }
 
     /* removing the advective elements, if any */
-
+    printf("Removing advecting elements...\n");
     if(network>0)
     {
       ne=ne0;nkon=nkon0;
@@ -2392,7 +2397,7 @@ while(istat>=0)
   {
     SFREE(accold);
   }
-
+  printf("Checking for restart analysis\n");
   if(irstrt[0]>0)
   {
     jrstrt++;
@@ -2422,13 +2427,22 @@ while(istat>=0)
 	      pslavsurf,clearini,irstrt,vel,&nef,velo,veloo));
     }
   }
+  if(istep == 1)
+  {
+    printf("Linear analysis complete!\n");
+    break;
+  }
+
  } // end while(istat>=0)
 
   FORTRAN(closefile,());
 
+  printf("Close fortran file!\n");
+  /*
   strcpy(fneig,jobnamec);
   strcat(fneig,".frd");
 
+  printf("I am trying to write the frd file.\n");
   if((f1=fopen(fneig,"ab"))==NULL)
   {
     printf("*ERROR in frd: cannot open frd file for writing...");
@@ -2437,11 +2451,12 @@ while(istat>=0)
 
   fprintf(f1," 9999\n");
   fclose(f1);
-
+  printf("FRD file sucessfully closed!\n");
+  */
 /* deallocating the fields
    this section is addressed immediately after leaving calinput */
 
-  printf("De-allocating memory...");
+  
 
 //free up space
 /* if(pSupplied!=0){SFREE(filternnzElem);SFREE(FilterMatrix);SFREE(rowFilter);SFREE(colFilter);
@@ -2449,9 +2464,15 @@ while(istat>=0)
    SFREE(gradComplFiltered);SFREE(eleVolFiltered);SFREE(designFiltered);
  }*/
 
+
+
   /* Free topolology-optimization related fields */
+  printf("Delete topology optimization parameters\n");
+  
   SFREE(filternnzElems);
+  
   SFREE(FilterMatrixs);
+
   SFREE(rowFilters);
   SFREE(colFilters);
   SFREE(gradCompl);
@@ -2460,6 +2481,8 @@ while(istat>=0)
   SFREE(elCG);
   SFREE(gradComplFiltered);
   SFREE(eleVolFiltered);
+
+   
    
 //SFREE(designFiltered);
 
@@ -2468,17 +2491,28 @@ while(istat>=0)
   SFREE(inp);
   SFREE(ipoinp);
 
+   
+
   if(ncs_>0) SFREE(ics);
   if(mcs>0) SFREE(cs);
   SFREE(tieset);
   SFREE(tietol);
+
+  
 
   SFREE(co);
   SFREE(kon);
   SFREE(ipkon);
   SFREE(lakon);
   SFREE(design);
-  SFREE(rhoPhys);
+  
+
+  //free(rhoPhys);
+  //SFREE(rhoPhys);
+
+  
+
+  
 
   SFREE(nodeboun);
   SFREE(ndirboun);
@@ -2490,6 +2524,8 @@ while(istat>=0)
   SFREE(ndirbounold);
   SFREE(xbounold);
 
+  
+
   SFREE(ipompc);
   SFREE(labmpc);
   SFREE(ikmpc);
@@ -2497,6 +2533,8 @@ while(istat>=0)
   SFREE(fmpc);
   SFREE(nodempc);
   SFREE(coefmpc);
+
+  
 
   SFREE(nodempcref);
   SFREE(coefmpcref);
@@ -2509,6 +2547,8 @@ while(istat>=0)
   SFREE(ilforc);
   SFREE(xforcold);
 
+  
+
   SFREE(nelemload);
   SFREE(sideload);
   SFREE(xload);
@@ -2518,6 +2558,8 @@ while(istat>=0)
   SFREE(ibody);
   SFREE(xbody);
   SFREE(xbodyold);
+
+  
 
   if(nam>0)
   {
@@ -2545,6 +2587,8 @@ while(istat>=0)
   SFREE(alcon);
   SFREE(nalcon);
   SFREE(alzero);
+
+  
 
   if(nprop>0)
   {
@@ -2602,6 +2646,8 @@ while(istat>=0)
   SFREE(filab);
   SFREE(xmodal);
 
+ 
+
   SFREE(ielmat);
   SFREE(matname);
 
@@ -2610,11 +2656,18 @@ while(istat>=0)
   SFREE(ener);
   SFREE(xstate);
 
+  
+
   SFREE(vold);
+  printf("vold\n");
   SFREE(veold);
+
+  
   SFREE(vel);
   SFREE(velo);
   SFREE(veloo);
+
+  
 
   if((ne1d!=0)||(ne2d!=0))
   {
