@@ -2235,8 +2235,8 @@ while(istat>=0)
      /* print output */
       
       printf("\nTotal Compliance (No Scaling):          %.6f \n",compliance_sum);
-      printf("Total domain volume (No Scaling):         %.6f \n", initialVol_sum);
-      printf("Current domain volume (No Scaling):       %.6f \n", designVol_sum);
+      printf("Total domain volume (No Scaling):         %.6f \n",initialVol_sum);
+      printf("Current domain volume (No Scaling):       %.6f \n",designVol_sum);
       printf("Volume constraint violation (No Scaling): %.6f \n",designVol_sum-volfrac*initialVol_sum);
       printf("Discreteness, mnd, percent:               %.6f \n",mnd);
 
@@ -2362,7 +2362,6 @@ while(istat>=0)
     }
 
     /* removing the advective elements, if any */
-    printf("Removing advecting elements...\n");
     if(network>0)
     {
       ne=ne0;nkon=nkon0;
@@ -2397,7 +2396,6 @@ while(istat>=0)
   {
     SFREE(accold);
   }
-  printf("Checking for restart analysis\n");
   if(irstrt[0]>0)
   {
     jrstrt++;
@@ -2435,9 +2433,10 @@ while(istat>=0)
 
  } // end while(istat>=0)
 
+  printf("De-allocate memory...");
+
   FORTRAN(closefile,());
 
-  printf("Close fortran file!\n");
   /*
   strcpy(fneig,jobnamec);
   strcat(fneig,".frd");
@@ -2467,12 +2466,8 @@ while(istat>=0)
 
 
   /* Free topolology-optimization related fields */
-  printf("Delete topology optimization parameters\n");
-  
   SFREE(filternnzElems);
-  
   SFREE(FilterMatrixs);
-
   SFREE(rowFilters);
   SFREE(colFilters);
   SFREE(gradCompl);
@@ -2481,9 +2476,6 @@ while(istat>=0)
   SFREE(elCG);
   SFREE(gradComplFiltered);
   SFREE(eleVolFiltered);
-
-   
-   
   SFREE(designFiltered);
   rhoPhys = NULL;
 
@@ -2491,30 +2483,15 @@ while(istat>=0)
   SFREE(inpc);
   SFREE(inp);
   SFREE(ipoinp);
-
-   
-
   if(ncs_>0) SFREE(ics);
   if(mcs>0) SFREE(cs);
   SFREE(tieset);
   SFREE(tietol);
-
-  
-
   SFREE(co);
   SFREE(kon);
   SFREE(ipkon);
   SFREE(lakon);
   SFREE(design);
-  
-
-  //free(rhoPhys);
- 
-
-  
-
-  
-
   SFREE(nodeboun);
   SFREE(ndirboun);
   SFREE(typeboun);
@@ -2524,9 +2501,6 @@ while(istat>=0)
   SFREE(nodebounold);
   SFREE(ndirbounold);
   SFREE(xbounold);
-
-  
-
   SFREE(ipompc);
   SFREE(labmpc);
   SFREE(ikmpc);
@@ -2534,34 +2508,23 @@ while(istat>=0)
   SFREE(fmpc);
   SFREE(nodempc);
   SFREE(coefmpc);
-
-  
-
   SFREE(nodempcref);
   SFREE(coefmpcref);
   SFREE(ikmpcref);
-
   SFREE(nodeforc);
   SFREE(ndirforc);
   SFREE(xforc);
   SFREE(ikforc);
   SFREE(ilforc);
   SFREE(xforcold);
-
-  
-
   SFREE(nelemload);
   SFREE(sideload);
   SFREE(xload);
   SFREE(xloadold);
-
   SFREE(cbody);
   SFREE(ibody);
   SFREE(xbody);
   SFREE(xbodyold);
-
-  
-
   if(nam>0)
   {
     SFREE(iamboun);
@@ -2571,12 +2534,10 @@ while(istat>=0)
     SFREE(amta);
     SFREE(namta);
   }
-
   SFREE(set);
   SFREE(istartset);
   SFREE(iendset);
   SFREE(ialset);
-
   SFREE(elcon);
   SFREE(nelcon);
   SFREE(rhcon);
@@ -2588,9 +2549,6 @@ while(istat>=0)
   SFREE(alcon);
   SFREE(nalcon);
   SFREE(alzero);
-
-  
-
   if(nprop>0)
   {
     SFREE(ielprop);SFREE(prop);
@@ -2646,28 +2604,18 @@ while(istat>=0)
   SFREE(prset);
   SFREE(filab);
   SFREE(xmodal);
-
- 
-
   SFREE(ielmat);
   SFREE(matname);
-
   SFREE(sti);
   SFREE(eme);
   SFREE(ener);
   SFREE(xstate);
-
-  
-
   SFREE(vold);
   SFREE(veold);
-
-  
   SFREE(vel);
   SFREE(velo);
   SFREE(veloo);
 
-  
 
   if((ne1d!=0)||(ne2d!=0))
   {
