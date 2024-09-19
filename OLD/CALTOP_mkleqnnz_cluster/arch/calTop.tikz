@@ -39,11 +39,17 @@
 &
 &
 &
+&
+&
+&
 \\
 %Row 1
 &
 &
 \node [Group] (readinput) {$\text{readinput.c}$};&
+&
+&
+&
 &
 &
 &
@@ -85,6 +91,9 @@
 &
 &
 &
+&
+&
+&
 \\
 %Row 3
 &
@@ -92,6 +101,9 @@
 &
 &
 \node [Group] (calinput) {$\text{calinput.f}$};&
+&
+&
+&
 &
 &
 &
@@ -131,6 +143,9 @@
 &
 &
 &
+&
+&
+&
 \\
 %Row 5
 &
@@ -140,6 +155,9 @@
 &
 &
 \node [Group] (writeheading) {$\text{writeheading.c}$};&
+&
+&
+&
 &
 &
 &
@@ -177,6 +195,9 @@
 &
 &
 &
+&
+&
+&
 \\
 %Row 7
 &
@@ -188,6 +209,9 @@
 &
 &
 \node [Group] (cascade) {$\text{cascade.c}$};&
+&
+&
+&
 &
 &
 &
@@ -223,6 +247,9 @@
 &
 &
 &
+&
+&
+&
 \\
 %Row 9
 &
@@ -236,6 +263,9 @@
 &
 &
 \node [Group] (densityfilter) {$\text{densityfilter.c}$};&
+&
+&
+&
 &
 &
 &
@@ -269,7 +299,10 @@
 &
 &
 &
-\\
+&
+\node [DataInter] (linstatic-mafillsmmain) {$\text{co,..,penal}$};&
+\node [DataInter] (linstatic-mafillsmas) {$\text{co,..,network}$};&
+\node [DataInter] (linstatic-spooles) {$\text{ad,..,nzs}$};\\
 %Row 11
 &
 &
@@ -284,6 +317,9 @@
 &
 &
 \node [Group] (nonlingeo) {$\text{nonlingeo.c}$};&
+&
+&
+&
 &
 &
 &
@@ -315,6 +351,9 @@
 &
 \node [DataInter] (sensitivity-mafillsmmainse) {$\text{co,..,eleVol}$};&
 &
+&
+&
+&
 \\
 %Row 13
 &
@@ -333,6 +372,9 @@
 &
 \node [Group] (filterVector) {$\text{filterVector.c}$};&
 \node [DataInter] (filterVector-mafillsmmainVectorfilter) {$\text{ipkon,..,q}$};&
+&
+&
+&
 &
 &
 &
@@ -361,6 +403,9 @@
 \node [DataInter] (mafillsmmainVectorfilter-elementcpuload) {$\text{neapar,..,cpus}$};&
 &
 &
+&
+&
+&
 \\
 %Row 15
 &
@@ -381,6 +426,9 @@
 &
 \node [Function] (mafillsmmainVectorfiltermt) {$\text{mafillsmmainVectorfiltermt.c}$};&
 \node [DataInter] (mafillsmmainVectorfiltermt-mafillsmvectorfilter) {$\text{ne1,..,q1}$};&
+&
+&
+&
 &
 &
 &
@@ -407,6 +455,9 @@
 &
 &
 &
+&
+&
+&
 \\
 %Row 17
 &
@@ -428,6 +479,9 @@
 &
 &
 \node [Function] (elementcpuload) {$\text{elementcpuload.c}$};&
+&
+&
+&
 &
 &
 \\
@@ -453,6 +507,9 @@
 &
 \node [Function] (mafillsmmainse) {$\text{mafillsmmainse.f}$};&
 \node [DataInter] (mafillsmmainse-mafillsmse) {$\text{co1,..,eleVol1}$};&
+&
+&
+&
 \\
 %Row 19
 &
@@ -476,7 +533,10 @@
 &
 &
 \node [Function] (mafillsmse) {$\text{mafillsmse.f}$};&
-\node [DataInter] (mafillsmse-ec3dse) {$\text{co1,..,zcg}$};\\
+\node [DataInter] (mafillsmse-ec3dse) {$\text{co1,..,zcg}$};&
+&
+&
+\\
 %Row 20
 \node [DataIO] (left_output_ec3dse) {$\nabla *$};&
 &
@@ -499,8 +559,92 @@
 &
 &
 &
-\node [Function] (ec3dse) {$\text{ec3dse.f}$};\\
+\node [Function] (ec3dse) {$\text{ec3dse.f}$};&
+&
+&
+\\
 %Row 21
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (mafillsmmain) {$\text{mafillsmmain.c}$};&
+&
+\\
+%Row 22
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (mafillsmas) {$\text{mafillsmas.f}$};&
+\\
+%Row 23
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+&
+\node [Function] (spooles) {$\text{SPOOLES.c}$};\\
+%Row 24
+&
+&
+&
 &
 &
 &
@@ -534,6 +678,9 @@
 (sensitivity) edge [DataLine] (sensitivity-mafillsmmainse)
 (mafillsmmainse) edge [DataLine] (mafillsmmainse-mafillsmse)
 (mafillsmse) edge [DataLine] (mafillsmse-ec3dse)
+(linstatic) edge [DataLine] (linstatic-mafillsmmain)
+(linstatic) edge [DataLine] (linstatic-mafillsmas)
+(linstatic) edge [DataLine] (linstatic-spooles)
 (mafillsmmainVectorfilter) edge [DataLine] (mafillsmmainVectorfilter-elementcpuload)
 (filterVector) edge [DataLine] (filterVector-mafillsmmainVectorfilter)
 (mafillsmmainVectorfilter) edge [DataLine] (mafillsmmainVectorfilter-mafillsmmainVectorfiltermt)
@@ -556,6 +703,9 @@
 (sensitivity-mafillsmmainse) edge [DataLine] (mafillsmmainse)
 (mafillsmmainse-mafillsmse) edge [DataLine] (mafillsmse)
 (mafillsmse-ec3dse) edge [DataLine] (ec3dse)
+(linstatic-mafillsmmain) edge [DataLine] (mafillsmmain)
+(linstatic-mafillsmas) edge [DataLine] (mafillsmas)
+(linstatic-spooles) edge [DataLine] (spooles)
 (mafillsmmainVectorfilter-elementcpuload) edge [DataLine] (elementcpuload)
 (filterVector-mafillsmmainVectorfilter) edge [DataLine] (mafillsmmainVectorfilter)
 (mafillsmmainVectorfilter-mafillsmmainVectorfiltermt) edge [DataLine] (mafillsmmainVectorfiltermt)

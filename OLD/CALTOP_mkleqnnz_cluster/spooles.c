@@ -1101,11 +1101,15 @@ void spooles(double *ad, double *au, double *adb, double *aub, double *sigma,
              ITG *symmetryflag, ITG *inputformat, ITG *nzs3)
 {
 
-    if(*neq==0){
-	return;
-    }else if(*neq==1){
-	b[0]/=ad[0];
-	return;
+    if(*neq==0)
+	{
+		return;
+    }
+	
+	else if(*neq==1)
+	{
+		b[0]/=ad[0];
+		return;
     }
 
   spooles_factor(ad,au,adb,aub,sigma,icol,irow,neq,nzs,symmetryflag,

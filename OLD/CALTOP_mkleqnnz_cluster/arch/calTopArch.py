@@ -63,6 +63,10 @@ x.add_system("mafillsmmainse", FUNC, r"\text{mafillsmmainse.f}")
 x.add_system("mafillsmse", FUNC, r"\text{mafillsmse.f}")
 x.add_system("ec3dse", FUNC, r"\text{ec3dse.f}")
 
+x.add_system("mafillsmmain", FUNC, r"\text{mafillsmmain.c}")
+x.add_system("mafillsmas", FUNC, r"\text{mafillsmas.f}")
+x.add_system("spooles", FUNC, r"\text{SPOOLES.c}")
+
 
 # readinput.f -------------------------------#
 #x.connect("readinput", "includefilename", r"\text{buff,..,includefn}")
@@ -111,6 +115,11 @@ x.connect("sensitivity", "mafillsmmainse", r"\text{co,..,eleVol}")
 x.connect("mafillsmmainse","mafillsmse", r"\text{co1,..,eleVol1}")
 x.connect("mafillsmse","ec3dse", r"\text{co1,..,zcg}")
 
+
+#linstatic.c ------------------------------------#
+x.connect("linstatic","mafillsmmain", r"\text{co,..,penal}")
+x.connect("linstatic","mafillsmas", r"\text{co,..,network}")
+x.connect("linstatic","spooles", r"\text{ad,..,nzs}")
 
 # filterVector.c -------------------------------#
 x.connect("mafillsmmainVectorfilter", "elementcpuload", r"\text{neapar,..,cpus}")

@@ -82,6 +82,7 @@ void mafillsmmain(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
 
     ITG i,j,mt=mi[1]+1;
 
+    
     /* variables for multithreading procedure */
 
     ITG sys_cpus,*ithread=NULL;
