@@ -489,7 +489,7 @@ FORTRAN(uexternaldb,(&lop,&lrestart,time,&dtime,&kstep,&kinc));
 
 //FORTRAN(openfile,(jobnamef,output));
 
-print("\n");
+printf("\n");
 printf("  #####    #####   ##        #######  #####   ######  \n");
 printf(" ##       ##   ##  ##           ##   ##   ##  ##   ## \n");
 printf(" ##       #######  ##           ##   ##   ##  ######  \n");
@@ -1057,18 +1057,7 @@ while(istat>=0)
   /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
   rho(design,ne);
 
-  /* FILE *rhoFile;
 
-    rhoFile=fopen("densityout.dat","w"); //open in write mode
-
-
-    int i;  //counter
-        for (i=0;i<ne;i++)
-            {
-                fprintf(rhoFile,"%.15f \n",design[i]);
-            }
-        fclose(rhoFile);
-  */
 
   /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -1737,7 +1726,7 @@ while(istat>=0)
 
       if(pSupplied!=0)
       {
-        printf("\nNon-default penalization paramter --> constructing filter matix...");
+        printf("Non-default penalization paramter --> constructing filter matix...");
         NNEW(FilterMatrixs,double,fnnzassumed*ne_); //Sparse filter matrix stored as row,colum,value with fassumed nnzs per element assumed
     
         NNEW(rowFilters,ITG,fnnzassumed*ne_);
@@ -1766,7 +1755,7 @@ while(istat>=0)
       }
       else
       {
-        printf("\nNo penalization parameter found, initializing all densities to one \n");
+        printf("***No penalization parameter found, initializing all PHYSICAL densities to one \n");
         /* design was initialized to 1.0 in rho.c */
         rhoPhys=design;
       }
