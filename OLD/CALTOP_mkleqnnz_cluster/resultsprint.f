@@ -123,7 +123,7 @@
    !  &  eme,islavsurf,mortar,time,ielprop,prop,veold,orname,
    !  &  nelemload,nload,sideload,xload)
 !     
-      call tecplot(set,nset,istartset,iendset,ialset,nprint,
+      call tecplot_vtu(set,nset,istartset,iendset,ialset,nprint,
      &  prlab,prset,v,t1,fn,ipkon,lakon,stx,eei,xstate,ener,
      &  mi(1),nstate_,ithermal,co,kon,qfx,ttime,trab,inotr,ntrans,
      &  orab,ielorien,norien,nk,ne,inum,filab,vold,ikin,ielmat,thicke,
