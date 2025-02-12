@@ -44,4 +44,4 @@ ccx_2.15.a: $(OCCXF) $(OCCXC)
 
 # Clean up binaries and object files
 clean:
-	rm -f *.o calTop ccx_2.15.a
+	rm -f *.o calTop.exe ccx_2.15.a
