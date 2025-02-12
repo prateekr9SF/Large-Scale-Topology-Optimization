@@ -8,6 +8,7 @@ ARPACK_PATH = /home/prateek/Documents/Github/Large-Scale-Topology-Optimization/O
 SRC_DIR = src
 OBJ_DIR = obj
 INCLUDE_DIR = include
+BIN_DIR = bin
 
 # Compiler and flags
 CFLAGS = -Wall -O3 -I $(SPOOLES_PATH) -I $(INCLUDE_DIR) -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT
@@ -19,11 +20,11 @@ FC = gfortran
 
 
 # Defauilt target
-all: calTop.exe
+all: $(BIN_DIR)/calTop.exe
 
 # Ensure object directory exists
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+$(OBJ_DIR) $(BIN_DIR):
+	mkdir -p $@
 
 
 # Include additional makefile if necessary
@@ -50,8 +51,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.f | $(OBJ_DIR)
 	$(FC) $(FFLAGS) -c $< -o $@
 
-# Build executable
-calTop.exe: $(OCCXMAIN) ccx_2.15.a $(LIBS) | $(OBJ_DIR)
+# Build executable in bin/
+$(BIN_DIR)/calTop.exe: $(OCCXMAIN) ccx_2.15.a $(LIBS) | $(BIN_DIR) $(OBJ_DIR)
 	./date.pl
 	$(CC) $(CFLAGS) -c $(SRC_DIR)/ccx_2.15.c -o $(OBJ_DIR)/ccx_2.15.o
 	$(FC) -Wall -O3 -o $@ $(OCCXMAIN) ccx_2.15.a $(LIBS)
@@ -63,4 +64,4 @@ ccx_2.15.a: $(OCCXF) $(OCCXC) | $(OBJ_DIR)
 
 
 clean:
-	rm -f $(OBJ_DIR)/*.o calTop.exe ccx_2.15.a
+	rm -f $(OBJ_DIR)/*.o $(BIN_DIR) ccx_2.15.a
