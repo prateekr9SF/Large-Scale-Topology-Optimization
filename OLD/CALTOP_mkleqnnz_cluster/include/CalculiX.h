@@ -98,6 +98,8 @@
 
 void rho(double *design,int ne);
 
+void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, double *v);
+
 
 void FORTRAN(actideacti,(char *set,ITG *nset,ITG *istartset,ITG *iendset,
 			 ITG *ialset,char *objectset,ITG *ipkon,ITG *ibject,

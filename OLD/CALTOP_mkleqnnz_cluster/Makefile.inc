@@ -1036,6 +1036,7 @@ $(SRC_DIR)/u_realloc.c \
 $(SRC_DIR)/v_betrag.c \
 $(SRC_DIR)/v_prod.c \
 $(SRC_DIR)/v_result.c \
-$(SRC_DIR)/writeheading.c
+$(SRC_DIR)/writeheading.c \
+$(SRC_DIR)/tecplot_vtu.c
 
 SCCXCXX = $(SRC_DIR)/umat_dl.cpp

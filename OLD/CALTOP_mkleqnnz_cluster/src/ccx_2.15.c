@@ -1737,7 +1737,7 @@ while(istat>=0)
 
       if(pSupplied!=0)
       {
-        printf("\nNon-default penalization paramter --> constructing filter matix...");
+        printf("building filter matix...");
         NNEW(FilterMatrixs,double,fnnzassumed*ne_); //Sparse filter matrix stored as row,colum,value with fassumed nnzs per element assumed
     
         NNEW(rowFilters,ITG,fnnzassumed*ne_);
@@ -1757,7 +1757,7 @@ while(istat>=0)
         printf("done!\n");
 
         end = time(NULL); 
-        printf("\n Time taken for density filter %.2f seconds \n", 
+        printf("Time taken for density filter %.2f seconds \n", 
         difftime(end, start)); 
 
         /* apply the filter matrix on rhoPhys to get designFiltered */ 
@@ -1766,7 +1766,7 @@ while(istat>=0)
       }
       else
       {
-        printf("\nNo penalization parameter found, initializing all densities to one \n");
+        printf("No penalization parameter found, initializing all densities to one \n");
         /* design was initialized to 1.0 in rho.c */
         rhoPhys=design;
       }
@@ -2096,12 +2096,16 @@ while(istat>=0)
       icascade=mpcinfo[2];
       maxlenmpc=mpcinfo[3];
     } */
-    
+
+    /* Write elastic fields to a vtu file */
+    printf("Post-processing results...");
+    tecplot_vtu(nk, ne, co, kon, ipkon, vold);
+    printf("done!");
     /* adjoint sensitivity calculation */
     if(pSupplied!=0)
     {
       printf("Starting adjoint sensitivty calculations");
-      //printf("\n For compliance, penalty=%f \n",pstiff);
+    
 
       /* allocate memory for compliance gradient and initialize to zero */
       NNEW(gradCompl,double,ne_);
