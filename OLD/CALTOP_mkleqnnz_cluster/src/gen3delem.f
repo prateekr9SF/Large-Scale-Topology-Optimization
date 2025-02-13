@@ -84,17 +84,17 @@
          write(*,*) jobnamec(1)(1:132)
          call exit(201)
       else
-         fn(1:ilen-1)=jobnamec(1)(1:ilen-1)
-         fn(ilen:ilen+3)='.12d'
-         do i=ilen+4,132
-            fn(i:i)=' '
-         enddo
+      !   fn(1:ilen-1)=jobnamec(1)(1:ilen-1)
+      !   fn(ilen:ilen+3)='.12d'
+      !   do i=ilen+4,132
+      !      fn(i:i)=' '
+      !   enddo
       endif
-      if(istep.eq.1) then
-         open(27,file=fn,status='unknown')
-      else
-         open(27,file=fn,status='unknown',position='append')
-      endif
+      !if(istep.eq.1) then
+      !   open(27,file=fn,status='unknown')
+      !else
+      !   open(27,file=fn,status='unknown',position='append')
+      !endif
 !
 !     catalogueing the element per node relationship for shell/beam
 !     elements and transferring the nodal thickness to the elements
