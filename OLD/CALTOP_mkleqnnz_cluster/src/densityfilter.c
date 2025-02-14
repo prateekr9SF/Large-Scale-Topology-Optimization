@@ -46,16 +46,15 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   ne0=*ne;
 
 
-  if(itertop==1){
+  if(itertop==1)
+  {
     
-              double *elCentroid=NULL; //pointer to store Centroid of elements
-              NNEW(elCentroid,double,3*ne0);  //allocate memory to element CG, initialize to 0 
+    double *elCentroid=NULL; //pointer to store Centroid of elements
+    NNEW(elCentroid,double,3*ne0);  //allocate memory to element CG, initialize to 0 
 
-
-
-              // calculate Centroid of elements
-              mafillsmmain_filter(co,nk,kon,ipkon,lakon,ne,ttime,&time,mortar,&ne0,elCentroid);
-              printf("\n ...Element centroids calculated... \n");
+    /* Calculate centeroid of elements */
+    mafillsmmain_filter(co,nk,kon,ipkon,lakon,ne,ttime,&time,mortar,&ne0,elCentroid);
+    printf("Element centroids calculated... \n");
 
         /*      FILE *elCentroid_file;
          *     elCentroid_file=fopen("Centroidindensityfilter.dat","w"); //open in write mode

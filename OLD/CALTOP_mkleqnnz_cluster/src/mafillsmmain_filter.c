@@ -112,7 +112,7 @@ void mafillsmmain_filter(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
 
     /* calculating the centroid */
 
-    printf(" Using up to %" ITGFORMAT " cpu(s) for the centroid calculation.\n\n", num_cpus);
+    printf("\n Using up to %" ITGFORMAT " cpu(s) for the centroid calculation.", num_cpus);
 
     /* create threads and wait */
 

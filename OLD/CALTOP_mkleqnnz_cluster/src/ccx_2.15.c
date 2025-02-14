@@ -29,6 +29,7 @@
 #include <string.h>
 #include "CalculiX.h"
 #include <time.h>
+#include <unistd.h>
 
 #ifdef CALCULIX_MPI
 ITG myid = 0, nproc = 0;
@@ -1058,6 +1059,8 @@ while(istat>=0)
   /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
   rho(design,ne);
 
+
+
   /* FILE *rhoFile;
 
     rhoFile=fopen("densityout.dat","w"); //open in write mode
@@ -1096,12 +1099,23 @@ while(istat>=0)
   SFREE(idefload);
   SFREE(idefbody);
 
+  /*  <--- Use this for debugging
+  printf("Sleeping noe...\n");
+  sleep(5);
+  printf("sleep over!");
+  export OMP_NUM_THREADS=4  -< copy to terminal
+  */
   if(nheading_>=0)
   {
+     /* do nothing!
       writeheading(jobnamec,heading,&nheading_);
       SFREE(heading);
       nheading_=-1;
+
+      */
   }
+
+
 
   if((abs(nmethod)!=1)||(iperturb[0]<2))icascade=0;
 
@@ -1427,7 +1441,7 @@ while(istat>=0)
       RENEW(amta,double,2*namta[3*nam-2]);
     }
 
-  }
+  } /* End of istep > 1 */
 
   /* reallocating fields for all steps (>=1) */
   RENEW(co,double,3*nk);
@@ -1532,7 +1546,7 @@ while(istat>=0)
   /* generate force convection elements */
 
   //  if(network==1){
-  if(network>0)
+  if(network>0)  /* Not used in CalTop */
   {
     ne0=ne;nkon0=nkon;nload1=nload;
     RENEW(ipkon,ITG,ne+nload);
@@ -1581,8 +1595,9 @@ while(istat>=0)
 
   /*   calling the user routine ufaceload (can be empty) */
 
-  if(ithermal[1]>=2)
+  if(ithermal[1]>=2) /* Not used in CalTop */
   {
+
     NNEW(sideloadtemp,char,20*nload);
     for(i=0;i<nload;i++)
     {
@@ -1672,7 +1687,7 @@ while(istat>=0)
     }
   }
   /* following not active for static aero-elasticity */
-  else
+  else /* Not used in CalTop */
   {
     NNEW(icol,ITG,8*nk);
     NNEW(jq,ITG,8*nk+1);

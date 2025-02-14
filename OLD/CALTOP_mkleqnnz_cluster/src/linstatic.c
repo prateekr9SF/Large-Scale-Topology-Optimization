@@ -852,12 +852,12 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      					if(*mcs>0)
 							{
 		  						ptime=*ttime+time;
-		  						frdcyc(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,kode,filab,een,t1act,
+		  						/*frdcyc(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,kode,filab,een,t1act,
 			 					fn,&ptime,epn,ielmat,matname,cs,mcs,nkon,enern,xstaten,
 			 					nstate_,istep,&iinc,iperturb,ener,mi,output,ithermal,
 			 					qfn,ialset,istartset,iendset,trab,inotr,ntrans,orab,
 			 					ielorien,norien,sti,veold,&noddiam,set,nset,emn,thicke,
-			 					jobnamec,&ne0,cdn,mortar,nmat,qfx,ielprop,prop);
+			 					jobnamec,&ne0,cdn,mortar,nmat,qfx,ielprop,prop); */
 	      					}
 	      					else
 							{
@@ -869,14 +869,14 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		  						ptime=*ttime+time;
 
 
-		  						frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
+		  						/*frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
 		      					kode,filab,een,t1act,fn,&ptime,epn,ielmat,matname,enern,xstaten,
 		      					nstate_,istep,&iinc,ithermal,qfn,&mode,&noddiam,trab,inotr,
 		      					ntrans,orab,ielorien,norien,description,ipneigh,neigh,
 		      					mi,stx,vr,vi,stnr,stni,vmax,stnmax,&ngraph,veold,ener,ne,
 		      					cs,set,nset,istartset,iendset,ialset,eenmax,fnr,fni,emn,
 		      					thicke,jobnamec,output,qfx,cdn,mortar,cdnr,cdni,nmat,
-                      			ielprop,prop);
+                      			ielprop,prop); */
 
 		  						if(strcmp1(&filab[1044],"ZZS")==0)
 								{
@@ -1088,12 +1088,12 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     				if(*mcs>0)
 					{
 						ptime=*ttime+time;
-      					frdcyc(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,kode,filab,een,t1act,
+      					/*frdcyc(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,kode,filab,een,t1act,
 		   				fn,&ptime,epn,ielmat,matname,cs,mcs,nkon,enern,xstaten,
                    		nstate_,istep,&iinc,iperturb,ener,mi,output,ithermal,
                    		qfn,ialset,istartset,iendset,trab,inotr,ntrans,orab,
 	           			ielorien,norien,sti,veold,&noddiam,set,nset,emn,thicke,
-	           			jobnamec,&ne0,cdn,mortar,nmat,qfx,ielprop,prop);
+	           			jobnamec,&ne0,cdn,mortar,nmat,qfx,ielprop,prop); */
     				}
     				else
 					{
@@ -1103,13 +1103,14 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	    					NNEW(ipneigh,ITG,*nk);
 						}
 						ptime=*ttime+time;
-						frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
+						/*frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
 	    				kode,filab,een,t1act,fn,&ptime,epn,ielmat,matname,enern,xstaten,
 	    				nstate_,istep,&iinc,ithermal,qfn,&mode,&noddiam,trab,inotr,
 	    				ntrans,orab,ielorien,norien,description,ipneigh,neigh,
 	    				mi,stx,vr,vi,stnr,stni,vmax,stnmax,&ngraph,veold,ener,ne,
 	    				cs,set,nset,istartset,iendset,ialset,eenmax,fnr,fni,emn,
 	    				thicke,jobnamec,output,qfx,cdn,mortar,cdnr,cdni,nmat,ielprop,prop);
+						*/
 
 						if(strcmp1(&filab[1044],"ZZS")==0)
 						{
@@ -1142,13 +1143,13 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     				}
 
     				ptime=*ttime+time;
-    				frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
+    				/*frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
 	    			kode,filab,een,t1,fn,&ptime,epn,ielmat,matname,enern,xstaten,
 	    			nstate_,istep,&iinc,ithermal,qfn,&mode,&noddiam,trab,inotr,
 	    			ntrans,orab,ielorien,norien,description,ipneigh,neigh,
 	    			mi,sti,vr,vi,stnr,stni,vmax,stnmax,&ngraph,veold,ener,ne,
 	    			cs,set,nset,istartset,iendset,ialset,eenmax,fnr,fni,emn,
-	    			thicke,jobnamec,output,qfx,cdn,mortar,cdnr,cdni,nmat,ielprop,prop);
+	    			thicke,jobnamec,output,qfx,cdn,mortar,cdnr,cdni,nmat,ielprop,prop); */
 
     				if(strcmp1(&filab[1044],"ZZS")==0)
 					{
