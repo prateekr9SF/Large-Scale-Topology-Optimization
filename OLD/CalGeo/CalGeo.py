@@ -80,7 +80,7 @@ def extract_su2_mesh_data_with_element_index(su2_filepath, output_filepath="mesh
 def get_skin_nodes(su2_filepath, output_filepath="NSurface.nam"):
     """
     Extracts node indices associated with the marker 'skin' from a SU2 file,
-    offsets the node indices by 1, and writes them to Nfix1.nam with one entry per line,
+    offsets the node indices by 1, and writes them to Nsurface.nam with one entry per line,
     ensuring that each value is separated by a comma and maintaining the original order.
     
     Ignores only the first column in the marker element data.
@@ -96,7 +96,7 @@ def get_skin_nodes(su2_filepath, output_filepath="NSurface.nam"):
     skin_nodes = []  # Use a list to maintain original order
 
     for line in lines:
-        # Identify the marker for "root" (lowercase as found in the file)
+        # Identify the marker for "skin" (lowercase as found in the file)
         if "MARKER_TAG= skin" in line:
             skin_section = True
             continue  # Move to the next line where elements start
