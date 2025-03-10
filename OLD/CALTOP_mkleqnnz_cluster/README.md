@@ -1,53 +1,104 @@
-# CalTop: A Topology Optimization Framework
+# CalTop: A CalculiX-based Topology Optimization Framework
 
 ## Overview
 CalTop is a high-performance topology optimization framework built upon **CalculiX 2.15**, featuring advanced solvers such as **SPOOLES, PARDISO, SUPERLU, and PASTIX**. It implements a **density-based finite element framework** interfaced with **IPOPT** for gradient-based optimization. Additionally, CalTop integrates with **SU2_CFD** to solve **static aero-elastic topology optimization problems**.
 
 ## Features
-- **Finite Element Analysis (FEA):** Uses CalculiX for structural analysis.
-- **Fast Solvers:** Supports SPOOLES, PARDISO, SUPERLU, and PASTIX for efficient computations.
-- **Density-Based Topology Optimization:** Elements parameterized with densities.
+- **Finite Element Analysis (FEA):** Uses CalculiX for **linear** structural analysis.
+- **Fast Solvers:** Supports SPOOLES, PARDISO, SUPERLU, and PASTIX for fast stiffness matrix factorizations.
+- **Density-Based Topology Optimization:** Tetrahedral elements parameterized with densities.
 - **IPOPT Integration:** Utilizes the Interior Point OPTimizer for optimization.
-- **SU2_CFD Integration:** Solves static aero-elastic topology optimization problems.
+- **Sensitivities:** Computes analytical sensitivities for mass, compliance, center of gravity and material stress
+- **SU2_CFD Integration:** Utilized preCICE coupling adapter for force-displacement and adjoint sensitivties  tranfer to/from SU2.
 
 ## Installation
 ### Prerequisites
 Ensure that the following dependencies are installed:
-- **CalculiX 2.15**
 - **IPOPT**
-- **SU2_CFD**
 - **C and Fortran Compilers** (e.g., `gcc`, `gfortran`)
 - **BLAS and LAPACK** (for numerical computations)
-- **CMake** (if required by dependencies)
+
 
 ### Build Instructions
+
 1. Clone the repository:
    ```sh
-   git clone https://github.com/yourusername/CalTop.git
-   cd CalTop/src
+   git clone https://github.com/prateekr9SF/Large-Scale-Topology-Optimization.git
    ```
-2. Set up the build environment:
-   ```sh
-   cp Makefile.inc.example Makefile.inc
-   ```
-   Edit `Makefile.inc` to specify solver paths and compiler options.
+   This is the `ROOT` directory
 
-3. Compile the source code:
-   ```sh
-   make
+2. Install dependency ARPACK:
+   ``` sh
+   wget https://web.archive.org/web/20220526222500fw_/https://www.caam.rice.edu/software/ARPACK/SRC/arpack96.tar.gz
+   wget https://web.archive.org/web/20220526222500fw_/https://www.caam.rice.edu/software/ARPACK/SRC/patch.tar.gz
    ```
-4. (Optional) Install the binaries:
+   ***Line 28:*** Change `home = $(HOME)/ARPACK` to the path where ARPACK is extracted.
+   ***Line 115:*** Change `MAKE=/bin/make` to `MAKE=make`
+   ***Line 120:*** Change `SHELL =/bin/sh` to `SHELL=sh`
+   ***Lines 104-105:*** Set Fortran compiler flags:
    ```sh
-   make install
+   FC = gfortran
    ```
-   The installation path can be specified in `Makefile.inc`.
+   ***Line 35:*** Set platform to INTEL (if applicable)
+   ```sh
+   PLAT = INTEL
+   ```
+   Open `UTIL/second.f' and comment out line 24:
+   ```sh
+   * EXTERNAL  ETIME
+   ```
+   Now build ARPACK using:
+   ```sh
+   make lib
+   ```
+3. Install dependency yamp-cpp:
+   Get the latest verion of yamp-cp and build as a shared library:
+   ```sh
+   wget https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.zip
+   unzip yaml-cpp-0.6.2.zip
+   cd yaml-cpp-yaml-cpp-0.6.2
+   mkdir build
+   cd build
+   cmake -DBUILD_SHARED_LIBS=ON ..
+   make 
+   ```
+   After building, make sure to set `LD_BIBRARY_PATH` to the installation directory
+
+4. Install dependency SPOOLES (Single-thread build)
+   ```sh
+   wget http://www.netlib.org/linalg/spooles/spooles.2.2.tgz
+   mkdir SPOOLES.2.2
+   tar zxvf spooles.2.2.tgz -C SPOOLES.2.2
+   cd SPOOLES.2.2
+   ```
+   Edit `Make.inc` to set compiler version:
+   ```sh
+   CC=gcc
+   ```
+   Build SPOOLES
+   ```sh
+   make lib
+   ```
+
+5. Navigate to the `ROOT` directory and edit Makefile:
+   ```sh
+   SPOOLES_PATH = <spooles_installation_dir/src>
+   ARPACK_PATH = <ARPACK installation_dir>
+   ```
+
+   Run `make` or `make -j N` to build with `N` CPUs.
+
+6. Set CalTop path
+    In your `.bashrc` or `.profile` set:
+   ```sh
+   CALTOP_PATH=<ROOT>bin
+   export PATH=$CALTOP_PATH:$PATH
+   ```
+   source `.bashrc`
+
 
 ## Usage
-To run a topology optimization problem:
-```sh
-./CalTop input_file.inp
-```
-Example input files can be found in the `examples/` directory.
+
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue.
