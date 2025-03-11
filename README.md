@@ -23,6 +23,10 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
     ├── include/
          ├── ccx_2.15.h     # Main CalculiX driver header
 ├── CalGeo/                 # Mesh passive element identifier
+├── Deps/                   # Dependencies (ARPACK,SPOOLES,YAML)
+├── TestCases/              # Test cases for topology optimization
+    ├── RAE2822/            # RAE2822 3D wing section
+
 └── README.md               # This file
 ```
 ## Build Instructions
@@ -139,4 +143,4 @@ This project is licensed under [MIT License](LICENSE).
 For inquiries, please reach out to **Prateek Ranjan** at `prateekr@mit.edu`.
 
 ## Acknowledgement
-This work was supported by NASA under award number 80NSSC19M0125 as part of the **C**enter for **H**igh-**E**fficiency **E**lectrical **T**echnologies for **A**ircraft **(CHEETA)**.
+This work was supported by NASA under award number **80NSSC19M0125** as part of the **C**enter for **H**igh-**E**fficiency **E**lectrical **T**echnologies for **A**ircraft **(CHEETA)**.
