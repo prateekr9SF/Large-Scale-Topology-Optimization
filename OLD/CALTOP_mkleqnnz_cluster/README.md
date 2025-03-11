@@ -86,25 +86,50 @@ Ensure that the following dependencies are installed:
    ARPACK_PATH = <ARPACK installation_dir>
    ```
 
-   Run `make` or `make -j N` to build with `N` CPUs.
+6. Build and install    `CalTop`
+
+   If installing in current directory:
+   ```sh
+   make 
+   make install
+   ```
+
+   If using custom installation directory:
+   ```sh
+   make install PREFIX=$HOME/<installation_dir>
+   ```
+
+   Note: Run `make` or `make -j N` to build with `N` CPUs.
 
 6. Set CalTop path
     In your `.bashrc` or `.profile` set:
    ```sh
-   CALTOP_PATH=<ROOT>bin
+   CALTOP_PATH=<installation_dir>
    export PATH=$CALTOP_PATH:$PATH
    ```
    source `.bashrc`
 
+7. Uninstalling CalTop:
+   
+   If installed in default (current) directory:
+   ```sh 
+   make uninstall
+   ```
+
+   If installed in custom directory:
+   ```sh
+   make install PREFIX=$HOME/<installation_dir>
+   ```
+
 
 ## Usage
-
-
-## Contributing
-Contributions are welcome! Please submit a pull request or open an issue.
+TODO
 
 ## License
 This project is licensed under [MIT License](LICENSE).
 
 ## Contact
 For inquiries, please reach out to **Prateek Ranjan** at `prateekr@mit.edu`.
+
+## Acknowledgement
+This work was supported by NASA under award number 80NSSC19M0125 as part of the ***C***enter for ***H***igh-***E***fficiency ***E***lectrical ***T***echnologies for ***A***ircraft ***(CHEETA)***```.
