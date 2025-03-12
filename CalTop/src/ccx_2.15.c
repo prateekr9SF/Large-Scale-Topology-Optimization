@@ -2191,26 +2191,23 @@ while(istat>=0)
       FILE *elC_file;
       FILE *elV_file;
 
-      /* write compliance sensitivity */
-      //gradC=fopen("sens_compliance.dat","w");
 
       /* write compliance value */
       elC_file=fopen("objectives.dat","w");
 
-      /* write volume sensitivity */
-      elV_file=fopen("sens_volume.dat","w"); //open in write mode
-      // rho_file=fopen("rhos.dat","w"); //open in write mode
 
       /* initialize for compliance */
       double compliance_sum=0;
       
-      printf("Writing compliance sensitivities...\n");
+      printf("Writing compliance sensitivities...");
       write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
-      printf("Done!");
+      printf("Done!\n");
 
-      printf("Writing volume sensitivities...\n");
+      printf("Writing volume sensitivities...");
       write_volume_sensitivities(ne, eleVol, rhoPhys, eleVolFiltered);
-      printf("Done!");
+      printf("Done!\n");
+
+
       /* initialize for total materal volume with rho = 1 */
       double initialVol_sum=0;
 
@@ -2225,9 +2222,6 @@ while(istat>=0)
 
         /* compute current design volume */
         designVol_sum+=(eleVol[iii]*rhoPhys[iii]);
-
-        /* write raw and filtered volume gradient to file */
-        fprintf(elV_file,"%.15f, %.15f, %.15f \n",eleVol[iii],eleVol[iii]*rhoPhys[iii], eleVolFiltered[iii]);
                 
       }
 
@@ -2236,11 +2230,9 @@ while(istat>=0)
 
       /* ensure any buffered data is written to file */
       fflush(elC_file); 
-      fflush(elV_file);
 
       /* close all files */
       fclose(elC_file);
-      fclose(elV_file);
    
       /* evaluate discreteness of the structure*/
       /* discreteness is a metric often used in topology optimization problems to assess hpw close the design
