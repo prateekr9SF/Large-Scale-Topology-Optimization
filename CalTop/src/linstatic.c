@@ -609,7 +609,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      			NNEW(fn,double,mt**nk);
 	      			NNEW(stn,double,6**nk);
 	      			NNEW(inum,ITG,*nk);
-	      			NNEW(stx,double,6*mi[0]**ne);
+	      			//NNEW(stx,double,6*mi[0]**ne);
 
 	      			if(strcmp1(&filab[261],"E   ")==0) NNEW(een,double,6**nk);
 	      			if(strcmp1(&filab[2697],"ME  ")==0) NNEW(emn,double,6**nk);
@@ -652,7 +652,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      				SFREE(v);
 						SFREE(stn);
 						SFREE(inum);
-						SFREE(stx);
+						//SFREE(stx);
 
 	      				if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
 	      				if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);
@@ -805,7 +805,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      				NNEW(fn,double,mt**nk);
 	      				NNEW(stn,double,6**nk);
 	      				NNEW(inum,ITG,*nk);
-	      				NNEW(stx,double,6*mi[0]**ne);
+	      				//NNEW(stx,double,6*mi[0]**ne);
 
 	      				if(strcmp1(&filab[261],"E   ")==0) NNEW(een,double,6**nk);
 	      				if(strcmp1(&filab[2697],"ME  ")==0) NNEW(emn,double,6**nk);
@@ -887,7 +887,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      					}
 
 	     	 				SFREE(v);SFREE(stn);SFREE(inum);
-	      					SFREE(stx);SFREE(fn);
+	      					//SFREE(stx);
+							SFREE(fn);
 
 	      					if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
 	      					if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);
@@ -1041,7 +1042,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     				NNEW(fn,double,mt**nk);
     				NNEW(stn,double,6**nk);
     				NNEW(inum,ITG,*nk);
-    				NNEW(stx,double,6*mi[0]**ne);
+    				//NNEW(stx,double,6*mi[0]**ne);
 
     				if(strcmp1(&filab[261],"E   ")==0) NNEW(een,double,6**nk);
     				if(strcmp1(&filab[2697],"ME  ")==0) NNEW(emn,double,6**nk);
@@ -1125,7 +1126,9 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     				FORTRAN(writesta,(istep,&iinc,&icutb,&iitsta,ttime,&time,&dtime));
 
     				SFREE(v);SFREE(stn);SFREE(inum);
-    				SFREE(b);SFREE(stx);SFREE(fn);
+    				SFREE(b);
+					//SFREE(stx);
+					SFREE(fn);
 
     				if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
     				if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);
