@@ -1819,15 +1819,18 @@ while(istat>=0)
         return;
       }
 
-      for (ITG i = 0; i < ne; i++) 
-      {
-        for (ITG j = 0; j < 6; j++) 
-        {
-            fprintf(fp, "% .6e%c", stx[6 * mi[0] * i + j], (j < 5) ? ' ' : '\n');
-        }
-      }
+      fprintf(fp, "Elem SXX SYY SZZ SXY SXZ SYZ\n");
 
-     fclose(fp);
+      ITG i, j;
+      for(i = 0; i < ne; i++){
+          fprintf(fp, "%d", i+1);
+          for(j = 0; j < 6; j++){
+              fprintf(fp, " % .6e", stx[6*mi[0]*i + j]);
+          }
+          fprintf(fp, "\n");
+      }
+  
+      fclose(fp);
      printf("[write_stress_output] Wrote stresses to stresses.dat\n");
 
 	    for(i=0;i<3;i++)
