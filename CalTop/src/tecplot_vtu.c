@@ -43,7 +43,7 @@
  * ```
  */
 
-void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, double *v) 
+void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, double *v, double *stx, double *rhoPhy) 
     
     {
     FILE *fp = fopen("elastic_Field.vtu", "w");
@@ -101,6 +101,23 @@ void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, double *v)
     }
     fprintf(fp, "        </DataArray>\n");
     fprintf(fp, "      </PointData>\n");
+
+    // Write Cell Stress data
+    fprintf(fp, "      <CellData Scalars=\"density\">\n");
+    fprintf(fp, "        <DataArray type=\"Float64\" Name=\"Stress\" NumberOfComponents=\"6\" format=\"ascii\">\n");
+    for (int cell = 0; cell < ne; cell++) {
+        fprintf(fp, "      %.8f %.8f %.8f %.8f %.8f %.8f\n", stx[6*cell], stx[6*cell+1], stx[6*cell+2], stx[6* cell+3],stx[6*cell+4],stx[6*cell+5]);
+    }
+    fprintf(fp, "        </DataArray>\n");
+
+    fprintf(fp, "        <DataArray type=\"Float64\" Name=\"Density\" NumberOfComponents=\"1\" format=\"ascii\">\n");
+    for (int cell = 0; cell < ne; cell++) {
+        fprintf(fp, "      %.8f\n",  rhoPhy[cell]);
+    }
+    fprintf(fp, "        </DataArray>\n");
+
+    fprintf(fp, "      </CellData>\n");
+
 
     // Close XML tags
     fprintf(fp, "    </Piece>\n");

@@ -2132,7 +2132,7 @@ while(istat>=0)
 
     /* Write elastic fields to a vtu file */
     printf("Skipping:Post-processing results...");
-    tecplot_vtu(nk, ne, co, kon, ipkon, vold);
+    tecplot_vtu(nk, ne, co, kon, ipkon, vold, stx, rhoPhys);
     printf("done!");
 
     printf("Non-zero penalization parameter issued, computing sensitivities...");
