@@ -355,7 +355,8 @@ void sensitivity(double *co, int *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       /* storing the normal information in the frd-file for the optimizer */
           
       ++*kode;
-
+      /* Comment this section out since calTop does not use .frd files */
+      /*
       inorm=1;
       frd_sen(co,nk,stn,inum,nmethod,kode,filab,&ptime,nstate_,
 	      istep,
@@ -364,7 +365,8 @@ void sensitivity(double *co, int *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      extnor,&iobject,objectset,ntrans,inotr,trab,&idesvar,orname,
 	      &icoordinate,&inorm,&irand); 
       inorm=0;
-
+      */
+     
       /* storing the normal direction for every design variable */
 
       NNEW(xdesi,double,3*ndesi);
