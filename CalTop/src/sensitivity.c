@@ -337,10 +337,13 @@ void sensitivity(double *co, int *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       NNEW(iponexp,ITG,2**nk);
       NNEW(ipretinfo,ITG,*nk);
       
+      /* Comment out the following function to avoid writing the .equ file */
+      /* CalTop Does not need the .equ file */
+      /*
       FORTRAN(normalsforequ_se,(nk,co,iponoelfa,inoelfa,konfa,ipkonfa,lakonfa,
                                 &nsurfs,iponor,xnor,nodedesiinv,jobnamef,
 				iponexp,nmpc,labmpc,ipompc,nodempc,ipretinfo));
-      
+      */
       SFREE(konfa);SFREE(ipkonfa);SFREE(lakonfa);SFREE(iponor);SFREE(xnor);
       SFREE(iponoelfa);SFREE(inoelfa);SFREE(iponexp);SFREE(ipretinfo);
 	  
@@ -366,7 +369,7 @@ void sensitivity(double *co, int *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      &icoordinate,&inorm,&irand); 
       inorm=0;
       */
-     
+
       /* storing the normal direction for every design variable */
 
       NNEW(xdesi,double,3*ndesi);
