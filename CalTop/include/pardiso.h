@@ -14,6 +14,8 @@
 /*     along with this program; if not, write to the Free Software       */
 /*     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.         */
 
+#include "envmkl.h" 
+
 void pardiso_main(double *ad, double *au, double *adb, double *aub, 
          double *sigma,double *b, ITG *icol, ITG *irow, 
 	 ITG *neq, ITG *nzs,ITG *symmetryflag,ITG *inputformat,ITG *jq,
@@ -33,4 +35,4 @@ void FORTRAN(pardiso,(long long *pt,ITG *maxfct,ITG *mnum,ITG *mtype,ITG *phase,
                    ITG *perm,ITG *nrhs,ITG *iparm,ITG *msglvl,double *b,
                    double *x,ITG *error));
 
-char envMKL[32];
+extern char envMKL[32];

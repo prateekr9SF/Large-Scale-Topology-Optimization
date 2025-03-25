@@ -30,6 +30,8 @@
 #endif
 #ifdef PARDISO
    #include "pardiso.h"
+   char envMKL[32];
+
 #endif
 
 void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,

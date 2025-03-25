@@ -1,76 +1,88 @@
-# Note that in order to run PARDISO with Multithreading, 
-# the environment variable OMP_NUM_THREADS needs to be set to
-# the desired number of cpus, before compiling and before running ccx
-# e.g. by entering 
-#	>export OMP_NUM_THREADS=2
-# in terminal to run PARDISO with 2 cpus
-# More info in ccx user manual section 2
-ARPACK          = /home/prateek/Documents/GitHub/Large-Scale-Topology-Optimization/OLD/Deps/ARPACK
-OPT = -g -O2
-CFLAGS = -Wall $(OPT) -fopenmp -DARCH="Linux" -DARPACK -DMATRIXSTORAGE -DUSE_MT=1 -DMKL_LP64 -I{MKL_INCLUDE}
-#CFLAGS = -Wall $(OPT) -fopenmp -DARCH="Linux" -DARPACK -DPARDISO -DMATRIXSTORAGE -DUSE_MT=1 -DMKL_LP64 -I{MKL_INCLUDE}
-FFLAGS = -Wall $(OPT) $(OPTIONS) -I$(MKL_INCLUDE) -fopenmp
 
-#ARPACK
-CFLAGS+= -I /usr/local/ARPACK -DARPACK
+.PHONY: all clean install uninstall
 
-#SPOOLES
-#CFLAGS+= -I /usr/local/SPOOLES.2.2 -DSPOOLES
+# Define paths for SPOOLES and ARPACK
+SPOOLES_PATH = /home/prateek/Documents/Github/Large-Scale-Topology-Optimization/Deps/Spooles/src
+ARPACK_PATH = /home/prateek/Documents/Github/Large-Scale-Topology-Optimization/Deps/ARPACK
 
-#BLAS and LAPACK
-#CFLAGS+= -llpack -lblas
+#Directories
+SRC_DIR = src
+OBJ_DIR = obj
+INCLUDE_DIR = include
+BIN_DIR = bin
 
-CC=gcc
-FC=gfortran
+# Installation Prefix (Default: Current Directory)
+PREFIX ?= $(shell pwd)
+BINDIR = $(PREFIX)/bin
 
-OPTIONS = -w -fno-second-underscore -fcray-pointer -x f77-cpp-input
-FPPSTOP= -x none
+# Compiler and flags
+CFLAGS = -Wall $(OPT) -fopenmp -DARCH="Linux" -DARPACK -DPARDISO -DMATRIXSTORAGE -DUSE_MT=1 -DMKL_LP64 -I$(MKL_INCLUDE) -I$(INCLUDE_DIR)
+
+FFLAGS = -Wall -O3 -fallow-argument-mismatch
+
+CC = cc
+FC = gfortran
 
 #INTEL MKL
-#INTEL MKL
-MKL_LIB= //opt/intel/oneapi/mkl/2025.1/lib/intel64
-MKL_INCLUDE=//opt/intel/oneapi/mkl/2025.1/include
-#CMPLR_PATH= //opt/intel/oneapi/compiler/2022.2.0/linux/compiler/lib/intel64_lin
+MKL_LIB= /opt/intel/oneapi/mkl/2025.1/lib/intel64
+MKL_INCLUDE=/opt/intel/oneapi/mkl/2025.1/include
+
 CMPLR_PATH=/opt/intel/oneapi/compiler/2025.1/bin
 
+# Defauilt target
+all: $(BIN_DIR)/calTop.exe
 
+# Ensure object directory exists
+$(OBJ_DIR) $(BIN_DIR):
+	mkdir -p $@
 
-.c.o :
-	$(CC) $(CFLAGS) -c $<
-.f.o :
-	$(FC) $(FFLAGS) -c $<
-
+# Include additional makefile if necessary
 include Makefile.inc
 
-SCCXMAIN = ccx_2.15.c
+# Source files and objects
+SCCXMAIN = $(SRC_DIR)/ccx_2.15.c
 
-OCCXF = $(SCCXF:.f=.o) 
-OCCXC = $(SCCXC:.c=.o)
-OCCXMAIN = $(SCCXMAIN:.c=.o)
+OCCXF = $(SCCXF:$(SRC_DIR)/%.f=$(OBJ_DIR)/%.o)
+OCCXC = $(SCCXC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+OCCXMAIN = $(OBJ_DIR)/ccx_2.15.o
 
+# Libraries
+LIBS = \
+	$(ARPACK_PATH)/libarpack_INTEL.a -Wl,--start-group  \
+	$(MKL_LIB)/libmkl_intel_lp64.a \
+	$(MKL_LIB)/libmkl_gnu_thread.a \
+	$(MKL_LIB)/libmkl_core.a \
+	-Wl,--end-group -lpthread -lm -ldl
 
-# OS-specific options
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-        LIBS += $(ARPACK)/libarpack_MAC.a
-else
-        LIBS += $(ARPACK)/libarpack_INTEL.a
-        LIBS += -lpthread -lm -lc
-endif
+# Object file compilation rules
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -I$(MKL_INCLUDE) -c $< -o $@
 
-ccx_2.15_PR: $(OCCXMAIN) ccx_2.15_PR.a $(LDFLAGS) $(LIBS)\
-        ./date.pl; $(CC) $(CFLAGS) -c ccx_2.15.c; \
-        $(FC) $(OPT)p $(FFLAGS) -o $@ $(FPPSTOP) $(OCCXMAIN) ccx_2.15_PR.a $(LDFLAGS) $(LIBS)\
-         -Wl,--start-group \
-        $(MKL_LIB)/libmkl_gf_lp64.a \
-        $(MKL_LIB)/libmkl_gnu_thread.a \
-        $(MKL_LIB)/libmkl_core.a \
-        $(MKL_LIB)/libmkl_blacs_openmpi_lp64.a \
-         -Wl,--end-group \
-        -L$(CMPLR_PATH) -lgomp -lpthread -lm -ldl
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.f | $(OBJ_DIR)
+	$(FC) $(FFLAGS) -c $< -o $@
 
-ccx_2.15_PR.a: $(OCCXF) $(OCCXC)
-	ar vr $@ $?
+# Build executable in bin/
+$(BIN_DIR)/calTop.exe: $(OCCXMAIN) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
+	./date.pl
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/ccx_2.15.c -o $(OBJ_DIR)/ccx_2.15.o
+	$(FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAIN) ccx_2.15.a $(LIBS)
+	@echo "Build successful!"
+
+# Build static library
+ccx_2.15.a: $(OCCXF) $(OCCXC) | $(OBJ_DIR)
+	ar vr $@ $^
+
+# Install target (default: install in current directory)
+install: $(BIN_DIR)/calTop.exe
+	@echo "Installing calTop.exe to $(BINDIR)"
+	mkdir -p $(BINDIR)
+	cp $(BIN_DIR)/calTop.exe $(BINDIR)/
+	chmod +x $(BINDIR)/calTop.exe
+
+# Uninstall target
+uninstall:
+	@echo "Removing calTop.exe from $(BINDIR)"
+	rm -f $(BINDIR)/calTop.exe
+
 clean:
-	rm *.a *.o ccx_2.15_PR
-
+	rm -f $(OBJ_DIR)/*.o $(BIN_DIR)/*.* ccx_2.15.a
