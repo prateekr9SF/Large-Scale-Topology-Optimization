@@ -1809,29 +1809,6 @@ while(istat>=0)
 	    printf("\n Time taken for linstatic.c is %.8f seconds \n", 
 		  difftime(endl, startl)); 
 
-      /* Debug snippt to write stress to a .dat file */
-
-      FILE *fp = fopen("stresses.dat", "w");
-
-      if (fp == NULL) 
-      {
-        printf("[write_stress_output] Could not open stresses.dat for writing.\n");
-        return;
-      }
-
-      fprintf(fp, "Elem SXX SYY SZZ SXY SXZ SYZ\n");
-
-      ITG i, j;
-      for(i = 0; i < ne; i++){
-          fprintf(fp, "%d", i+1);
-          for(j = 0; j < 6; j++){
-              fprintf(fp, " % .6e", stx[6*mi[0]*i + j]);
-          }
-          fprintf(fp, "\n");
-      }
-  
-      fclose(fp);
-     printf("[write_stress_output] Wrote stresses to stresses.dat\n");
 
 	    for(i=0;i<3;i++)
       {
