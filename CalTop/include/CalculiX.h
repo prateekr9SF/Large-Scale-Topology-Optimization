@@ -109,7 +109,7 @@ void write_volume_sensitivities(int ne,
 
 void rho(double *design,int ne);
 
-void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, double *v);
+void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, double *v, double *stx, double *rhoPhy);
 
 void write_objectives(int ne,double *eleVol, double *rhoPhys, double * compliance_sum);
 
