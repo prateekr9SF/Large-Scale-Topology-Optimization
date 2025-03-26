@@ -179,7 +179,7 @@ Additionally, the following files are also written:
 1. **rhos.dat**: Filtered element densities
 2. **objectives.csv**: Structure compliance, volume fraction and C.G
 
-**NOTE**: When running in a shared-memeory environment, set the number of processes as:
+**NOTE**: When running in a shared-memeory environment, before calling calTop, set the number of processes as:
 
 ``` sh
 export OMP_NUM_THREADS = <num_procs>
