@@ -76,7 +76,7 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
    After building, make sure to set `LD_BIBRARY_PATH` to the installation directory
 
 4. CalTop currently supports **SPOOLES** and **INTEL MKL PARDISO** for matrix factorization.
-   #### SPOOLES (Single-thread build)
+   #### Option A: SPOOLES (Single-thread build)
    
    ```sh
    wget http://www.netlib.org/linalg/spooles/spooles.2.2.tgz
@@ -99,6 +99,23 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
    SPOOLES_PATH = <spooles_installation_dir/src>
    ARPACK_PATH = <ARPACK installation_dir>
    ```
+   #### Option B: INTEL MKL PARDISO (Multi-thread build)
+
+   Install the Intel oneAPI Base Toolkit
+   https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html
+
+   Install the Intel oneAPI HPC Toolkit
+   https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html
+
+   Navigate to the `PARDISO_MAKE` directory and move the Makefile to `ROOT`.
+   Open the `Makefile` and edit paths:
+   ```sh
+   ARPACK_PATH = <ARPACK installation_dir>
+   MKL_LIB = <oneAPI_installation_path/intel/oneapi/mkl/year/lib/intel64>
+   MKL_INCLUDE = <oneAPI_installation_path/intel/oneapi/mkl/year/include>
+   MKL_INCLUDE = <oneAPI_installation_path/intel/oneapi/compiler/year/bin>
+   ```
+   `NOTE: Defaulty instalation directory for Intel MKL library is opt/`
 
 6. Build and install    `CalTop`
 
