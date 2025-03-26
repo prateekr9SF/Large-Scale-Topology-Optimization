@@ -115,7 +115,7 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
    MKL_INCLUDE = <oneAPI_installation_path/intel/oneapi/mkl/year/include>
    MKL_INCLUDE = <oneAPI_installation_path/intel/oneapi/compiler/year/bin>
    ```
-   `NOTE: Default instalation directory for Intel oneAPI is opt/`
+   NOTE: Default instalation directory for Intel oneAPI is `opt/`
 
 6. Build and install    `CalTop`
 
