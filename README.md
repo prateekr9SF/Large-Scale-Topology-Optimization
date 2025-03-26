@@ -154,13 +154,24 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
 
 
 ## Usage
-TODO
+CalTop can be run in one of two modes at a time:
+
+### Pure FEA mode with user-defined or default element densities (density.dat)
+``` calTop.exe <filename> ```
+This mode will result in evaluation of the linear elastic response and an `elastic_Field.vtu` file for visualizing element densities, stresses and nodal displacements.
+
+### FEA mode + Adjoint sensitivity analysis + Filtering with user-defined or default element densities (density.dat)
+``` calTop.exe <filename> -p 2 ```
+
+where `p` is the penalization parameter.
+
+This mode will result in evaluation of the linear elastic response, compliance, center of gravity and volume fraction sensitivties, written to `compliance_sens.csv`, `center_of_gravity.csv` and `volume_sens.csv`, repectively, and an `elastic_Field.vtu` file as in the pure FEA mode.
 
 ## License
 This project is licensed under [MIT License](LICENSE).
 
 ## Contact
-For inquiries, please reach out to **Prateek Ranjan** at `prateekr@mit.edu`.
+For inquiries, please reach out to **Prateek Ranjan PhD** at `prateekr@mit.edu`.
 
 ## Acknowledgement
 This work was supported by NASA under award number **80NSSC19M0125** as part of the **C**enter for **H**igh-**E**fficiency **E**lectrical **T**echnologies for **A**ircraft **(CHEETA)**.
