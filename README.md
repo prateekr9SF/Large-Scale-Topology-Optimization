@@ -75,7 +75,9 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
    ```
    After building, make sure to set `LD_BIBRARY_PATH` to the installation directory
 
-4. Install dependency SPOOLES (Single-thread build)
+4. CalTop currently supports **SPOOLES** and **INTEL MKL PARDISO** for matrix factorization.
+   #### SPOOLES (Single-thread build)
+   
    ```sh
    wget http://www.netlib.org/linalg/spooles/spooles.2.2.tgz
    mkdir SPOOLES.2.2
@@ -91,7 +93,8 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
    make lib
    ```
 
-5. Navigate to the `ROOT` directory and edit Makefile:
+   Navigate to the `SPOOLES_MAKE` directory and move the Makefile to `ROOT`.
+   Open the `Makefile` and edit paths:
    ```sh
    SPOOLES_PATH = <spooles_installation_dir/src>
    ARPACK_PATH = <ARPACK installation_dir>
