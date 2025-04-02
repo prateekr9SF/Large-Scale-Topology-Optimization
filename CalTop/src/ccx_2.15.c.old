@@ -1061,6 +1061,20 @@ while(istat>=0)
 	    &maxlenmpcref,&memmpc_,&isens,&namtot,&nstam,dacon,vel,&nef,
 	    velo,veloo));
 
+  /* Read the number of passive elements */
+  int *passives = NULL;
+  int npassives = 0;
+
+  passives = passiveElements("skinElementList.nam", &npassives);
+
+  printf("Read %d passive elements.\n", npassives);
+
+  // Optional: Print a few
+  for (int i = 0; i < npassives && i < 5; ++i) 
+  {
+    printf("passives[%d] = %d\n", i, passives[i]);
+  }
+
 
   /* Read element desitiies from .dat file, if absent, initialize the design to one */    
   rho(design,ne);
