@@ -2224,8 +2224,11 @@ while(istat>=0)
       /* write compliance value */
       //elC_file=fopen("objectives.dat","w");
 
-      /* set the filtered complience sens of passive elements to 0 */
-      filterOutPassiveElems_compSens(gradComplFiltered, ne, passiveIDs, numPassive);
+      /* set the filtered element densities of passive elements to 0 */
+      filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
+
+      /* set the filtered compliance sens of passive elements to 0 */
+      filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
 
       /* initialize for compliance */
       double compliance_sum=0;
@@ -2233,6 +2236,9 @@ while(istat>=0)
       printf("Writing compliance sensitivities...");
       write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
       printf("Done!\n");
+
+      /* set the filtered volume sens of passive elements to 0 */
+      filterOutPassiveElems_sens(eleVolFiltered, ne, passiveIDs, numPassive);
 
       printf("Writing volume sensitivities...");
       write_volume_sensitivities(ne, eleVol, rhoPhys, eleVolFiltered);

@@ -112,7 +112,7 @@ int* passiveElements(char *filename, int *numPassive);
 
 void filterOutPassiveElems_density(double *design, int ne, int *passiveIDs, int numPassive);
 
-void filterOutPassiveElems_compSens(double *eleComp, int ne, int *passiveIDs, int numPassive);
+void filterOutPassiveElems_sens(double *sens, int ne, int *passiveIDs, int numPassive);
 
 void rho(double *design,int ne);
 
