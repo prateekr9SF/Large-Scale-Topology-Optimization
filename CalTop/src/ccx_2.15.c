@@ -383,9 +383,10 @@ else
     if(strcmp1(argv[i],"-v")==0)
     {
       /* Print version */
-	    printf("\nThis is CALTOP v2.15 modified for Topology Optimization with SIMP method: Ghanendra Kumar Das,CDILab, AE, UIUC\n\n");
+	    printf("\nThis is CALTOP v1.0: A CalculiX-based large-scale topology optimization framework \n");
       printf(" Authors: Prateek Ranjan, Massachusetts Institute of Technology \n");
       printf(" Authors: Ghanendra Das, Georgia Institute of Technology \n");
+      printf(" Authors: Wanzheng Zheng, University of Illinois at Urbana-Champaign \n");
       printf(" Kai. A James, Georgia Institute of Technology \n");
 	    FORTRAN(stop,());
     }
