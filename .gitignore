@@ -9,3 +9,5 @@
 *.vtu
 *.csv
 *.swp
+*.nam
+*.msh
