@@ -68,7 +68,7 @@ def extract_su2_mesh_data_with_element_index(su2_filepath, output_filepath="mesh
         # Writing nodal coordinates with node index starting from 1
         for idx, node in enumerate(node_data, start=1):
             coords = node.split()  # Assume space-separated coordinates
-            formatted_line = f"{idx},{coords[0]},{coords[1]},{coords[2]}"
+            formatted_line = f"{idx}, {int(float(coords[0]))}, {int(float(coords[1]))}, {int(float(coords[2]))}"
             output_file.write(formatted_line + "\n")
         
         # Add a blank line before the element section
@@ -305,7 +305,7 @@ def find_all_tetrahedral_elements_for_skin_optimized(su2_filepath, skin_triplets
     
     return skin_to_tetra_mapping
 
-su2path = "../TestCases/Short_Cantelever_Beam/SCB.su2"
+su2path = "TestCube/TestCube.su2"
 # Extract all "fixed" nodes and write to Nfix1.nam
 get_fixed_nodes(su2path)
 
