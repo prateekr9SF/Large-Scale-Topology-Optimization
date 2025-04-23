@@ -5,7 +5,7 @@
 
 ** Node set Nfix1 has DOF 1(X), DOF 2(Y), DOF 3(Z) fixed
 *BOUNDARY
-Nfix1,1,3
+Nfix1,1,2,3
 
 **Add material named EL with elastic properties
 *MATERIAL,NAME=EL
@@ -33,7 +33,8 @@ DES
 
 *DLOAD
 EALL,GRAV,9.810, 0., 0., -1
-
+*CLOAD
+Nsurface, 3,10
 *END STEP
 
 
