@@ -51,7 +51,8 @@ def extract_su2_mesh_data_with_element_index(su2_filepath, output_filepath="mesh
             if len(element_data) < element_count:
                 elements = line.strip().split()
                 if len(elements) > 2:  # Ensure valid element data with more than two entries
-                    formatted_element = ",".join(elements[1:-1])  # Exclude first and last column
+                    intelem = [int(x)+1 for x in elements[1:-1]]
+                    formatted_element = ",".join(str(x) for x in intelem)  # Exclude first and last column
                     element_data.append(formatted_element)
             else:
                 break  # Stop after collecting all elements
@@ -68,7 +69,7 @@ def extract_su2_mesh_data_with_element_index(su2_filepath, output_filepath="mesh
         # Writing nodal coordinates with node index starting from 1
         for idx, node in enumerate(node_data, start=1):
             coords = node.split()  # Assume space-separated coordinates
-            formatted_line = f"{idx}, {int(float(coords[0]))}, {int(float(coords[1]))}, {int(float(coords[2]))}"
+            formatted_line = f"{idx}, {coords[0]}, {coords[1]}, {coords[2]}"
             output_file.write(formatted_line + "\n")
         
         # Add a blank line before the element section
