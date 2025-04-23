@@ -306,7 +306,7 @@ def find_all_tetrahedral_elements_for_skin_optimized(su2_filepath, skin_triplets
     
     return skin_to_tetra_mapping
 
-su2path = "TestCube/TestCube.su2"
+su2path = "../TestCases/Short_Cantelever_Beam/SCB.su2"
 # Extract all "fixed" nodes and write to Nfix1.nam
 get_fixed_nodes(su2path)
 

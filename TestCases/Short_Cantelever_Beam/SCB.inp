@@ -1,7 +1,7 @@
 **Block file for optimization
-*INCLUDE, INPUT=mesh.nam
-*INCLUDE, INPUT=Nfix1.nam
-*INCLUDE, INPUT=NSurface.nam
+*INCLUDE, INPUT=/home/prateek/Documents/GitHub/Large-Scale-Topology-Optimization_CalGeo/TestCases/Short_Cantelever_Beam/mesh.nam
+*INCLUDE, INPUT=/home/prateek/Documents/GitHub/Large-Scale-Topology-Optimization_CalGeo/TestCases/Short_Cantelever_Beam/Nfix1.nam
+*INCLUDE, INPUT=/home/prateek/Documents/GitHub/Large-Scale-Topology-Optimization_CalGeo/TestCases/Short_Cantelever_Beam/NSurface.nam
 
 ** Node set Nfix1 has DOF 1(X), DOF 2(Y), DOF 3(Z) fixed
 *BOUNDARY
