@@ -181,6 +181,10 @@ Additionally, the following files are also written:
 
 **NOTE**: When running in a shared-memeory environment, before calling calTop, set the number of processes as:
 
+
+##Adding FADO and IPOPT
+To use CalTop with FADO interface for optimization, obtain FADO from github. https://github.com/WabalabaKing/FADO_pyoptsparse (This is not the official repo but have ipopt driver and pyoptsparse interface builtin)
+FADO already comes with multiple optimization algorithms. To use IPOPT and pyoptSparse, obtain ipyopt package from https://pypi.org/project/ipyopt/ (or just do pip install ipyopt)
 ``` sh
 export OMP_NUM_THREADS = <num_procs>
 ```
