@@ -1,0 +1,7 @@
+To run this SCB problem with FADO:
+1. Go to CalGeo and Run CalGeo.py (technically you should specify the .su2 file for input, but it's already in by default)
+2. After CalGeo.py executed successfully, you should see a bunch of .nam files. Move *.nam to the root directory of this problem
+3. Go the the root directory for this problem, and open SCB.inp
+4. Make sure the include tags all points to the respective .nam files' absolute directory
+5. Open RunOptim.py and specify the number of CPU you'd like to use
+6. Run python3 RunOptim.py

@@ -20,7 +20,7 @@ import os
 # this defines initial value and how they are written to an arbitrary file
 NCPU = 8
 penalty = 5
-rmin = 0.7
+rmin = 1
 volfrac=0.3
 InputFileName="SCB"
 nDV = 14189
