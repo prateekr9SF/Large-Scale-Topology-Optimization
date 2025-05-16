@@ -45,7 +45,7 @@ FILE *open_file(const char *filename, const char *mode)
     FILE *sens_file = open_file(filename, "w");
 
     /* Write file header */
-    fprintf(sens_file, "Compliance GRADIENT RAW, Compliance GRADIENT FILTERED \n");
+    fprintf(sens_file, "Compliance GRADIENT UNFILTERED, Compliance GRADIENT FILTERED \n");
     
 
     /* Loop over all elements and write their sensitivities to file */

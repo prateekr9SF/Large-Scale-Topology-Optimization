@@ -25,9 +25,7 @@
 # | other than your home directory.      |
 # %--------------------------------------%
 #
-home =/home/prateek/Documents/Github/Large-Scale-Topology-Optimization/Deps/ARPACK
-
-
+home =/home/prateekr/Documents/Github/Large-Scale-Topology-Optimization/Deps/ARPACK
 
 #  %--------------------------------------%
 #  | The platform identifier to suffix to |

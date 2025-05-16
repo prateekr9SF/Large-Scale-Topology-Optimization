@@ -7,7 +7,7 @@
  *
  * @param ne                Number of elements.
  * @param eleVol            Array of original (geometric) element volumes.
- * @param rhoPhys           Array of element densities updated by the optimizer.
+ * @param rhoPhys           Array of filtered element densities.
  */
 void write_objectives(int ne,
                                 const double *eleVol,
@@ -39,8 +39,14 @@ void write_objectives(int ne,
         exit(EXIT_FAILURE);
     }
 
+    /* NOTE:
+        ORIGINAL VOLUME := Volume of the structure with rho = 1 
+        DESIGN VOLUME   := Volume of the structure with filtered rho
+    */
+
+
     /* Write file header */
-    fprintf(obj_file, "COMPLIANCE, INITIAL VOLUME, DESIGN VOLUME\n");
+    fprintf(obj_file, "COMPLIANCE, ORIGINAL VOLUME, DESIGN VOLUME, VOLUME_FRACTION\n");
 
     /* Loop over all elements and compute the initial and current volume*/
     for (int i = 0; i < ne; i++)
@@ -50,8 +56,11 @@ void write_objectives(int ne,
         //fprintf(sens_file, "%.15f,%.15f,%.15f\n", eleVol[i], eleVol[i] * rhoPhys[i], eleVolFiltered[i]);
     }
 
+     /* Compute volume fraction */
+    double volume_fraction = designVol_sum / initialVol_sum;
+
     /* Write structure compliance and volume to file */
-    fprintf(obj_file, "%.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum);
+    fprintf(obj_file, "%.15f, %.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum, volume_fraction);
     
     fclose(obj_file);
 }

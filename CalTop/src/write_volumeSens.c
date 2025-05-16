@@ -7,8 +7,8 @@
  *
  * @param ne                Number of elements.
  * @param eleVol            Array of original (geometric) element volumes.
- * @param rhoPhys           Array of element densities updated by the optimizer.
- * @param eleVolFiltered    Array of element volume sensitivities (filtered).
+ * @param rhoPhys           Array of element filtered element densities
+ * @param eleVolFiltered    Array of element filtered volume sensitivities.
  */
 void write_volume_sensitivities(int ne,
                                 const double *eleVol,
@@ -35,7 +35,7 @@ void write_volume_sensitivities(int ne,
     }
 
     /* Write file header */
-    fprintf(sens_file, "ELEMENT VOLUME, CURRENT ELEMENT VOLUME, VOLUME GRADIENT\n");
+    fprintf(sens_file, "ELEMENT VOLUME, FILTERED ELEMENT VOLUME, VOLUME GRADIENT FILTERED\n");
 
     /* Loop over all elements and write their sensitivities to file */
     for (int i = 0; i < ne; i++)
