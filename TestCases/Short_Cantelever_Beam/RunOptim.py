@@ -18,10 +18,10 @@ import os
        
 # Design variables of the problem
 # this defines initial value and how they are written to an arbitrary file
-NCPU = 4
+NCPU = 8
 penalty = 5
-rmin = 0.7
-volfrac=0.8
+rmin = 1
+volfrac=0.3
 InputFileName="SCB"
 nDV = 14189
 
@@ -50,7 +50,7 @@ evalFun1.addParameter(parData1)
 fun1 = Function("Topop","Direct/objectives.csv",TableReader(0,0,(1,0),(None,None),","))
 fun1.addInputVariable(var,"Direct/compliance_sens.csv",TableReader(None,1,(1,0),(None,None),","))
 fun1.addValueEvalStep(evalFun1)
-con = Function("Topop","Direct/objectives.csv",TableReader(0,2,(1,0),(None,None),","))
+con = Function("Topop","Direct/objectives.csv",TableReader(0,3,(1,0),(None,None),","))
 con.addInputVariable(var,"Direct/volume_sens.csv",TableReader(None,2,(1,0),(None,None),","))
 
 driver = IpoptDriver()

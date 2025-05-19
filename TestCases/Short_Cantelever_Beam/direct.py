@@ -10,11 +10,14 @@ import numpy as np
 import sys
 import os
 import subprocess
-def runcalTop(x,File, penalty, rmin):
+def runcalTop(x,File, penalty, rmin,NCPU):
     with open("density.dat", mode="w+") as file:
         for xi in x:
             file.write(str(xi)+"\n")
     File=File
+    if NCPU>1:
+        cpucmd = "export OMP_NUM_THREADS="+str(int(NCPU))
+        os.system(cpucmd)
     cmd = ["calTop.exe", File, "-p", str(penalty), "-r", str(rmin)]
     result = subprocess.run(cmd)
     
@@ -38,7 +41,7 @@ penalty = int(lines[3])
 File = lines[4].rstrip("\n")
 NCPU = int(lines[5])
 #Write the density file
-runcalTop(x, File, penalty, rmin)
+runcalTop(x, File, penalty, rmin,NCPU)
 
 #Run the actual solver
 
