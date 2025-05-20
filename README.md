@@ -153,7 +153,26 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
    ```
 
 
-## Usage
+## Usage: calGeo
+
+calGeo is a series of python functions that extract fields from a .su2 file. 
+
+Before running calGeo, create an alias in your `.bashrc`:
+
+``` sh
+alias calGeo='python3 some_path/Large-Scale-Topology-Optimization/CalGeo/calGeo.py'
+```
+
+Thereafter, source your `.bashrc`. Now calGeo.py is aliased as `calGeo` in your environemnt and can be run from any location as:
+
+``` sh
+calGeo mesh_name.su2
+```
+
+which will result in the necessary `.nam ` and `.msh` files for calTop
+
+## Usage: calTop
+
 CalTop can be run in one of two modes at a time:
 
 ### Mode 1: Pure FEA mode with user-defined or default element densities (density.dat)
@@ -181,7 +200,7 @@ Additionally, the following files are also written:
 
 **NOTE**: When running in a shared-memeory environment, before calling calTop, set the number of processes as:
 ``` sh
-export OMP_NUM_THREADS = <num_procs>
+export OMP_NUM_THREADS =<num_procs>
 ```
 
 ## Adding FADO and IPOPT
