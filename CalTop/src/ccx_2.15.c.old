@@ -1782,8 +1782,10 @@ while(istat>=0)
       printf("\n");
       if(pSupplied!=0)
       {
-        printf("NON-ZERO PENALIZATION PARAMTER SPECIFIED -> WILL COMPUTE FILTER MATIX + SENSITIVITIES \n");
+        printf("Penalization parameter found!\n");
+        printf("Will perform adjoint sensitivity analysis.\n");
       }
+
       if(pSupplied!=0)
       {
         printf("Building filter matix for topology optimization...");
@@ -1796,21 +1798,15 @@ while(istat>=0)
         NNEW(filternnzElems,ITG,ne_);
         NNEW(designFiltered,double,ne_);
 
-        time_t start, end; 
-	      start = time(NULL);
-
+    
         densityfilter(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
                   &rmin,&filternnz,
                   FilterMatrixs,rowFilters,colFilters,filternnzElems,itertop,&fnnzassumed);
 
-        printf("done!\n");
 
-        end = time(NULL); 
-        printf("Time taken for density filter %.2f seconds \n", 
-        difftime(end, start)); 
+        /* apply the filter matrix on rho to get rhoPhys */ 
+        filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter);
 
-        /* apply the filter matrix on rhoPhys to get designFiltered */ 
-        filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter); //Filter Design variables
         rhoPhys=designFiltered;
       }
       else

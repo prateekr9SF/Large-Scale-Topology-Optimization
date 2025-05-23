@@ -86,6 +86,8 @@ void mafillsmmain_filter2(ITG *ipkon,double *rmin,ITG *filternnz,
 	}
     }
 
+    
+
 // next line is to be inserted in a similar way for all other paralell parts
     //num_cpus=1;// overwrite for now to 1 CPU only
 
@@ -139,13 +141,19 @@ void mafillsmmain_filter2(ITG *ipkon,double *rmin,ITG *filternnz,
     /* create threads and wait */
 
     NNEW(ithread,ITG,num_cpus);
-    for(i=0; i<num_cpus; i++)  {
-	ithread[i]=i;
-	pthread_create(&tid[i], NULL, (void *)mafillsmfilter2mt, (void *)&ithread[i]);
+
+    for(i=0; i<num_cpus; i++)  
+    {
+	    ithread[i]=i;
+	    pthread_create(&tid[i], NULL, (void *)mafillsmfilter2mt, (void *)&ithread[i]);
     }
+
     for(i=0; i<num_cpus; i++)  pthread_join(tid[i], NULL);
 
-    SFREE(ithread);SFREE(neapar);SFREE(nebpar);SFREE(elarr);
+    SFREE(ithread);
+    SFREE(neapar);
+    SFREE(nebpar);
+    SFREE(elarr);
 
     /*      for(i=0;i<num_cpus;i++){
       for(k=i*neq[1];k<i*neq[1]+neq[1];++k){printf("fext=%" ITGFORMAT ",%f\n",k-i*neq[1],fext1[k]);}
