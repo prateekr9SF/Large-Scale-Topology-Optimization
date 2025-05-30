@@ -22,7 +22,8 @@
      &  FilterMatrixs,rowFilters,colFilters,filternnzElems,elarr,
      &  fnnzassumed)
 !
-!     calculating the distance between element centroids
+!    Constructs a sparse filter matrix based on distances between element 
+!    centroids for use in density filtering 
 !
       implicit none
 !
@@ -52,6 +53,8 @@ c      write(*,*) loc(sm)
 c      write(*,*) loc(ff)
 c      write(*,*) loc(index1)
 !
+
+!    Set a conservative cap on max neighbours to prevent memeory overflow
 	dummy1=fnnzassumed/3
 !
 c      open (unit=200,file="Mafillsmfilter2.dat")
