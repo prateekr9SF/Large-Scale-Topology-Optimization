@@ -1776,7 +1776,6 @@ while(istat>=0)
       printf("Filter Order                      %.2f\n", qfilter);
       printf("Volume fraction                   %.2f\n", volfrac);
       printf("Non zeros in Filtermatrix         %d\n", fnnzassumed);
-     // printf("Topology Optimization Step        %d\n", itertop);
       printf("#-----------------------------------------------------------------------------------------#\n");
      
       fflush(stdout);
