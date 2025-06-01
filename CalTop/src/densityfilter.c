@@ -61,7 +61,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   if(build_filter==1)
   {
    
-    printf("Filter files not found...building filter matrix");
+    printf("Filter files not found...building filter matrix \n");
 
     double *elCentroid=NULL; //pointer to store Centroid of elements
     NNEW(elCentroid,double,3*ne0);  //allocate memory to element CG, initialize to 0 
@@ -144,7 +144,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   }
   else
   {
-    printf("Filter files found...assembling filter matrix");
+    printf("Filter files found...assembling filter matrix\n");
 
     /* Read non zeros in each row from dnnz.dat and calculate total nnzs */
     *filternnz=0; //initialize
@@ -241,7 +241,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       perror("Error reading dval.dat");
     }
 
-    printf("Loading density filter into memory...")
+    printf("Loading density filter into memory...");
     FORTRAN(readfilter,(FilterMatrixs,filternnzElems,rowFilters,colFilters,ne,ttime,&time,&ne0,filternnz,drow,dcol,dval,fnnzassumed));
     printf("Done");
 
