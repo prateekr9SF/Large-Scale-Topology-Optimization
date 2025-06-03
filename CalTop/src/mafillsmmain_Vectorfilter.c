@@ -163,12 +163,12 @@ void *mafillsmVectorfiltermt(void *thread_id_ptr)
     ITG nea = neapar[i] + 1;
     ITG neb = nebpar[i] + 1;
 
-    printf("[Thread %d] Filtering elements %d to %d\n", i, nea, neb);
+    //printf("[Thread %d] Filtering elements %d to %d\n", i, nea, neb);
 
     /* Legacy method */
-    //FORTRAN(mafillsmvectorfilter,(ne1,ttime1,time1,ne01,&nea,&neb,
-    //                          FilterMatrix1,Vector1,VectorFiltered1,
-    //                          filternnzElem1,rowFilter1,colFilter1,fnnzassumed1,q1));
+    FORTRAN(mafillsmvectorfilter,(ne1,ttime1,time1,ne01,&nea,&neb,
+                              FilterMatrix1,Vector1,VectorFiltered1,
+                              filternnzElem1,rowFilter1,colFilter1,fnnzassumed1,q1));
 
     /*mafillsmvectorfilter_io(*ne1, *ttime1, *time1, *ne01, nea, neb,
                             FilterMatrix1, Vector1, VectorFiltered1,
