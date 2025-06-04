@@ -160,27 +160,36 @@ void mafillsmmain_Vectorfilter(ITG *ipkon,double *Vector,double *VectorFiltered,
 void *mafillsmVectorfiltermt(void *thread_id_ptr) 
 {
     ITG i = *((ITG *)thread_id_ptr);
-    //ITG nea = neapar[i];
-    //ITG neb = nebpar[i] - 1;
+    ITG nea = neapar[i];
+    ITG neb = nebpar[i] - 1;
 
-    ITG nea = neapar[i] + 1;
-    ITG neb = nebpar[i] +1;
+    //ITG nea = neapar[i] + 1;
+    //ITG neb = nebpar[i] +1;
 
     //printf("[Thread %d] Filtering elements %d to %d\n", i, nea, neb);
 
     /* Legacy method */
-    FORTRAN(mafillsmvectorfilter,(ne1,ttime1,time1,ne01,&nea,&neb,
-                              FilterMatrix1,Vector1,VectorFiltered1,
-                              filternnzElem1,rowFilter1,colFilter1,fnnzassumed1,q1));
+    //FORTRAN(mafillsmvectorfilter,(ne1,ttime1,time1,ne01,&nea,&neb,
+    //                          FilterMatrix1,Vector1,VectorFiltered1,
+    //                          filternnzElem1,rowFilter1,colFilter1,fnnzassumed1,q1));
+
 
 
    //printf("Number of elements: %d\n", *ne1);
 
-    //mafillsmvectorfilter_io(*ne1, *ttime1, *time1, *ne01, nea, neb,
-    //                        FilterMatrix1, Vector1, VectorFiltered1,
-    //                        filternnzElem1, rowFilter1, colFilter1,
-    //                        *fnnzassumed1, *q1); 
+    /* Function without streaming **/
+   // mafillsmvectorfilter_io(*ne1, *ttime1, *time1, *ne01, nea, neb,
+   //                         FilterMatrix1, Vector1, VectorFiltered1,
+   //                         filternnzElem1, rowFilter1, colFilter1,
+   //                         *fnnzassumed1, *q1); 
     
+    
+    /* Function with streaming */
+    //mafillsmvectorfilter_streaming("filter.bin",ne_,Vector,VectorFiltered,q);
+
+    mafillsmvectorfilter_streaming("filter.bin", *ne1, Vector1, VectorFiltered1, *q1);
+
+
     return NULL;
 }
 
@@ -209,7 +218,7 @@ void mafillsmvectorfilter_io(int ne_, double ttime, double time,
             //        exit(EXIT_FAILURE);
             //    }
 
-                int col = colFilters[offset];
+                int col = colFilters[offset] - 1;
 
             //    if (col < 0 || col >= ne_) 
             //    {
@@ -225,3 +234,52 @@ void mafillsmvectorfilter_io(int ne_, double ttime, double time,
             VectorFiltered[i] = (sum > 0.0) ? VectorFiltered[i] / sum : 0.0;
         }
     }
+
+
+void mafillsmvectorfilter_streaming(const char* filterfile,
+                                    int ne_,
+                                    double* Vector,
+                                    double* VectorFiltered,
+                                    double q)
+{
+    FILE* fbin = fopen(filterfile, "rb");
+    if (!fbin) {
+        perror("Unable to open filter binary file");
+        exit(EXIT_FAILURE);
+    }
+
+    // Temporary accumulator for normalization
+    double* sum_per_row = (double*)calloc(ne_, sizeof(double));
+    if (!sum_per_row) {
+        perror("Memory allocation failed for sum_per_row");
+        exit(EXIT_FAILURE);
+    }
+
+    // Zero out the filtered vector
+    for (int i = 0; i < ne_; ++i) VectorFiltered[i] = 0.0;
+
+    int row, col;
+    double val;
+
+    while (fread(&row, sizeof(int), 1, fbin) == 1 &&
+           fread(&col, sizeof(int), 1, fbin) == 1 &&
+           fread(&val, sizeof(double), 1, fbin) == 1)
+    {
+        double weight = pow(val, q);
+
+        if (row < 0 || row >= ne_ || col < 0 || col >= ne_) {
+            fprintf(stderr, "Invalid row or column index: row=%d, col=%d\n", row, col);
+            continue;
+        }
+
+        VectorFiltered[row] += weight * Vector[col];
+        sum_per_row[row]    += weight;
+    }
+
+    fclose(fbin);
+
+    for (int i = 0; i < ne_; ++i)
+        VectorFiltered[i] = (sum_per_row[i] > 0.0) ? VectorFiltered[i] / sum_per_row[i] : 0.0;
+
+    free(sum_per_row);
+}

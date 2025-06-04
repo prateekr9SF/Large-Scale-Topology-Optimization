@@ -133,6 +133,10 @@ void mafillsmvectorfilter_io(int ne_, double ttime, double time,
                           int *filternnzElems, int *rowFilters, int *colFilters,
                           int fnnzassumed, double q);
 
+void assembleFilter_beta_to_binary(const char* outfile,
+                                   int* filternnz,
+                                   int* fnnzassumed);
+
 void FORTRAN(actideacti,(char *set,ITG *nset,ITG *istartset,ITG *iendset,
 			 ITG *ialset,char *objectset,ITG *ipkon,ITG *ibject,
                          ITG *ne));

@@ -88,9 +88,11 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     FORTRAN(mafillsm_expandfilter,(FilterMatrixs,filternnzElems,rowFilters,colFilters,ne,ttime,&time,&ne0,fnnzassumed));
     printf("done! \n");
     printf("Writing row indices to file...");
+
     /* Write non zero row values for density filter */
     drow=fopen("drow.dat","w"); //open in write mode
     printf("done!\n");
+    
     for(int iii=0;iii< (*fnnzassumed)*(ne0);iii++)
     {
       if(FilterMatrixs[iii]>0)
@@ -259,8 +261,10 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     //assembleFilter_beta(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
 
     /* c-based method with buffered I/O-based drow, dcol and dval handling */
-    assembleFilter_beta_buffer(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
+    //assembleFilter_beta_buffer(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
 
+    /* c-based method with I/O-based drow, dcol and dval handling and filter.bin I/O */
+    assembleFilter_beta_to_binary("filter.bin",filternnz,fnnzassumed);
 
     double val_0 = FilterMatrixs[0];
     double val_1 = FilterMatrixs[1];
