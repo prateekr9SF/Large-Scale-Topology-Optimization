@@ -160,8 +160,11 @@ void mafillsmmain_Vectorfilter(ITG *ipkon,double *Vector,double *VectorFiltered,
 void *mafillsmVectorfiltermt(void *thread_id_ptr) 
 {
     ITG i = *((ITG *)thread_id_ptr);
+    //ITG nea = neapar[i];
+    //ITG neb = nebpar[i] - 1;
+
     ITG nea = neapar[i] + 1;
-    ITG neb = nebpar[i] + 1;
+    ITG neb = nebpar[i] +1;
 
     //printf("[Thread %d] Filtering elements %d to %d\n", i, nea, neb);
 
@@ -170,11 +173,14 @@ void *mafillsmVectorfiltermt(void *thread_id_ptr)
                               FilterMatrix1,Vector1,VectorFiltered1,
                               filternnzElem1,rowFilter1,colFilter1,fnnzassumed1,q1));
 
-    /*mafillsmvectorfilter_io(*ne1, *ttime1, *time1, *ne01, nea, neb,
-                            FilterMatrix1, Vector1, VectorFiltered1,
-                            filternnzElem1, rowFilter1, colFilter1,
-                            *fnnzassumed1, *q1); */
 
+   //printf("Number of elements: %d\n", *ne1);
+
+    //mafillsmvectorfilter_io(*ne1, *ttime1, *time1, *ne01, nea, neb,
+    //                        FilterMatrix1, Vector1, VectorFiltered1,
+    //                        filternnzElem1, rowFilter1, colFilter1,
+    //                        *fnnzassumed1, *q1); 
+    
     return NULL;
 }
 
@@ -185,6 +191,9 @@ void mafillsmvectorfilter_io(int ne_, double ttime, double time,
                              int *filternnzElems, int *rowFilters, int *colFilters,
                              int fnnzassumed, double q) 
     {
+
+        printf("Number of elements inside function: %d\n", ne_);
+
         for (int i = nea; i <= neb; ++i) 
         {
             double sum = 0.0;
@@ -194,19 +203,19 @@ void mafillsmvectorfilter_io(int ne_, double ttime, double time,
             {
                 int offset = j + fnnzassumed * i;
 
-                if (offset >= fnnzassumed * ne_) 
-                {
-                    fprintf(stderr, "[ERROR] offset out of bounds: %d >= %d (i=%d, j=%d)\n", offset, fnnzassumed * ne_, i, j);
-                    exit(EXIT_FAILURE);
-                }
+            //    if (offset >= fnnzassumed * ne_) 
+            //    {
+            //        fprintf(stderr, "[ERROR] offset out of bounds: %d >= %d (i=%d, j=%d)\n", offset, fnnzassumed * ne_, i, j);
+            //        exit(EXIT_FAILURE);
+            //    }
 
                 int col = colFilters[offset];
 
-                if (col < 0 || col >= ne_) 
-                {
-                    fprintf(stderr, "[ERROR] col index out of bounds: col=%d (i=%d)\n", col, i);
+            //    if (col < 0 || col >= ne_) 
+            //    {
+            //        fprintf(stderr, "[ERROR] col index out of bounds: col=%d (i=%d)\n", col, i);
                    // exit(EXIT_FAILURE);
-                }
+            //    }
 
                 double weight = pow(FilterMatrixs[offset], q);
                 VectorFiltered[i] += weight * Vector[col];
