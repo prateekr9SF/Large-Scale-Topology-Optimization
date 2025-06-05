@@ -31,10 +31,12 @@
 !==== LOCALS ====
       integer i, j, ii, row_idx, dummy1
       real*8 xi, yi, zi, xj, yj, zj
-      real*8 dist_sq, rmind
+      real*8 dist_sq, rmind, weight
 
 ! Conservative cap on the number of neighbors per row
       dummy1 = fnnzassumed / 3
+
+      
 
 ! Loop over element range assigned to this thread
       do ii = nea, neb
@@ -47,8 +49,9 @@
         zi = elCentroid(3, i)
 
         
-        filternnz = 0
+       
         filternnzElems(i) = 0
+        filternnz = 0
 
         ! Only search neighbors j >= i
         do j = i, ne
@@ -64,10 +67,11 @@
           if (rmind .GE. 0.d0) then
             filternnz = filternnz + 1
             filternnzElems(i) = filternnzElems(i) + 1
-
+            
+            weight = rmin - dist_sq**0.5
             rowFilters(filternnz, i) = i
             colFilters(filternnz, i) = j
-            FilterMatrixs(filternnz, i) = rmin - dist_sq**0.5
+            FilterMatrixs(filternnz, i) = weight
           end if
 
           if (filternnzElems(i) .EQ. dummy1) then
@@ -80,3 +84,4 @@
 
       return
       end
+
