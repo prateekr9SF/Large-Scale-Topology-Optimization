@@ -1044,7 +1044,8 @@ $(SRC_DIR)/write_volumeSens.c \
 $(SRC_DIR)/write_objectives.c \
 $(SRC_DIR)/passive.c \
 $(SRC_DIR)/filterPassiveElements.c \
-$(SRC_DIR)/filter_matrix.c
+$(SRC_DIR)/filter_matrix.c \
+$(SRC_DIR)/makeDistanceMatrix.c
 
 
 

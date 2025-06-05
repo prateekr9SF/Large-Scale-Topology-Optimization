@@ -58,7 +58,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   
   /* Filter files not found, build the density filter */
-  if(build_filter==1)
+  if(build_filter== 1)
   {
    
     printf("Filter files not found => building filter matrix \n");
@@ -88,12 +88,14 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     FORTRAN(mafillsm_expandfilter,(FilterMatrixs,filternnzElems,rowFilters,colFilters,ne,ttime,&time,&ne0,fnnzassumed));
     printf("done! \n");
     printf("Writing row indices to file...");
+    
+    /* FileterMatrixs is built. Write row, col and element values to disk */
 
     /* Write non zero row values for density filter */
     drow=fopen("drow.dat","w"); //open in write mode
     printf("done!\n");
-    
-    for(int iii=0;iii< (*fnnzassumed)*(ne0);iii++)
+
+    for(int iii=0; iii < (*fnnzassumed)*(ne0); iii++)
     {
       if(FilterMatrixs[iii]>0)
       {
@@ -148,6 +150,8 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     }
     fclose(dnnz);
   }
+
+  /* Filter matrix files were found on disk, build the filter matrix using dcol, drow and dval */
   else
   {
     printf("Filter files found => assembling filter matrix\n");
@@ -250,7 +254,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       perror("Error reading dval.dat");
     }
     */
-    printf("Assembling density filter \n");
+    printf("Assembling density filter from disk files \n");
     /* Legacy method  */
     //FORTRAN(readfilter,(FilterMatrixs,filternnzElems,rowFilters,colFilters,ne,ttime,&time,&ne0,filternnz,drow,dcol,dval,fnnzassumed));
     
@@ -261,10 +265,10 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     //assembleFilter_beta(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
 
     /* c-based method with buffered I/O-based drow, dcol and dval handling */
-    //assembleFilter_beta_buffer(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
+    assembleFilter_beta_buffer(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
 
     /* c-based method with I/O-based drow, dcol and dval handling and filter.bin I/O */
-    assembleFilter_beta_to_binary("filter.bin",filternnz,fnnzassumed);
+    //assembleFilter_beta_to_binary("filter.bin",filternnz,fnnzassumed);
 
     double val_0 = FilterMatrixs[0];
     double val_1 = FilterMatrixs[1];

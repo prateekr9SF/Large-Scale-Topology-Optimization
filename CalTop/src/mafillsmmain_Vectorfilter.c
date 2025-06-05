@@ -178,16 +178,15 @@ void *mafillsmVectorfiltermt(void *thread_id_ptr)
    //printf("Number of elements: %d\n", *ne1);
 
     /* Function without streaming **/
-   // mafillsmvectorfilter_io(*ne1, *ttime1, *time1, *ne01, nea, neb,
-   //                         FilterMatrix1, Vector1, VectorFiltered1,
-   //                         filternnzElem1, rowFilter1, colFilter1,
-   //                         *fnnzassumed1, *q1); 
+    mafillsmvectorfilter_io(*ne1, *ttime1, *time1, *ne01, nea, neb,
+                            FilterMatrix1, Vector1, VectorFiltered1,
+                            filternnzElem1, rowFilter1, colFilter1,
+                            *fnnzassumed1, *q1); 
     
     
     /* Function with streaming */
-    //mafillsmvectorfilter_streaming("filter.bin",ne_,Vector,VectorFiltered,q);
 
-    mafillsmvectorfilter_streaming("filter.bin", *ne1, Vector1, VectorFiltered1, *q1);
+    //mafillsmvectorfilter_streaming("filter.bin", *ne1, Vector1, VectorFiltered1, *q1);
 
 
     return NULL;

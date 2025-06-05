@@ -176,8 +176,14 @@ void *mafillsmfilter2mt(ITG *i){
 
     ITG nea,neb;
 
-    nea=neapar[*i]+1;
-    neb=nebpar[*i]+1;
+    // FORTRAN call
+    //nea=neapar[*i]+1;
+    //neb=nebpar[*i]+1;
+
+    /* C call */
+    nea=neapar[*i];
+    neb=nebpar[*i];
+
 
 /*FILE *rhoFile;
 
@@ -193,11 +199,17 @@ void *mafillsmfilter2mt(ITG *i){
 
 
 
+    // Legacy function
+    //FORTRAN(mafillsm_filter2,(ne1,ttime1,time1,ne01,&nea,&neb,
+    //                          elCentroid1,rmin1,
+    //                          filternnz1,
+    //                          FilterMatrixs1,rowFilters1,colFilters1,filternnzElems1,elarr,fnnzassumed1));
 
-    FORTRAN(mafillsm_filter2,(ne1,ttime1,time1,ne01,&nea,&neb,
-                              elCentroid1,rmin1,
-                              filternnz1,
-                              FilterMatrixs1,rowFilters1,colFilters1,filternnzElems1,elarr,fnnzassumed1));
-
+    // c-based function to build the distance matrix 
+    mafillsm_filter2(*ne1, *ttime1, *time1,
+                     *ne01, nea, neb,
+                     (double (*)[3]) elCentroid1, *rmin1, filternnz1,
+                     FilterMatrixs1, rowFilters1, colFilters1,
+                     filternnzElems1, elarr, *fnnzassumed1);
     return NULL;
 }

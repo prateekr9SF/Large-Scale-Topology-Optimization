@@ -137,6 +137,13 @@ void assembleFilter_beta_to_binary(const char* outfile,
                                    int* filternnz,
                                    int* fnnzassumed);
 
+
+void mafillsm_filter2(int ne, double ttime, double time,
+                      int ne0, int nea, int neb,
+                      double (*elCentroid)[3], double rmin, int *filternnz,
+                      double *FilterMatrixs, int *rowFilters, int *colFilters,
+                      int *filternnzElems, int *elarr, int fnnzassumed);
+
 void FORTRAN(actideacti,(char *set,ITG *nset,ITG *istartset,ITG *iendset,
 			 ITG *ialset,char *objectset,ITG *ipkon,ITG *ibject,
                          ITG *ne));
