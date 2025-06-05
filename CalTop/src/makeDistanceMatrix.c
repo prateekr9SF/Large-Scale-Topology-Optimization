@@ -1,8 +1,9 @@
 #include <math.h>
+#include <stdio.h>
 
 void mafillsm_filter2(int ne, double ttime, double time,
                       int ne0, int nea, int neb,
-                      double *elCentroid, double rmin, int thread_id, int *filternnz,
+                      double *elCentroid, double rmin, int *filternnz,
                       double *FilterMatrixs, int *rowFilters, int *colFilters,
                       int *filternnzElems, int *elarr, int fnnzassumed)
 {
@@ -13,14 +14,13 @@ void mafillsm_filter2(int ne, double ttime, double time,
 
     for (ii = nea; ii <= neb; ++ii)
     {
-        i = elarr[ii] + 1;  // Fortran-style 1-based indexing
+        i = elarr[ii];  // 0-based indexing
 
         xi = elCentroid[3 * i + 0];
         yi = elCentroid[3 * i + 1];
         zi = elCentroid[3 * i + 2];
 
         filternnzElems[i] = 0;
-        *filternnz = 0;
 
         for (j = i; j < ne; ++j)
         {
@@ -40,12 +40,10 @@ void mafillsm_filter2(int ne, double ttime, double time,
                 if (row_idx >= dummy1) break;
 
                 weight = rmin - sqrt(dist_sq);
-
-                // Offset matches Fortran's FilterMatrixs(fnnz, i)
                 offset = row_idx + fnnzassumed * i;
 
-                rowFilters[offset] = i;
-                colFilters[offset] = j;
+                rowFilters[offset]    = i;
+                colFilters[offset]    = j;
                 FilterMatrixs[offset] = weight;
 
                 filternnzElems[i]++;
