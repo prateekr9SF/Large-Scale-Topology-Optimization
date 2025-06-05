@@ -2635,7 +2635,7 @@ void FORTRAN(mafillsm_filter,(double *co,ITG *kon,ITG *ipkon,char *lakon,
 
 void FORTRAN(mafillsm_filter2,(ITG *ne,double *ttime,double *time,
               ITG *ne0,ITG *nea,ITG *neb,double *elCentroid,
-			  double *rmin,ITG *filternnz,
+			  double *rmin, ITG *thread_id, ITG *filternnz,
 			  double *FilterMatrixs,ITG *rowFilters,ITG *colFilters,ITG *filternnzElems,
 			  ITG *elarr, ITG *fnnzassumed));
 

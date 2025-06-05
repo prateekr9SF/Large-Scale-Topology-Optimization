@@ -1,23 +1,26 @@
+#include <math.h>
+
 void mafillsm_filter2(int ne, double ttime, double time,
                       int ne0, int nea, int neb,
-                      double *elCentroid, double rmin, int *filternnz,
+                      double *elCentroid, double rmin, int thread_id, int *filternnz,
                       double *FilterMatrixs, int *rowFilters, int *colFilters,
                       int *filternnzElems, int *elarr, int fnnzassumed)
 {
-    int ii, i, j, offset;
+    int ii, i, j, row_idx, offset;
     double xi, yi, zi, xj, yj, zj;
-    double d_squared, d, rmind;
+    double dist_sq, rmind, weight;
     int dummy1 = fnnzassumed / 3;
 
     for (ii = nea; ii <= neb; ++ii)
     {
-        i = elarr[ii];  // already 0-based
+        i = elarr[ii] + 1;  // Fortran-style 1-based indexing
 
         xi = elCentroid[3 * i + 0];
         yi = elCentroid[3 * i + 1];
         zi = elCentroid[3 * i + 2];
 
         filternnzElems[i] = 0;
+        *filternnz = 0;
 
         for (j = i; j < ne; ++j)
         {
@@ -25,25 +28,25 @@ void mafillsm_filter2(int ne, double ttime, double time,
             yj = elCentroid[3 * j + 1];
             zj = elCentroid[3 * j + 2];
 
-            d_squared = (xj - xi) * (xj - xi)
-                      + (yj - yi) * (yj - yi)
-                      + (zj - zi) * (zj - zi);
+            dist_sq = (xj - xi) * (xj - xi) +
+                      (yj - yi) * (yj - yi) +
+                      (zj - zi) * (zj - zi);
 
-            rmind = rmin * rmin - d_squared;
+            rmind = rmin * rmin - dist_sq;
 
             if (rmind >= 0.0)
             {
-                int row_index = filternnzElems[i];
+                row_idx = filternnzElems[i];
+                if (row_idx >= dummy1) break;
 
-                if (row_index >= dummy1)
-                    break;
+                weight = rmin - sqrt(dist_sq);
 
-                d = sqrt(d_squared);
-                offset = i * fnnzassumed + row_index;
+                // Offset matches Fortran's FilterMatrixs(fnnz, i)
+                offset = row_idx + fnnzassumed * i;
 
-                rowFilters[offset]    = i;
-                colFilters[offset]    = j;
-                FilterMatrixs[offset] = (rmin - d) * (rmin - d);
+                rowFilters[offset] = i;
+                colFilters[offset] = j;
+                FilterMatrixs[offset] = weight;
 
                 filternnzElems[i]++;
                 (*filternnz)++;

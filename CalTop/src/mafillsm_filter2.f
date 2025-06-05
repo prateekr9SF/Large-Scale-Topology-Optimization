@@ -9,14 +9,14 @@
 !
       subroutine mafillsm_filter2(ne, ttime, time,
      &  ne0, nea, neb, elCentroid,
-     &  rmin, filternnz,
+     &  rmin, thread_id, filternnz,
      &  FilterMatrixs, rowFilters, colFilters,
      &  filternnzElems, elarr, fnnzassumed)
 
       implicit none
 
 !==== INPUTS ====
-      integer ne, ne0, nea, neb, fnnzassumed
+      integer ne, ne0, nea, neb, fnnzassumed, thread_id
       real*8 ttime, time, rmin
       real*8 elCentroid(3, *)              ! Element centroids (x, y, z)
       integer elarr(*)                     ! Element renumbering array
@@ -32,6 +32,20 @@
       integer i, j, ii, row_idx, dummy1
       real*8 xi, yi, zi, xj, yj, zj
       real*8 dist_sq, rmind, weight
+
+      character(len=100) :: filename
+      integer :: file_unit
+
+!==== FILE SETUP ====
+       !write(filename, '(A,I0,A)') 'filter_thread_', thread_id, '.bin'
+       !open(newunit=file_unit, file=filename, form='unformatted', access='stream', status='replace')
+
+      ! file_unit = 20 + thread_id  ! pick unique unit number per thread
+      ! write(filename, '(A,I0,A)') 'filter_thread_', thread_id, '.bin'
+
+      ! open(unit=file_unit, file=filename, form='unformatted')
+
+
 
 ! Conservative cap on the number of neighbors per row
       dummy1 = fnnzassumed / 3
@@ -72,6 +86,9 @@
             rowFilters(filternnz, i) = i
             colFilters(filternnz, i) = j
             FilterMatrixs(filternnz, i) = weight
+
+            ! write to file here to test
+            !write(file_unit) i, j, weight
           end if
 
           if (filternnzElems(i) .EQ. dummy1) then
@@ -81,6 +98,7 @@
         end do
 
       end do
+      ! close(file_unit)
 
       return
       end
