@@ -88,7 +88,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     // LEGACY METHOD
     //FORTRAN(mafillsm_expandfilter,(FilterMatrixs,filternnzElems,rowFilters,colFilters,ne,ttime,&time,&ne0,fnnzassumed));
 
-   mafillsm_expandfilter(FilterMatrixs, filternnzElems,rowFilters, colFilters,ne,&ne0, fnnzassumed);
+    mafillsm_expandfilter(FilterMatrixs, filternnzElems,rowFilters, colFilters,ne,&ne0, fnnzassumed);
 
 
     printf("done! \n");
