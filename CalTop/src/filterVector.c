@@ -23,7 +23,7 @@
 #define BLOCK_SIZE 1000000
 
 void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,
-ITG *filternnzElem,ITG *rowFilter,ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q)
+ITG *filternnzElem,ITG *rowFilter,ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q, int fnnz)
 {
 
 
@@ -63,7 +63,7 @@ ITG *filternnzElem,ITG *rowFilter,ITG *colFilter,ITG *ne,double *ttime, double *
 
 
   // Dynamically determine fnnz
-    int fnnz = count_lines("drow.dat");
+ //   int fnnz = count_lines("drow.dat");
 
 // Direct file buffering method (trial)
 mafillsmvectorfilter_buffered_filtering(Vector, VectorFiltered,
@@ -100,6 +100,7 @@ void mafillsmvectorfilter_buffered_filtering(double *Vector, double *VectorFilte
     int *drow_block = NULL, *dcol_block = NULL;
     double *dval_block = NULL;
 
+    printf("Number of non-zeros beofre reading from disk: %d \n", filternnz_total);
     printf("Streaming filter matrix from disk...\n");
 
     frow = fopen("drow.dat", "r");

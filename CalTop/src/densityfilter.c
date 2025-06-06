@@ -178,10 +178,12 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     printf("Filter files found => will filter vectors on-demand\n");
 
 
-    // Initialize non-zero count to 0
+    // Read the number of non-zeros in drow.dat for streaming downstream
     *filternnz = 0;
 
-    filternnz = count_lines("drow.dat");
+    *filternnz = count_lines("drow.dat");
+
+  
 
 
     // Open drow.dat and get the total number of non-zeros

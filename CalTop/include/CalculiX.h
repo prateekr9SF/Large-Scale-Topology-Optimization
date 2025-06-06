@@ -2279,7 +2279,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 
 
-void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,ITG *filternnzElem,ITG *rowFilter, ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q);
+void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,ITG *filternnzElem,ITG *rowFilter, ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q, ITG filternnz);
 
 
 /**
