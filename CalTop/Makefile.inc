@@ -1048,6 +1048,7 @@ $(SRC_DIR)/filterPassiveElements.c \
 $(SRC_DIR)/filter_matrix.c \
 $(SRC_DIR)/makeDistanceMatrix.c \
 $(SRC_DIR)/expand_filter.c \
+$(SRC_DIR)/utils.c 
 
 
 

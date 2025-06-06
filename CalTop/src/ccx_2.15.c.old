@@ -1808,6 +1808,8 @@ while(istat>=0)
                   &rmin,&filternnz,
                   FilterMatrixs,rowFilters,colFilters,filternnzElems,itertop,&fnnzassumed);
 
+        printf("Read within densityfilter:%d \n", filternnz);
+
 
         /* apply the filter matrix on rho to get rhoPhys */ 
         filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter);

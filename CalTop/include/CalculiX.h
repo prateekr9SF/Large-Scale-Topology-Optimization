@@ -148,6 +148,11 @@ void mafillsm_expandfilter(double *FilterMatrixs, int *filternnzElems,
                            int *rowFilters, int *colFilters,
                            int ne, int ne0, int fnnzassumed);
 
+void mafillsmvectorfilter_buffered_filtering(double *Vector, double *VectorFiltered,
+                                             int *filternnzElems,
+                                             int ne, int fnnzassumed,
+                                             double q, int filternnz_total);
+
 void FORTRAN(mafillsm_filter2_full,(ITG *ne, double *ttime, double *time,
                       ITG *ne0, ITG *nea, ITG *neb,
                       double *elCentroid, double *rmin, ITG *filternnz,
@@ -2274,9 +2279,24 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 
 
-void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,
-ITG *filternnzElem,ITG *rowFilter,
-ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q);
+void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,ITG *filternnzElem,ITG *rowFilter, ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q);
+
+
+/**
+ * @brief Counts the number of lines in a given text file.
+ *
+ * This function opens the specified file in read mode and counts the number
+ * of newline characters (`'\n'`) to determine how many lines it contains.
+ * It is commonly used to determine the number of entries in a text-based dataset.
+ *
+ * @param filename Path to the input file (e.g., "drow.dat")
+ * @return int Number of lines in the file
+ *
+ * @note If the file cannot be opened, the function prints an error and exits.
+ */
+int count_lines(const char *filename);
+
+
 
 
 void mafillsmmain_filter(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
