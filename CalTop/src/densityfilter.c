@@ -58,7 +58,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   
   /* Filter files not found, build the density filter */
-  if(build_filter==1)
+  if(build_filter== 1)
   {
    
     printf("Filter files not found => building filter matrix \n");
@@ -83,15 +83,24 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     /* Pointers for filter matrix  */
     FILE *drow; FILE *dcol; FILE *dnnz; FILE *dval;			
 
-    /* Go through each nnz and copy to respective other half, must be in serial */
-    printf("Constructing filter matrix...");
+    /* Go through each nnz and copy to respective other half, must be in serial */ 
+    printf("Mirroring the filter matrix using legacy method...");
+    // LEGACY METHOD
     FORTRAN(mafillsm_expandfilter,(FilterMatrixs,filternnzElems,rowFilters,colFilters,ne,ttime,&time,&ne0,fnnzassumed));
+
+    //mafillsm_expandfilter(FilterMatrixs, filternnzElems,rowFilters, colFilters,ne,&ne0, fnnzassumed);
+
+
     printf("done! \n");
+    
+
+
     printf("Writing row indices to file...");
+    /* FileterMatrixs is built. Write row, col and element values to disk */
+
     /* Write non zero row values for density filter */
     drow=fopen("drow.dat","w"); //open in write mode
-    printf("done!\n");
-    for(int iii=0;iii< (*fnnzassumed)*(ne0);iii++)
+    for(int iii=0; iii < (*fnnzassumed)*(ne0); iii++)
     {
       if(FilterMatrixs[iii]>0)
       {
@@ -99,11 +108,12 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       }
     }
     fclose(drow);
+    printf("done!\n");
 
     printf("Writing column indices to file...");
     /* Write non zero col values for density filter */
     dcol=fopen("dcol.dat","w"); //open in write mode
-    printf("done!\n");
+  
 
     for(int iii=0;iii<(*fnnzassumed)*ne0;iii++)
     {
@@ -113,25 +123,34 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       }
     }
     fclose(dcol);
+    printf("done! \n");
 
     printf("Writing element values to file...");
     /* Write non zero filter values for density filter */
     dval=fopen("dval.dat","w"); //open in write mode
-    printf("done!\n");
+    
+
+    double sum = 0.0;
 
     for(int iii=0;iii<*fnnzassumed * ne0;iii++)
     {
       if(FilterMatrixs[iii]>0)
       {
         fprintf(dval,"%.6f\n",FilterMatrixs[iii]);
+        sum = sum + FilterMatrixs[iii];
       }
     }
     fclose(dval);
 
+
+    printf("done!\n");
+
+    printf("DVAL SUM FOR FULL MATRIX : %f \n", sum);
+
     printf("Writing non-zero values to file...");
     /* Write number of non zero filter values for each element */
     dnnz=fopen("dnnz.dat","w"); //open in write mode
-    printf("done!\n");
+   
 
     for(int iii=0;iii<ne0;iii++)
     {
@@ -145,18 +164,38 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       }
     }
     fclose(dnnz);
+
+    printf("done!\n");
   }
+
+ 
+  
+
+  // Filter matrix files were found on disk, build the filter matrix using dcol, drow and dval 
   else
   {
-    printf("Filter files found => assembling filter matrix\n");
+  
+    printf("Filter files found => will filter vectors on-demand\n");
 
-    /* Read non zeros in each row from dnnz.dat and calculate total nnzs */
-    *filternnz=0; //initialize
-    int iii=0;
-		FILE *dnnzw;
 
-    dnnzw=fopen("dnnz.dat","r"); //open in read mode
+    // Read the number of non-zeros in drow.dat for streaming downstream
+    *filternnz = 0;
 
+    *filternnz = count_lines("drow.dat");
+
+  
+
+
+    // Open drow.dat and get the total number of non-zeros
+
+     //Read non zeros in each row from dnnz.dat and calculate total nnzs 
+    //*filternnz=0; //initialize
+    //int iii=0;
+		//FILE *dnnzw;
+
+    //dnnzw=fopen("dnnz.dat","r"); //open in read mode
+
+    /*
     if (dnnzw!=NULL)
     {
       for (iii=0;iii<ne0;iii++)
@@ -193,7 +232,7 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
     printf("Done \n");
     FILE *dcolw;
-
+    */
     /*
     dcolw=fopen("dcol.dat","r"); //open in read mode
 
@@ -248,7 +287,9 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       perror("Error reading dval.dat");
     }
     */
-    printf("Assembling density filter \n");
+
+     // printf("Skipping filter matrix assembly, will apply filter to vector on-the-fly \n"); 
+    //printf("Assembling density filter from disk files \n");
     /* Legacy method  */
     //FORTRAN(readfilter,(FilterMatrixs,filternnzElems,rowFilters,colFilters,ne,ttime,&time,&ne0,filternnz,drow,dcol,dval,fnnzassumed));
     
@@ -258,22 +299,24 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     /* c-based method with I/O-based drow, dcol and dval handling */
     //assembleFilter_beta(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
 
-    /* c-based method with buffered I/O-based drow, dcol and dval handling */
-    assembleFilter_beta_buffer(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
+    /* (STABLE) c-based method with buffered I/O-based drow, dcol and dval handling */
+    //assembleFilter_beta_buffer(FilterMatrixs, rowFilters, colFilters,filternnzElems, ne, ne0, filternnz,fnnzassumed); 
 
+    /* c-based method with I/O-based drow, dcol and dval handling and filter.bin I/O */
+    //assembleFilter_beta_to_binary("filter.bin",filternnz,fnnzassumed);
 
-    double val_0 = FilterMatrixs[0];
-    double val_1 = FilterMatrixs[1];
-    double val_2 = FilterMatrixs[2];
+    //double val_0 = FilterMatrixs[0];
+    //double val_1 = FilterMatrixs[1];
+    //double val_2 = FilterMatrixs[2];
 
-    printf("\nFirst value: %f", val_0);
-    printf("\nSecond value: %f", val_1);
-    printf("\nThird value: %f", val_2);
+   // printf("\nFirst value: %f", val_0);
+   // printf("\nSecond value: %f", val_1);
+  //  printf("\nThird value: %f", val_2);
 
     /* Density filter build, free up memory */
-    SFREE(dcol);
-    SFREE(drow);
-    SFREE(dval);
+   // SFREE(dcol);
+   // SFREE(drow);
+   // SFREE(dval);
   }
 
   (*ttime)+=(*tper);

@@ -18,7 +18,7 @@ BINDIR = $(PREFIX)/bin
 # Compiler and flags
 CFLAGS = -Wall $(OPT) -fopenmp -DARCH="Linux" -DARPACK -DPARDISO -DMATRIXSTORAGE -DUSE_MT=1 -DMKL_LP64 -I$(MKL_INCLUDE) -I$(INCLUDE_DIR)
 
-FFLAGS = -Wall -O3 -fallow-argument-mismatch
+FFLAGS = -Wall -O3 -fallow-argument-mismatch -std=gnu
 
 CC = cc
 FC = gfortran

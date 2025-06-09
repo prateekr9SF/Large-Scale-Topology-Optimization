@@ -212,3 +212,46 @@ void assembleFilter_beta_buffer(double *FilterMatrixs, int *rowFilters, int *col
     free(dcol_block);
     free(dval_block);
 }
+
+
+void assembleFilter_beta_to_binary(const char* outfile,
+                                   int* filternnz,
+                                   int *fnnzassumed)
+{
+              
+    FILE *frow = fopen("drow.dat", "r");
+    FILE *fcol = fopen("dcol.dat", "r");
+    FILE *fval = fopen("dval.dat", "r");
+    FILE *fbin = fopen(outfile, "wb");
+
+    if (!frow || !fcol || !fval || !fbin) {
+        perror("Error opening one or more input/output files");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Streaming filter data from disk into binary...\n");
+
+    int rowval, colval;
+    double value;
+    for (int i = 0; i < *filternnz; ++i) {
+        if (fscanf(frow, "%d", &rowval) != 1 ||
+            fscanf(fcol, "%d", &colval) != 1 ||
+            fscanf(fval, "%lf", &value) != 1)
+        {
+            fprintf(stderr, "Error reading line %d in filter data\n", i);
+            exit(EXIT_FAILURE);
+        }
+
+        int row0 = rowval - 1;  // Convert to 0-based
+        int col0 = colval - 1;
+
+        fwrite(&row0, sizeof(int), 1, fbin);
+        fwrite(&col0, sizeof(int), 1, fbin);
+        fwrite(&value, sizeof(double), 1, fbin);
+    }
+
+    fclose(frow);
+    fclose(fcol);
+    fclose(fval);
+    fclose(fbin);
+}

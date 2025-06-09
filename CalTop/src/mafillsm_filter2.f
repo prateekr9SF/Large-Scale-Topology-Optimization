@@ -1,148 +1,105 @@
 !
-!     CalculiX - A 3-dimensional finite element program
-!              Copyright (C) 1998-2018 Guido Dhondt
+!     mafillsm_filter2 - Constructs a sparse filter matrix for density filtering
+!     in topology optimization based on element centroid distances.
 !
-!     This program is free software; you can redistribute it and/or
-!     modify it under the terms of the GNU General Public License as
-!     published by the Free Software Foundation(version 2);
+!     For each element i, neighbors j within a filter radius rmin are stored
+!     in sparse row format: (i,j) with weight = rmin - distance(i,j)
 !
+!     The filter matrix is asymmetric and unnormalized.
 !
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program; if not, write to the Free Software
-!     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-!
-      subroutine mafillsm_filter2(ne,ttime,time,
-     &  ne0,nea,neb,elCentroid,
-     &  rmin,filternnz,
-     &  FilterMatrixs,rowFilters,colFilters,filternnzElems,elarr,
-     &  fnnzassumed)
-!
-!    Constructs a sparse filter matrix based on distances between element 
-!    centroids for use in density filtering 
-!
+      subroutine mafillsm_filter2(ne, ttime, time,
+     &  ne0, nea, neb, elCentroid,
+     &  rmin, thread_id, filternnz,
+     &  FilterMatrixs, rowFilters, colFilters,
+     &  filternnzElems, elarr, fnnzassumed)
+
       implicit none
-!
-!
-!
-      integer ne0,filternnz,
-     &  ne,nea,neb,i,j,elarr(*),ii, fnnzassumed,
-     &  filternnzElems(*),rowFilters(fnnzassumed,*),
-     &  colFilters(fnnzassumed,*), dummy1
-!
-      real*8 FilterMatrixs(fnnzassumed,*),ttime,
-     &  time,rmin,elCentroid(3,*),sum,
-     &  xi,yi,zi,xj,yj,zj,d,rmind
-!
-      intent(in) ne,elCentroid,rmin,
-     &  ttime,time,fnnzassumed,
-     &  ne0,nea,neb,elarr
-!
-      intent(inout) FilterMatrixs,
-     &  filternnz,
-     &  rowFilters,colFilters,filternnzElems
 
-c      penall=3.0
-c      write(*,*) loc(kflag)
-c      write(*,*) loc(s)
-c      write(*,*) loc(sm)
-c      write(*,*) loc(ff)
-c      write(*,*) loc(index1)
-!
+!==== INPUTS ====
+      integer ne, ne0, nea, neb, fnnzassumed, thread_id
+      real*8 ttime, time, rmin
+      real*8 elCentroid(3, *)              ! Element centroids (x, y, z)
+      integer elarr(*)                     ! Element renumbering array
 
-!    Set a conservative cap on max neighbours to prevent memeory overflow
-	dummy1=fnnzassumed/3
-!
-c      open (unit=200,file="Mafillsmfilter2.dat")
- 
-!
-!       
+!==== IN/OUT ====
+      integer filternnz                    ! Total number of nonzeros (global counter)
+      real*8 FilterMatrixs(fnnzassumed, *) ! Filter weights
+      integer rowFilters(fnnzassumed, *)   ! Row indices for sparse matrix
+      integer colFilters(fnnzassumed, *)   ! Column indices for sparse matrix
+      integer filternnzElems(*)            ! Local nnz count per row
+
+!==== LOCALS ====
+      integer i, j, ii, row_idx, dummy1
+      real*8 xi, yi, zi, xj, yj, zj
+      real*8 dist_sq, rmind, weight
+
+      character(len=100) :: filename
+      integer :: file_unit
+
+!==== FILE SETUP ====
+       !write(filename, '(A,I0,A)') 'filter_thread_', thread_id, '.bin'
+       !open(newunit=file_unit, file=filename, form='unformatted', access='stream', status='replace')
+
+      ! file_unit = 20 + thread_id  ! pick unique unit number per thread
+      ! write(filename, '(A,I0,A)') 'filter_thread_', thread_id, '.bin'
+
+      ! open(unit=file_unit, file=filename, form='unformatted')
+
+
+
+! Conservative cap on the number of neighbors per row
+      dummy1 = fnnzassumed / 3
+
+      
+
+! Loop over element range assigned to this thread
+      do ii = nea, neb
+
+        i = elarr(ii) + 1    ! Convert from 0-based to 1-based indexing
+
+        ! Coordinates of element i
+        xi = elCentroid(1, i)
+        yi = elCentroid(2, i)
+        zi = elCentroid(3, i)
+
         
-!      loop over all elements
-!
-cc      do i=nea,neb
-!      centroid of element i
-cc       xi=elCentroid(1,i)
-cc       yi=elCentroid(2,i)
-cc       zi=elCentroid(3,i)
+       
+        filternnzElems(i) = 0
+        filternnz = 0
 
-cc      sum=0
-cc       filternnz=0
-cc       filternnzElem(i)=0
-cc        do j=1,ne   
-!        centroid of element j
-cc         xj=elCentroid(1,j)
-cc         yj=elCentroid(2,j)
-cc         zj=elCentroid(3,j)
-cc          d=((xj-xi)**2+(yj-yi)**2+(zj-zi)**2)**0.5
-cc          rmind=rmin-d
+        ! Only search neighbors j >= i
+        do j = i, ne
 
-cc          if(rmind.GT.0) then
-cc            filternnz=filternnz+1
-cc            filternnzElem(i)=filternnzElem(i)+1
+          ! Coordinates of element j
+          xj = elCentroid(1, j)
+          yj = elCentroid(2, j)
+          zj = elCentroid(3, j)
 
-cc            rowFilter(filternnz,i)=i
-cc            colFilter(filternnz,i)=j
-cc            FilterMatrix(filternnz,i)=rmind**2
-cc            sum=sum+rmind**2
-cc          endif
+          dist_sq = (xj - xi)**2 + (yj - yi)**2 + (zj - zi)**2
+          rmind = rmin*rmin - dist_sq
 
-cc        enddo
-c      Divide by sum
-cc      do j=1,filternnz
-cc      FilterMatrix(j,i)=FilterMatrix(j,i)/sum
-                                
-cc      enddo
+          if (rmind .GE. 0.d0) then
+            filternnz = filternnz + 1
+            filternnzElems(i) = filternnzElems(i) + 1
+            
+            weight = rmin - dist_sq**0.5
+            rowFilters(filternnz, i) = i
+            colFilters(filternnz, i) = j
+            FilterMatrixs(filternnz, i) = weight
 
-c      write(200,*) i,xcg,ycg,zcg
-cc      enddo
+            ! write to file here to test
+            !write(file_unit) i, j, weight
+          end if
 
-c       write(200,*) FilterMatrix,"...",colFilter,rowFilter
+          if (filternnzElems(i) .EQ. dummy1) then
+          EXIT
+          end if
 
-c      close(200)
-!
+        end do
 
-
-       do ii=nea,neb
-c      get element number, indexed from 0 in C 
-       i=elarr(ii)+1
-!      centroid of element i
-       xi=elCentroid(1,i)
-       yi=elCentroid(2,i)
-       zi=elCentroid(3,i)
-
-       sum=0
-       filternnz=0
-       filternnzElems(i)=0
-         do j=i,ne   
-!         centroid of element j
-          xj=elCentroid(1,j)
-          yj=elCentroid(2,j)
-          zj=elCentroid(3,j)
-           d=((xj-xi)**2+(yj-yi)**2+(zj-zi)**2)
-           rmind=rmin*rmin-d
-
-             if(rmind.GE.0) then
-               filternnz=filternnz+1
-               filternnzElems(i)=filternnzElems(i)+1
-
-                rowFilters(filternnz,i)=i
-                colFilters(filternnz,i)=j
-                FilterMatrixs(filternnz,i)=rmin-d**0.5
-
-              endif
-
-	     if(filternnzElems(i).EQ.(dummy1)) then
-		EXIT
-	     endif
-
-           enddo
-
-      enddo
+      end do
+      ! close(file_unit)
 
       return
       end
+

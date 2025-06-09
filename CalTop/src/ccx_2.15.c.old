@@ -1793,7 +1793,7 @@ while(istat>=0)
       {
         printf("Checking if filter matrix needs to be built \n");
 
-        
+
         NNEW(FilterMatrixs,double,fnnzassumed*ne_); //Sparse filter matrix stored as row,colum,value with fassumed nnzs per element assumed
     
         NNEW(rowFilters,ITG,fnnzassumed*ne_);
@@ -1803,14 +1803,16 @@ while(istat>=0)
         NNEW(filternnzElems,ITG,ne_);
         NNEW(designFiltered,double,ne_);
 
-        
+        /* Create or assemble the density filter */
         densityfilter(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
                   &rmin,&filternnz,
                   FilterMatrixs,rowFilters,colFilters,filternnzElems,itertop,&fnnzassumed);
 
+        printf("Read within densityfilter:%d \n", filternnz);
 
+        
         /* apply the filter matrix on rho to get rhoPhys */ 
-        filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter);
+        filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz);
 
         rhoPhys=designFiltered;
       }
@@ -2206,12 +2208,12 @@ while(istat>=0)
 
       printf("Filter compliance gradient...");
       /* Filter compliance gradient */
-      filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter); //Filter Compliance sensitivity
+      filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter Compliance sensitivity
       printf("done! \n");
 
       printf("Filter element volume gradient...");
       /* Filter element volume gradient */
-      filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter); //Filter volume sensitivity
+      filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter volume sensitivity
       ends = time(NULL);
       printf("done!\n");
 	    //printf("Time taken for sensitivity calculation: %.2f seconds \n", 

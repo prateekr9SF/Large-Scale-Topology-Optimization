@@ -133,6 +133,33 @@ void mafillsmvectorfilter_io(int ne_, double ttime, double time,
                           int *filternnzElems, int *rowFilters, int *colFilters,
                           int fnnzassumed, double q);
 
+void assembleFilter_beta_to_binary(const char* outfile,
+                                   int* filternnz,
+                                   int* fnnzassumed);
+
+
+void mafillsm_filter2(int ne, double ttime, double time,
+                      int ne0, int nea, int neb,
+                      double *elCentroid, double rmin, int *filternnz,
+                      double *FilterMatrixs, int *rowFilters, int *colFilters,
+                      int *filternnzElems, int *elarr, int fnnzassumed);
+
+void mafillsm_expandfilter(double *FilterMatrixs, int *filternnzElems,
+                           int *rowFilters, int *colFilters,
+                           int ne, int ne0, int fnnzassumed);
+
+void mafillsmvectorfilter_buffered_filtering(double *Vector, double *VectorFiltered,
+                                             int *filternnzElems,
+                                             int ne, int fnnzassumed,
+                                             double q, int filternnz_total);
+
+void FORTRAN(mafillsm_filter2_full,(ITG *ne, double *ttime, double *time,
+                      ITG *ne0, ITG *nea, ITG *neb,
+                      double *elCentroid, double *rmin, ITG *filternnz,
+                      double *FilterMatrixs, ITG *rowFilters, ITG *colFilters,
+                      ITG *filternnzElems, ITG *elarr, ITG *fnnzassumed));	
+					  
+
 void FORTRAN(actideacti,(char *set,ITG *nset,ITG *istartset,ITG *iendset,
 			 ITG *ialset,char *objectset,ITG *ipkon,ITG *ibject,
                          ITG *ne));
@@ -2252,9 +2279,24 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 
 
-void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,
-ITG *filternnzElem,ITG *rowFilter,
-ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q);
+void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,ITG *filternnzElem,ITG *rowFilter, ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q, ITG filternnz);
+
+
+/**
+ * @brief Counts the number of lines in a given text file.
+ *
+ * This function opens the specified file in read mode and counts the number
+ * of newline characters (`'\n'`) to determine how many lines it contains.
+ * It is commonly used to determine the number of entries in a text-based dataset.
+ *
+ * @param filename Path to the input file (e.g., "drow.dat")
+ * @return int Number of lines in the file
+ *
+ * @note If the file cannot be opened, the function prints an error and exits.
+ */
+int count_lines(const char *filename);
+
+
 
 
 void mafillsmmain_filter(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
@@ -2606,6 +2648,7 @@ void mafillpmain(ITG *ne,char *lakonf,ITG *ipnei,
 	     ITG *iatleastonepressurebc,ITG *iau6,double *xxicn,
              double *flux);
 
+
 void *mafillpmt(ITG *i);
 
 
@@ -2617,7 +2660,7 @@ void FORTRAN(mafillsm_filter,(double *co,ITG *kon,ITG *ipkon,char *lakon,
 
 void FORTRAN(mafillsm_filter2,(ITG *ne,double *ttime,double *time,
               ITG *ne0,ITG *nea,ITG *neb,double *elCentroid,
-			  double *rmin,ITG *filternnz,
+			  double *rmin, ITG *thread_id, ITG *filternnz,
 			  double *FilterMatrixs,ITG *rowFilters,ITG *colFilters,ITG *filternnzElems,
 			  ITG *elarr, ITG *fnnzassumed));
 
