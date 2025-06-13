@@ -41,11 +41,24 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
     size_t bytes = (size_t)ne * sizeof(double);
     printf("Attempting to allocate %.2f MB for weight_sum\n", bytes / (1024.0 * 1024.0));
 
-    printf("Opening files...\n");
+    const char *env_threads = getenv("OMP_NUM_THREADS");
+
+    int num_threads = (env_threads!= NULL) ? atoi(env_threads): 4;
+
+    if (num_threads <= 0)
+    {
+        fprintf(stderr,"Invalid OMP_NUM_THREADS setting; falling back to 4 threads. \n");
+        num_threads = 4;
+    }
+
+    printf("Using %d thread(s) \n", num_threads);
+
+    printf("Opening filter matrix files...");
     FILE *frow = fopen("drow.dat", "r");
     FILE *fcol = fopen("dcol.dat", "r");
     FILE *fval = fopen("dval.dat", "r");
-    printf("done opening files \n");
+    printf("Done!\n");
+
     if (!frow || !fcol || !fval) {
         perror("Error opening filter input files");
         exit(EXIT_FAILURE);
@@ -60,24 +73,28 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
         fprintf(stderr, "Memory allocation failed.\n");
         exit(EXIT_FAILURE);
     }
-    printf("Allocating memeory for weights...\n");
+    printf("Allocating memeory for weights...");
     double *weight_sum = calloc(ne, sizeof(double));
     if (!weight_sum) 
     {
         fprintf(stderr, "Memory allocation for weights failed.\n");
         exit(EXIT_FAILURE);
     }
-    printf("Done!");
+    printf("Done!\n");
 
     // Zero-initialize VectorFiltered (caller owns allocation)
     for (int i = 0; i < ne; ++i) VectorFiltered[i] = 0.0;
 
-    int num_threads = 8;
-    pthread_t threads[num_threads];
-    ThreadArgs thread_args[num_threads];
+    //pthread_t threads[num_threads];
+    //ThreadArgs thread_args[num_threads];
+
+    // Allocate arrays for pthread management
+    pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
+    ThreadArgs *thread_args = malloc(num_threads * sizeof(ThreadArgs));
 
     int total_read = 0;
-    while (total_read < filternnz_total) {
+    while (total_read < filternnz_total) 
+    {
         int block_read = (filternnz_total - total_read < BLOCK_SIZE) ? (filternnz_total - total_read) : BLOCK_SIZE;
 
         for (int i = 0; i < block_read; ++i) {
@@ -88,7 +105,7 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
                 exit(EXIT_FAILURE);
             }
         }
-
+        printf("Launching threads to process the block...\n");
         for (int t = 0; t < num_threads; ++t) 
         {
             thread_args[t] = (ThreadArgs){
@@ -110,6 +127,7 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
             }
         }
 
+        printf("Waiting on all threads to finish...\n");
         for (int t = 0; t < num_threads; ++t) {
             if (pthread_join(threads[t], NULL) != 0) {
                 perror("Failed to join thread");

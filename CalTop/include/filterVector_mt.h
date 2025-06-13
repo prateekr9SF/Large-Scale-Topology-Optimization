@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <math.h>
 
-#define BLOCK_SIZE 10000
+#define BLOCK_SIZE 100000000
 
 /**
  * @brief Struct to pass arguments to each pthread for vector filtering using atomic updates.
