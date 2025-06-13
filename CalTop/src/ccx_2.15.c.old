@@ -1812,7 +1812,12 @@ while(istat>=0)
 
         
         /* apply the filter matrix on rho to get rhoPhys */ 
-        filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz);
+        //filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz);
+
+        /* Try the multi-threaded */
+        printf("Filtering element densities...\n");
+        filterVector_buffered_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+        printf("Done!");
 
         rhoPhys=designFiltered;
       }
@@ -2208,12 +2213,14 @@ while(istat>=0)
 
       printf("Filter compliance gradient...");
       /* Filter compliance gradient */
-      filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter Compliance sensitivity
+      //filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter Compliance sensitivity
+      filterVector_buffered_mt(gradCompl, gradComplFiltered,filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
       printf("done! \n");
 
       printf("Filter element volume gradient...");
       /* Filter element volume gradient */
-      filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter volume sensitivity
+      //filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter volume sensitivity
+      filterVector_buffered_mt(eleVol, eleVolFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
       ends = time(NULL);
       printf("done!\n");
 	    //printf("Time taken for sensitivity calculation: %.2f seconds \n", 

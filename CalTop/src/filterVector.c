@@ -62,26 +62,12 @@ ITG *filternnzElem,ITG *rowFilter,ITG *colFilter,ITG *ne,double *ttime, double *
 */
 
 
-  // Dynamically determine fnnz
- //   int fnnz = count_lines("drow.dat");
 
-// Direct file buffering method (trial)
+// Direct file buffering method
 mafillsmvectorfilter_buffered_filtering(Vector, VectorFiltered,
                                         filternnzElem,  // corrected
                                         *ne, *fnnzassumed,
                                         *q, fnnz);     // corrected q and filternnz
-
-
-/*      FILE *filter_file;
-       filter_file=fopen("Filterfilte.dat","w"); //open in write mode
-      for(int iii=0;iii<100*ne0;iii++)
-        fprintf(filter_file,"%d , %d , %.3f\n",rowFilter[iii],colFilter[iii],FilterMatrix[iii]);
-        }
-        fclose(filter_file);
-
-*/
-
-
 
 
   (*ttime)+=(*tper);
