@@ -93,8 +93,6 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
     printf("done! \n");
     
-
-
     printf("Writing row indices to file...");
     /* FileterMatrixs is built. Write row, col and element values to disk */
 
