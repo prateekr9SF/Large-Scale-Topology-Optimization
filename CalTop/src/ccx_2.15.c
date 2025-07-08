@@ -359,12 +359,12 @@ int main(int argc,char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &nproc) ;
   #endif
 
-if(argc==1)
-{ 
-  /* Inadequate input arguments */
-  printf("Usage: Flags: -i jobname -p PENALTY -q HIGHERORDERFILTER -r RADIUS -v VOLUMEFRACTION -s ITERATION -f FILTERNNZ\n");
-  FORTRAN(stop,());
-}
+  if(argc==1)
+  { 
+    /* Inadequate input arguments */
+    printf("Usage: Flags: -i jobname -p PENALTY -q HIGHERORDERFILTER -r RADIUS -v VOLUMEFRACTION -s ITERATION -f FILTERNNZ\n");
+    FORTRAN(stop,());
+  }
 
 else
 {
@@ -2000,7 +2000,7 @@ while(istat>=0)
 	      FORTRAN(stop,());
       #endif
     }
-  }
+  } // end if nmethod ==2
   /*
   else if(nmethod==3)
   {
