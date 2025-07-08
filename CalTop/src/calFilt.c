@@ -979,430 +979,370 @@ while(istat>=0)
 
     struct stat buffer;
 
-    if (stat("skinElementList.nam", &buffer) != 0) 
+
+    #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
+
+    for(i=0;i!=nmat;++i)
     {
-      printf("File 'skinElementList.nam' not found.\n");
-    } 
-    else
-    /* Read the element indies from skinElementList.nam */ 
-    {
-      passiveIDs = passiveElements("skinElementList.nam", &numPassive);
-      printf("File 'skinElementList.nam' found. \n");
-      printf("Read %d passive elements.\n", numPassive);
-
-      printf("First five skin element IDs => \n");
-      for (int i = 0; i < 5; i++) 
-      {
-        printf("Passive Element ID: %d\n", passiveIDs[i]);
-      }
-
-      printf(".\n");
-      printf(".\n");
-      printf(".\n");
-
-      printf("Last five skin element IDs => \n");
-      for (int i = numPassive - 5; i < numPassive; i++) 
-      {
-        printf("Passive Element ID: %d\n", passiveIDs[i]);
-      }
-
+        calculix_registerExternalBehaviour(matname+80*i);
     }
+    #endif /* CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT */
 
-    printf("\n");
-
-
-  /* Read element desitiies from .dat file, if absent, initialize the design to one */    
-  rho(design,ne);
-
-  /* Set thhe element density of passive elements to 1 */
-  filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
-
-  /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
-  NNEW(stx,double,6*mi[0]*ne);
-
-
-  #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
-  for(i=0;i!=nmat;++i)
-  {
-    calculix_registerExternalBehaviour(matname+80*i);
-  }
-  #endif /* CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT */
-
-  if((istep==1)&&(mortar==-1))
-  {
-    mortar=0;
-  }
-  else
-  {
-    icontact=1;
-  }
-
-  nload0=nload;
-  SFREE(idefforc);
-  SFREE(idefload);
-  SFREE(idefbody);
-
-  /*  <--- Use this for debugging
-  printf("Sleeping noe...\n");
-  sleep(5);
-  printf("sleep over!");
-  export OMP_NUM_THREADS=4  -< copy to terminal
-  */
-  if(nheading_>=0)
-  {
-     /* do nothing!
-      writeheading(jobnamec,heading,&nheading_);
-      SFREE(heading);
-      nheading_=-1;
-
-      */
-  }
-
-
-
-  if((abs(nmethod)!=1)||(iperturb[0]<2))icascade=0;
-
-  //	FORTRAN(writeboun,(nodeboun,ndirboun,xboun,typeboun,&nboun));
-
-  if(istat<0) break;
-
-  /* first step of F.E analysis */
-  if(istep == 1) 
-  {
-    SFREE(iuel);
-
-    /* tied contact constraints: generate appropriate MPC's */
-
-    tiedcontact(&ntie, tieset, &nset, set,istartset, iendset, ialset,
-       lakon, ipkon, kon,tietol,&nmpc, &mpcfree, &memmpc_,
-       &ipompc, &labmpc, &ikmpc, &ilmpc,&fmpc, &nodempc, &coefmpc,
-       ithermal, co, vold,&nef,&nmpc_,mi,&nk,&istep,ikboun,&nboun,
-       kind1,kind2);
-
-    /* reallocating space in the first step */
-
-    /* allocating and initializing fields pointing to the previous step */
-
-    RENEW(vold,double,mt*nk);
-    NNEW(sti,double,6*mi[0]*ne);
-
-    /* strains */
-
-    NNEW(eme,double,6*mi[0]*ne);
-
-    /* residual stresses/strains */
-
-    if(iprestr==1) 
+    if((istep==1)&&(mortar==-1))
     {
-      printf("CAUTION: Structure is pre-stressed! \n");
-	    RENEW(prestr,double,6*mi[0]*ne);
-
-	    for(i=0;i<ne;i++)
-      {
-	      for(j=0;j<mi[0];j++)
-        {
-		      for(k=0;k<6;k++)
-          {
-		        sti[6*mi[0]*i+6*j+k]=prestr[6*mi[0]*i+6*j+k];
-		      }
-	      }
-	    }
-    }
-    else if(iprestr==2)
-    {
-	    RENEW(prestr,double,6*mi[0]*ne);
-
-	    for(i=0;i<ne;i++)
-      {
-	      for(j=0;j<mi[0];j++)
-        {
-		      for(k=0;k<6;k++)
-          {
-		        eme[6*mi[0]*i+6*j+k]=prestr[6*mi[0]*i+6*j+k];
-		      }
-	      }
-	    }
-    }
-
-    /* Structure is not pre-stressed, free variable */
-    else 
-    {
-	    SFREE(prestr);
-    }
-
-    NNEW(nodebounold,ITG,nboun);
-    NNEW(ndirbounold,ITG,nboun);
-    NNEW(xbounold,double,nboun);
-    NNEW(xforcold,double,nforc);
-    NNEW(xloadold,double,2*nload);
-
-    /* initial temperatures: store in the "old" boundary conditions */
-
-    if(ithermal[0]>1)
-    {
-	    for(i=0;i<nboun;i++)
-      {
-	      if(strcmp1(&typeboun[i],"F")==0) continue;
-	      if(ndirboun[i]==0)
-        {
-		      xbounold[i]=vold[mt*(nodeboun[i]-1)];
-	      }
-	    }
-    }
-
-    /* initial temperatures: store in the "old" temperature field */
-    if(ithermal[0]!=0)
-    {
-      NNEW(t1old,double,nk);
-      for(i=0;i<nk;i++) t1old[i]=t0[i];
-    }
-
-    /* element definition */
-
-    RENEW(kon,ITG,nkon);
-    RENEW(ipkon,ITG,ne);
-    RENEW(lakon,char,8*ne);
-
-    /* property cards */
-
-    if(nprop>0)
-    {
-	    RENEW(ielprop,ITG,ne);
-	    RENEW(prop,double,nprop);
+        mortar=0;
     }
     else
     {
-	    SFREE(ielprop);SFREE(prop);
+        icontact=1;
     }
 
-    /* fields for 1-D and 2-D elements */
-    if((ne1d!=0)||(ne2d!=0))
+    nload0=nload;
+    SFREE(idefforc);
+    SFREE(idefload);
+    SFREE(idefbody);
+
+    if((abs(nmethod)!=1)||(iperturb[0]<2))icascade=0;
+
+    if(istat<0) break;
+
+    /* first step of F.E analysis */
+    if(istep == 1) 
     {
-	    RENEW(iponor,ITG,2*nkon);
-	    RENEW(xnor,double,infree[0]);
-	    RENEW(knor,ITG,infree[1]);
-	    SFREE(thickn);
-	    RENEW(thicke,double,mi[2]*nkon);
-	    RENEW(offset,double,2*ne);
-	    RENEW(inoel,ITG,3*(infree[2]-1));
-	    RENEW(iponoel,ITG,infree[3]);
-	    RENEW(rig,ITG,infree[3]);
-    }
+        SFREE(iuel);
 
-    /* set definitions */
+        /* tied contact constraints: generate appropriate MPC's */
 
-    RENEW(set,char,81*nset);
-    RENEW(istartset,ITG,nset);
-    RENEW(iendset,ITG,nset);
-    RENEW(ialset,ITG,nalset);
+        tiedcontact(&ntie, tieset, &nset, set,istartset, iendset, ialset,
+        lakon, ipkon, kon,tietol,&nmpc, &mpcfree, &memmpc_,
+        &ipompc, &labmpc, &ikmpc, &ilmpc,&fmpc, &nodempc, &coefmpc,
+        ithermal, co, vold,&nef,&nmpc_,mi,&nk,&istep,ikboun,&nboun,
+        kind1,kind2);
 
-    /* material properties */
+        /* reallocating space in the first step */
 
-    RENEW(elcon,double,(ncmat_+1)*ntmat_*nmat);
-    RENEW(nelcon,ITG,2*nmat);
+        /* allocating and initializing fields pointing to the previous step */
 
-    RENEW(rhcon,double,2*ntmat_*nmat);
-    RENEW(nrhcon,ITG,nmat);
+        RENEW(vold,double,mt*nk);
+        NNEW(sti,double,6*mi[0]*ne);
 
-    if(ndamp>0)
-    {
-      RENEW(dacon,double,nmat);
-    }
+        /* strains */
 
-    RENEW(shcon,double,4*ntmat_*nmat);
-    RENEW(nshcon,ITG,nmat);
+        NNEW(eme,double,6*mi[0]*ne);
 
-    RENEW(cocon,double,7*ntmat_*nmat);
-    RENEW(ncocon,ITG,2*nmat);
+        /* residual stresses/strains */
 
-    RENEW(alcon,double,7*ntmat_*nmat);
-    RENEW(nalcon,ITG,2*nmat);
-    RENEW(alzero,double,nmat);
+        if(iprestr==1) 
+        {
+            printf("CAUTION: Structure is pre-stressed! \n");
+	        RENEW(prestr,double,6*mi[0]*ne);
 
-    RENEW(matname,char,80*nmat);
-    RENEW(ielmat,ITG,mi[2]*ne);
+	        for(i=0;i<ne;i++)
+            {
+	            for(j=0;j<mi[0];j++)
+                {
+		            for(k=0;k<6;k++)
+                    {
+		                sti[6*mi[0]*i+6*j+k]=prestr[6*mi[0]*i+6*j+k];
+		            }
+	            }
+	        }
+        }
+        else if(iprestr==2)
+        {
+	        RENEW(prestr,double,6*mi[0]*ne);
 
-    /* allocating space for the state variables */
+	        for(i=0;i<ne;i++)
+            {
+	            for(j=0;j<mi[0];j++)
+                {
+		            for(k=0;k<6;k++)
+                    {
+		                eme[6*mi[0]*i+6*j+k]=prestr[6*mi[0]*i+6*j+k];
+		            }
+	            }
+	        }
+        }
 
-    if(mortar!=1)
-    {
+        /* Structure is not pre-stressed, free variable */
+        else 
+        {
+	        SFREE(prestr);
+        }
+
+        NNEW(nodebounold,ITG,nboun);
+        NNEW(ndirbounold,ITG,nboun);
+        NNEW(xbounold,double,nboun);
+        NNEW(xforcold,double,nforc);
+        NNEW(xloadold,double,2*nload);
+
+        /* initial temperatures: store in the "old" boundary conditions */
+
+        if(ithermal[0]>1)
+        {
+	        for(i=0;i<nboun;i++)
+            {
+	            if(strcmp1(&typeboun[i],"F")==0) continue;
+	            if(ndirboun[i]==0)
+                {
+		            xbounold[i]=vold[mt*(nodeboun[i]-1)];
+	            }
+	        }
+        }
+
+        /* initial temperatures: store in the "old" temperature field */
+        if(ithermal[0]!=0)
+        {
+            NNEW(t1old,double,nk);
+            for(i=0;i<nk;i++) t1old[i]=t0[i];
+        }
+
+        /* element definition */
+
+        RENEW(kon,ITG,nkon);
+        RENEW(ipkon,ITG,ne);
+        RENEW(lakon,char,8*ne);
+
+        /* property cards */
+
+        if(nprop>0)
+        {
+	        RENEW(ielprop,ITG,ne);
+	        RENEW(prop,double,nprop);
+        }
+        else
+        {
+	        SFREE(ielprop);SFREE(prop);
+        }
+
+        /* fields for 1-D and 2-D elements */
+        if((ne1d!=0)||(ne2d!=0))
+        {
+	        RENEW(iponor,ITG,2*nkon);
+	        RENEW(xnor,double,infree[0]);
+	        RENEW(knor,ITG,infree[1]);
+	        SFREE(thickn);
+	        RENEW(thicke,double,mi[2]*nkon);
+	        RENEW(offset,double,2*ne);
+	        RENEW(inoel,ITG,3*(infree[2]-1));
+	        RENEW(iponoel,ITG,infree[3]);
+	        RENEW(rig,ITG,infree[3]);
+        }
+
+        /* set definitions */
+        RENEW(set,char,81*nset);
+        RENEW(istartset,ITG,nset);
+        RENEW(iendset,ITG,nset);
+        RENEW(ialset,ITG,nalset);
+
+        /* material properties */
+
+        RENEW(elcon,double,(ncmat_+1)*ntmat_*nmat);
+        RENEW(nelcon,ITG,2*nmat);
+
+        RENEW(rhcon,double,2*ntmat_*nmat);
+        RENEW(nrhcon,ITG,nmat);
+
+        if(ndamp>0)
+        {
+        RENEW(dacon,double,nmat);
+        }
+
+        RENEW(shcon,double,4*ntmat_*nmat);
+        RENEW(nshcon,ITG,nmat);
+
+        RENEW(cocon,double,7*ntmat_*nmat);
+        RENEW(ncocon,ITG,2*nmat);
+
+        RENEW(alcon,double,7*ntmat_*nmat);
+        RENEW(nalcon,ITG,2*nmat);
+        RENEW(alzero,double,nmat);
+
+        RENEW(matname,char,80*nmat);
+        RENEW(ielmat,ITG,mi[2]*ne);
+
+        /* allocating space for the state variables */
+        if(mortar!=1)
+        {
   
-	    RENEW(xstate,double,nstate_*mi[0]*(ne+nslavs));
+	        RENEW(xstate,double,nstate_*mi[0]*(ne+nslavs));
 
-	    for(i=nxstate;i<nstate_*mi[0]*(ne+nslavs);i++)
-      {
-        xstate[i]=0.;
-      }
-    }
-    else if(mortar==1)
-    {
-	    RENEW(xstate,double,nstate_*mi[0]*(ne+nintpoint));
+	        for(i=nxstate;i<nstate_*mi[0]*(ne+nslavs);i++)
+            {
+                xstate[i]=0.;
+            }
+        }
+        else if(mortar==1)
+        {
+	        RENEW(xstate,double,nstate_*mi[0]*(ne+nintpoint));
 
-	    for(i=nxstate;i<nstate_*mi[0]*(ne+nintpoint);i++)
-      {
-        xstate[i]=0.;
-      }
-    }
+	        for(i=nxstate;i<nstate_*mi[0]*(ne+nintpoint);i++)
+            {
+                xstate[i]=0.;
+            }
+        }
 
-    /* next statements for plastic materials and nonlinear springs */
-    if(npmat_>0)
-    {
-	    RENEW(plicon,double,(2*npmat_+1)*ntmat_*nmat);
-	    RENEW(nplicon,ITG,(ntmat_+1)*nmat);
-	    RENEW(plkcon,double,(2*npmat_+1)*ntmat_*nmat);
-	    RENEW(nplkcon,ITG,(ntmat_+1)*nmat);
-    }
+        /* next statements for plastic materials and nonlinear springs */
+        if(npmat_>0)
+        {
+	        RENEW(plicon,double,(2*npmat_+1)*ntmat_*nmat);
+	        RENEW(nplicon,ITG,(ntmat_+1)*nmat);
+	        RENEW(plkcon,double,(2*npmat_+1)*ntmat_*nmat);
+	        RENEW(nplkcon,ITG,(ntmat_+1)*nmat);
+        }
 
-    /* material orientation */
-    if(norien > 0) 
-    {
-      RENEW(orname,char,80*norien);
-      RENEW(ielorien,ITG,mi[2]*ne);
-      RENEW(orab,double,7*norien);
-    }
-    else 
-    {
-	    SFREE(orname);
-	    SFREE(ielorien);
-	    SFREE(orab);
-    }
+        /* material orientation */
+        if(norien > 0) 
+        {
+            RENEW(orname,char,80*norien);
+            RENEW(ielorien,ITG,mi[2]*ne);
+            RENEW(orab,double,7*norien);
+        }
+        else 
+        {
+	        SFREE(orname);
+	        SFREE(ielorien);
+	        SFREE(orab);
+        }
 
-    /* amplitude definitions */
-    if(nam > 0) 
-    {
-      RENEW(amname,char,80*nam);
-      RENEW(namta,ITG,3*nam);
-      RENEW(amta,double,2*namta[3*nam-2]);
-    }
-    else 
-    {
-      SFREE(amname);
-      SFREE(amta);
-      SFREE(namta);
-      SFREE(iamforc);
-      SFREE(iamload);
-      SFREE(iamboun);
-    }
+        /* amplitude definitions */
+        if(nam > 0) 
+        {
+            RENEW(amname,char,80*nam);
+            RENEW(namta,ITG,3*nam);
+            RENEW(amta,double,2*namta[3*nam-2]);
+        }
+        else 
+        {
+            SFREE(amname);
+            SFREE(amta);
+            SFREE(namta);
+            SFREE(iamforc);
+            SFREE(iamload);
+            SFREE(iamboun);
+        }
 
-    if(ntrans > 0)
-    {
-      RENEW(trab,double,7*ntrans);
-    }
+        if(ntrans > 0)
+        {
+            RENEW(trab,double,7*ntrans);
+        }
+
+        else
+        {
+            SFREE(trab);
+            SFREE(inotr);
+        }
+
+        if(ithermal[0] == 0)
+        {
+            SFREE(t0);
+            SFREE(t1);
+            SFREE(t0g);
+            SFREE(t1g);
+        }
+
+        if((ithermal[0] == 0)||(nam<=0))
+        {
+            SFREE(iamt1);
+        }
+
+        if(ncs_>0)
+        {
+            RENEW(ics,ITG,ncs_);
+    
+        }
+
+        else if(npt_>0)
+        {
+            SFREE(ics);
+        }
+
+        SFREE(dcs);
+
+        if(mcs>0)
+        {
+	        RENEW(cs,double,17*mcs);
+        }
+
+        else
+        {
+	        SFREE(cs);
+        }
+    } // end if(istep == 1)
     else
     {
-      SFREE(trab);
-      SFREE(inotr);
-    }
+        printf("CAUTION: Analysis is in second step. Not valid for static analysis!");
 
-    if(ithermal[0] == 0)
-    {
-      SFREE(t0);
-      SFREE(t1);
-      SFREE(t0g);
-      SFREE(t1g);
-    }
+        /* reallocating space in all but the first step (>1) */
+        RENEW(vold,double,mt*nk);
 
-    if((ithermal[0] == 0)||(nam<=0))
-    {
-      SFREE(iamt1);
-    }
+        /* if the SPC boundary conditions were changed in the present step,
+        they have to be rematched with those in the last step. Removed SPC
+        boundary conditions do not appear any more (this is different from
+        forces and loads, where removed forces or loads are reset to zero;
+        a removed SPC constraint does not have a numerical value any more) */
 
-    if(ncs_>0)
-    {
-      RENEW(ics,ITG,ncs_);
-      //      SFREE(dcs);
-    }
-    else if(npt_>0)
-    {
-      SFREE(ics);
-    }
+        NNEW(reorder,double,nboun);
+        NNEW(nreorder,ITG,nboun);
 
-    SFREE(dcs);
+        if(nbounold<nboun)
+        {
+            RENEW(xbounold,double,nboun);
+            RENEW(nodebounold,ITG,nboun);
+            RENEW(ndirbounold,ITG,nboun);
+        }
 
-    if(mcs>0)
-    {
-	    RENEW(cs,double,17*mcs);
-    }
-    else
-    {
-	    SFREE(cs);
-    }
-
-  } // end if(istep == 1)
-  else
-  {
-    printf("CAUTION: Analysis is in second step. Not valid for static analysis!");
-
-    /* reallocating space in all but the first step (>1) */
-    RENEW(vold,double,mt*nk);
-
-    /* if the SPC boundary conditions were changed in the present step,
-       they have to be rematched with those in the last step. Removed SPC
-       boundary conditions do not appear any more (this is different from
-       forces and loads, where removed forces or loads are reset to zero;
-       a removed SPC constraint does not have a numerical value any more) */
-
-    NNEW(reorder,double,nboun);
-    NNEW(nreorder,ITG,nboun);
-
-    if(nbounold<nboun)
-    {
-      RENEW(xbounold,double,nboun);
-      RENEW(nodebounold,ITG,nboun);
-      RENEW(ndirbounold,ITG,nboun);
-    }
-
-    FORTRAN(spcmatch,(xboun,nodeboun,ndirboun,&nboun,xbounold,nodebounold,
+        FORTRAN(spcmatch,(xboun,nodeboun,ndirboun,&nboun,xbounold,nodebounold,
 		      ndirbounold,&nbounold,ikboun,ilboun,vold,reorder,nreorder,
                       mi));
-    RENEW(xbounold,double,nboun);
-    RENEW(nodebounold,ITG,nboun);
-    RENEW(ndirbounold,ITG,nboun);
-    SFREE(reorder); SFREE(nreorder);
+        RENEW(xbounold,double,nboun);
+        RENEW(nodebounold,ITG,nboun);
+        RENEW(ndirbounold,ITG,nboun);
+        SFREE(reorder); SFREE(nreorder);
 
-    /* for additional forces or loads in the present step, the
-       corresponding slots in the force and load fields of the
-       previous steps are initialized */
+        /* for additional forces or loads in the present step, the
+        corresponding slots in the force and load fields of the
+        previous steps are initialized */
 
-    RENEW(xforcold,double,nforc);
+        RENEW(xforcold,double,nforc);
 
-    for(i=nforcold;i<nforc;i++) xforcold[i]=0;
+        for(i=nforcold;i<nforc;i++) xforcold[i]=0;
 
-    RENEW(xloadold,double,2*nload);
+        RENEW(xloadold,double,2*nload);
 
-    for(i=2*nloadold;i<2*nload;i++) xloadold[i]=0;
+        for(i=2*nloadold;i<2*nload;i++) xloadold[i]=0;
 
-    if(ithermal[0]!=0)
-    {
-      RENEW(t1old,double,nk);
-    }
+        if(ithermal[0]!=0)
+        {
+            RENEW(t1old,double,nk);
+        }
 
-    if(nam > 0) 
-    {
-      RENEW(amname,char,80*nam);
-      RENEW(namta,ITG,3*nam);
-      RENEW(amta,double,2*namta[3*nam-2]);
+        if(nam > 0) 
+        {
+        RENEW(amname,char,80*nam);
+        RENEW(namta,ITG,3*nam);
+        RENEW(amta,double,2*namta[3*nam-2]);
     }
 
   } /* End of istep > 1 */
 
-  /* reallocating fields for all steps (>=1) */
-  RENEW(co,double,3*nk);
+    /* reallocating fields for all steps (>=1) */
+    RENEW(co,double,3*nk);
 
-  RENEW(nodeboun,ITG,nboun);
-  RENEW(ndirboun,ITG,nboun);
-  RENEW(typeboun,char,nboun+1);
-  RENEW(xboun,double,nboun);
-  RENEW(ikboun,ITG,nboun);
-  RENEW(ilboun,ITG,nboun);
+    RENEW(nodeboun,ITG,nboun);
+    RENEW(ndirboun,ITG,nboun);
+    RENEW(typeboun,char,nboun+1);
+    RENEW(xboun,double,nboun);
+    RENEW(ikboun,ITG,nboun);
+    RENEW(ilboun,ITG,nboun);
 
-  RENEW(nodeforc,ITG,2*nforc);
-  RENEW(ndirforc,ITG,nforc);
-  RENEW(xforc,double,nforc);
-  RENEW(ikforc,ITG,nforc);
-  RENEW(ilforc,ITG,nforc);
+    RENEW(nodeforc,ITG,2*nforc);
+    RENEW(ndirforc,ITG,nforc);
+    RENEW(xforc,double,nforc);
+    RENEW(ikforc,ITG,nforc);
+    RENEW(ilforc,ITG,nforc);
 
-  /* temperature loading */
+    /* temperature loading */
 
   if(ithermal[0] != 0)
   {
