@@ -83,7 +83,7 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
         num_threads = 4;
     }
 
-    printf("Using %d thread(s) \n", num_threads);
+    printf("Using %d thread(s) to filter vector \n", num_threads);
 
     printf("Opening filter matrix files...");
     FILE *frow = fopen("drow.dat", "r");
@@ -175,7 +175,6 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
 
             
 
-
         }
 
         printf("Waiting on all threads to finish...\n");
@@ -198,4 +197,7 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
 
     fclose(frow); fclose(fcol); fclose(fval);
     free(drow_block); free(dcol_block); free(dval_block); free(weight_sum);
+
+    for (int i = 0; i < ne; ++i) pthread_mutex_destroy(&row_locks[i]);
+    free(row_locks);
 }
