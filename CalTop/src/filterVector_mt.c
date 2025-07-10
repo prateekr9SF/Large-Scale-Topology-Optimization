@@ -10,6 +10,9 @@ void *thread_filter_worker_atomic(void *args_ptr) {
     int start = (args->block_read * args->thread_id) / args->num_threads;
     int end   = (args->block_read * (args->thread_id + 1)) / args->num_threads;
 
+    
+
+
     for (int i = start; i < end; ++i) {
         int row = args->drow[i] - 1;
         int col = args->dcol[i] - 1;
@@ -35,6 +38,8 @@ void *thread_filter_worker_mutex(void *args_ptr) {
 
     int start = (args->block_read * args->thread_id) / args->num_threads;
     int end   = (args->block_read * (args->thread_id + 1)) / args->num_threads;
+
+    printf("Thread %d started: processing from index %d to %d\n", args->thread_id, start, end);
 
     for (int i = start; i < end; ++i) {
         int row = args->drow[i] - 1;
