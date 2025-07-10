@@ -1,6 +1,5 @@
 *.o
 *.exe
-*.dat
 *.12d
 *.sta
 *.frd
@@ -10,3 +9,5 @@
 *.swp
 *.nam
 *.msh
+*.dat
+!density.dat

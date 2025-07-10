@@ -115,7 +115,7 @@ def extract_su2_mesh_data_with_element_index(su2_filepath, output_filepath="mesh
         for idx, node in enumerate(node_data, start=1):
 
             #coords = node.split()  # Assume space-separated coordinates
-            formatted_line = f"      {idx}, {node[0]}, {node[1]}, {node[2]}"
+            formatted_line = f"      {idx}, {np.round(node[0],10)}, {np.round(node[1],10)}, {np.round(node[2],10)}"
             output_file.write(formatted_line + "\n")
         
         # Add a blank line before the element section
