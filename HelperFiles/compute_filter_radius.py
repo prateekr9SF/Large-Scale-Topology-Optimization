@@ -1,10 +1,11 @@
-
+#!/usr/bin/env python3
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-def compute_and_plot_filter_radius_from_csv(file_path, multiplier_values=[1.5, 2.0]):
+
+def compute_and_plot_filter_radius_from_csv(file_path, multiplier_values=[1.5, 2.0, 2.5, 3.0]):
     df = pd.read_csv(file_path, header=0, index_col=[0, 1])
 
     bin_edges = []
@@ -28,22 +29,22 @@ def compute_and_plot_filter_radius_from_csv(file_path, multiplier_values=[1.5, 2
 
     plt.figure(figsize=(8, 5))
     plt.bar(bin_edges, counts, width=0.015, edgecolor='k', align='center', alpha=0.8)
-    plt.axvline(x=mean_edge_length, color='red', linestyle='--', label=f'Mean = {mean_edge_length:.3f} mm')
+    plt.axvline(x=mean_edge_length, color='red', linestyle='--', label=f'Mean = {mean_edge_length:.3f} m')
 
     for label, value in filter_radii.items():
-        plt.axvline(x=value, linestyle=':', label=f'{label}Mean = {value:.3f} mm')
+        plt.axvline(x=value, linestyle=':', label=f'{label}Mean = {value:.3f} m')
 
-    plt.xlabel("Edge Length (mm)")
+    plt.xlabel("Edge Length (m)")
     plt.ylabel("Count")
     plt.title("Edge Length Distribution and Filter Radius Suggestions")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    plt.savefig("EdgeLengthDist.png", dpi=300)
 
-    print(f"Mean edge length: {mean_edge_length:.5f} mm")
+    print(f"Mean edge length: {mean_edge_length:.5f} m")
     for label, value in filter_radii.items():
-        print(f"Filter radius ({label}): {value:.5f} mm")
+        print(f"Filter radius ({label}): {value:.5f} m")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute filter radius from edge length histogram CSV")
