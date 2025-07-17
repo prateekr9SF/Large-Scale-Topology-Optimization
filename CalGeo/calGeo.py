@@ -115,7 +115,7 @@ def extract_su2_mesh_data_with_element_index(su2_filepath, output_filepath="mesh
         for idx, node in enumerate(node_data, start=1):
 
             #coords = node.split()  # Assume space-separated coordinates
-            formatted_line = f"      {idx}, {np.round(node[0],10)}, {np.round(node[1],10)}, {np.round(node[2],10)}"
+            formatted_line = f"      {idx}, {node[0]}, {node[1]}, {node[2]}"
             output_file.write(formatted_line + "\n")
         
         # Add a blank line before the element section
@@ -326,7 +326,70 @@ def extract_skin_node_triplets(su2_filepath):
                     skin_triplets.append(node_triplet)
     return list(set(skin_triplets))
 
+def extract_skin (su2_filepath, markername):
+    with open(su2_filepath, "r") as file:
+        lines = file.readlines()
+    
+    skin_section = False
+    element_section = False
+    skin_nodes = []
+    element_dict = {}
+    skin_element=[]
+    layers=0
+    
+    for line in lines:
+        if f"MARKER_TAG= {markername}" in line:
+            skin_section = True
+            layers = int(line[-2])
 
+            continue 
+        
+        if skin_section:
+            if "MARKER_ELEMS=" in line:
+                continue
+            elif "MARKER_TAG=" in line:  
+                break
+            else:
+                elements = line.strip().split()
+                if len(elements) == 4:
+                    node_indices = elements[1:]  # Exclude only the first column
+                    skin_nodes.extend(map(lambda x: int(x), node_indices))  
+    skin_nodes = set(skin_nodes)
+    
+    
+    for line in lines:
+        if "NELEM=" in line:
+            element_section = True
+            continue
+        
+        if element_section:
+            elements = line.strip().split()
+            if len(elements) == 6 and elements[0].isdigit():
+                
+                element_id = int(elements[-1])
+                node_indices = set(map(int, elements[1:5]))
+                element_dict[element_id] = node_indices
+    new_skin_nodes  = set()
+    for i in range(layers):
+        skin_nodes.update(new_skin_nodes)
+        for key, values in element_dict.items():
+            values_set = set(values)
+            if not values_set.isdisjoint(skin_nodes):  # if any overlap
+                skin_element.append(key)
+                # Add the rest of the items not already in the set
+                new_skin_nodes.update(values_set-skin_nodes)
+        
+    return set(skin_element)
+
+def write_skin_element(skin_element,output_filepath="skin_tetra_elements.nam"):
+    with open(output_filepath, "w") as output_file:
+        #output_file.write("*ELEMENTS_MAPPING, ELSET=EALL\n")
+        for ele in skin_element:
+            output_file.write(f"{ele+1}\n")#, {triplet[0]}, {triplet[1]}, {triplet[2]}\n")
+    
+    
+
+    
 def find_all_tetrahedral_elements_for_skin_optimized(su2_filepath, skin_triplets, output_filepath="skin_tetra_elements.nam"):
     """
     Finds the tetrahedral element IDs that contain the given node triplets from the skin marker.
@@ -362,9 +425,9 @@ def find_all_tetrahedral_elements_for_skin_optimized(su2_filepath, skin_triplets
                 break  
     
     with open(output_filepath, "w") as output_file:
-        output_file.write("*ELEMENTS_MAPPING, ELSET=EALL\n")
+        #output_file.write("*ELEMENTS_MAPPING, ELSET=EALL\n")
         for triplet, elem_id in skin_to_tetra_mapping.items():
-            output_file.write(f"{elem_id}, {triplet[0]}, {triplet[1]}, {triplet[2]}\n")
+            output_file.write(f"{elem_id+1}\n")#, {triplet[0]}, {triplet[1]}, {triplet[2]}\n")
     
     return skin_to_tetra_mapping
 
@@ -372,6 +435,7 @@ def find_all_tetrahedral_elements_for_skin_optimized(su2_filepath, skin_triplets
 def main():
     parser = argparse.ArgumentParser(description="Convert SU2 mesh to CalculiX NAM format and extract boundary nodes.")
     parser.add_argument("su2_file", type=str, help="Path to the input SU2 mesh file")
+    parser.add_argument("SkinMarkerList", nargs='+', type=str, help="a list of skin marker names+layer, example:[skin1,skin2]")
     parser.add_argument("--mesh_out", type=str, default="mesh.nam", help="Output file for CalculiX mesh (default: mesh.nam)")
     parser.add_argument("--fixed_out", type=str, default="Nfix1.nam", help="Output file for fixed node set (default: Nfix1.nam)")
     parser.add_argument("--surface_out", type=str, default="NSurface.nam", help="Output file for surface node set (default: NSurface.nam)")
@@ -388,7 +452,19 @@ def main():
 
     # Extract all coordinates and connectivity matrix and write to mesh.nam
     nDV = extract_su2_mesh_data_with_element_index(args.su2_file, args.mesh_out)
-
+    skinelement = set()
+    for marker in args.SkinMarkerList:
+        skinelement .update(extract_skin(args.su2_file, marker))
+    skinelementL = list(skinelement)
+    
+    #skin_triplets = extract_skin_node_triplets(args.su2_file)
+    #output_filepath = "skin_tetra_elements.nam"
+    if skinelement:
+        write_skin_element(skinelementL,output_filepath="skinElementList.nam")
+        #find_all_tetrahedral_elements_for_skin_optimized(args.su2_file, skin_triplets, "skinElementList.nam")
+        print("skin marker detected, writting skinElementList.nam")
+    else:
+        print("There are no skin markers in the SU2, no skinElementList.nam written")
     print("Number of design variables: ", nDV)
 if __name__ == "__main__":
     main()
