@@ -1,0 +1,49 @@
+**Block file for optimization
+*INCLUDE, INPUT=/home/prateek/Documents/GitHub/Large-Scale-Topology-Optimization/TestCases/CB/mesh.nam
+*INCLUDE, INPUT=/home/prateek/Documents/GitHub/Large-Scale-Topology-Optimization/TestCases/CB/Nfix1.nam
+*INCLUDE, INPUT=/home/prateek/Documents/GitHub/Large-Scale-Topology-Optimization/TestCases/CB/NSurface.nam
+
+** Node set Nfix1 has DOF 1(X), DOF 2(Y), DOF 3(Z) fixed
+*BOUNDARY
+Nfix1,1,2,3
+
+**Add material named EL with elastic properties
+*MATERIAL,NAME=EL
+*ELASTIC
+1,0.3
+
+** Apply material EL to element set EALL
+*SOLID SECTION, ELSET=EALL, MATERIAL=EL
+
+** Design variable definition
+*NSET, NSET=DES
+1
+
+*DESIGNVARIABLES, TYPE=COORDINATE
+DES
+
+*SOLID SECTION, ELSET=EALL, MATERIAL=EL
+*STEP
+*STATIC
+**Begin setup for static analysis
+
+** Define concentrated load on <nodeset>, <dof>, <magnitude>
+**DLOAD
+**EALL,GRAV,9.810, 0., 0., -1
+*CLOAD
+Nsurface, 2, 1
+*END STEP
+
+
+*NODE FILE
+ U
+***EL FILE
+** S, E
+*END STEP
+
+
+*STEP
+*SENSITIVITY
+*OBJECTIVE
+STRAINENERGY
+*END STEP
