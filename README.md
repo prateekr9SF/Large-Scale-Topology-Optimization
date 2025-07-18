@@ -151,7 +151,21 @@ CalTop is a high-performance topology optimization framework built upon **Calcul
    ```sh
    make install PREFIX=$HOME/<installation_dir>
    ```
+## Usage: calFilt
 
+calFilt builds a density filter matrix to be used by calTop for solving topology optimizaion problems.
+Before building the density filter matrix, to enable parallelization, set:
+
+To build a densty filter matrix:
+
+```sh
+export OMP_NUM_THREADS=N
+```
+where ```N``` is the number of threads available on the core. Then build the filter matrix as
+
+``` sh
+calFilt -i <filename_without_extension> -r <filter_spehere_radius> -f <number_of_non-zeros_in_filter_kernel>
+```
 
 ## Usage: calGeo
 
