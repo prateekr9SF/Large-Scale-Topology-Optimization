@@ -1644,7 +1644,7 @@ while(istat>=0)
 	    }
 
       printf("\n#------------------------------FILTER MATRIX PARAMTERS----------------------------#\n");
-      printf("Length scale                      %.2f\n", rmin);
+      printf("Filter radius                      %.2f\n", rmin);
       printf("Non zeros in Filtermatrix         %d\n", fnnzassumed);
       printf("#------------------------------------------------------------------------------------#\n");
      
