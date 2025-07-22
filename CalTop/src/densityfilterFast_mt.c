@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "CalculiX.h"
 
-#define MAX_NNZ_PER_THREAD 100000000  // maximum buffer space for all threads combined
+#define MAX_NNZ_PER_THREAD 1000  // maximum buffer space for all threads combined
 
 // Struct to pass arguments to each pthread worker
 typedef struct {
@@ -95,7 +95,7 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
     if (env) num_threads = atoi(env);
     if (num_threads <= 0) num_threads = 1;
 
-    printf("Using %d threads to build filter matrix.", num_threads);
+    printf("Using %d threads to build filter matrix.\n", num_threads);
     ITG ne0 = *ne;
     double time = timepar[1];
 
@@ -110,14 +110,20 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
 
     int elems_per_thread = (ne0 + num_threads - 1) / num_threads;
 
+    printf("Elements per thread: %d \n", elems_per_thread);
+
+    printf("Initializing global shared output buffers for all threads...");
     // Global shared output buffers for all threads
     int *global_drow = malloc(MAX_NNZ_PER_THREAD * sizeof(int));
     int *global_dcol = malloc(MAX_NNZ_PER_THREAD * sizeof(int));
     double *global_dval = malloc(MAX_NNZ_PER_THREAD * sizeof(double));
     int *global_nnz_count = calloc(ne0, sizeof(int));
 
+    printf("done!\n");
+
     int offset = 0;
-    for (int t = 0; t < num_threads; ++t) {
+    for (int t = 0; t < num_threads; ++t) 
+    {
         int start = t * elems_per_thread;
         int end = (t + 1) * elems_per_thread;
         if (end > ne0) end = ne0;
@@ -138,12 +144,16 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
             .nnz_count = &global_nnz_count[start]
         };
 
+        printf("Creating pthread...");
         pthread_create(&threads[t], NULL, filter_thread_worker, &args[t]);
+        printf("done!\n");
     }
 
+    
+    printf("Joint threads...");
     for (int t = 0; t < num_threads; ++t)
         pthread_join(threads[t], NULL);
-
+    printf("Done!\n");
     // Write matrix to files
     FILE *frow = fopen("drow.dat", "w");
     FILE *fcol = fopen("dcol.dat", "w");
