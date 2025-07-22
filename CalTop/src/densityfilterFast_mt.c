@@ -6,6 +6,8 @@
 #include <string.h>
 #include "CalculiX.h"
 
+#define PROGRESS_WIDTH 40
+
 typedef struct {
     int thread_id;
     int ne0;
@@ -16,10 +18,12 @@ typedef struct {
     int *filternnzElems;
 } ThreadArgs;
 
-void *filter_thread_streamed(void *args_ptr) {
+void *filter_thread_streamed(void *args_ptr) 
+{
     ThreadArgs *args = (ThreadArgs *)args_ptr;
     char fname_row[64], fname_col[64], fname_val[64], fname_dnnz[64];
 
+    // Local thread files
     sprintf(fname_row, "drow_%d.dat", args->thread_id);
     sprintf(fname_col, "dcol_%d.dat", args->thread_id);
     sprintf(fname_val, "dval_%d.dat", args->thread_id);
@@ -30,18 +34,24 @@ void *filter_thread_streamed(void *args_ptr) {
     FILE *fval = fopen(fname_val, "w");
     FILE *fdnnz = fopen(fname_dnnz, "w");
 
-    if (!frow || !fcol || !fval || !fdnnz) {
+    if (!frow || !fcol || !fval || !fdnnz) 
+    {
         fprintf(stderr, "Thread %d: Failed to open output files.\n", args->thread_id);
         exit(EXIT_FAILURE);
     }
 
-    for (int i = args->ne_start; i < args->ne_end; ++i) {
+    int total = args->ne_end - args->ne_start;
+
+
+    for (int i = args->ne_start; i < args->ne_end; ++i) 
+    {
         int count = 0;
         double xi = args->elCentroid[3 * i + 0];
         double yi = args->elCentroid[3 * i + 1];
         double zi = args->elCentroid[3 * i + 2];
 
-        for (int j = 0; j < args->ne0; ++j) {
+        for (int j = 0; j < args->ne0; ++j) 
+        {
             if (i == j) continue;
             double xj = args->elCentroid[3 * j + 0];
             double yj = args->elCentroid[3 * j + 1];
@@ -49,7 +59,8 @@ void *filter_thread_streamed(void *args_ptr) {
             double dx = xi - xj, dy = yi - yj, dz = zi - zj;
             double dist = sqrt(dx * dx + dy * dy + dz * dz);
 
-            if (dist <= args->rmin_local) {
+            if (dist <= args->rmin_local) 
+            {
                 double w = args->rmin_local - dist;
                 fprintf(frow, "%d\n%d\n", i + 1, j + 1);
                 fprintf(fcol, "%d\n%d\n", j + 1, i + 1);
@@ -58,13 +69,32 @@ void *filter_thread_streamed(void *args_ptr) {
             }
         }
 
+
         fprintf(fdnnz, "%d\n", count);
-        if (count > *args->fnnzassumed) {
+        if (count > *args->fnnzassumed) 
+        {
             printf("WARNING: Element %d has %d neighbors. Increase fnnzassumed.\n", i, count);
             exit(EXIT_FAILURE);
         }
         args->filternnzElems[i] = count;
+
+        // Print progress bar every 100 iterations or at the end
+        if ((i - args->ne_start) % 100 == 0 || i == args->ne_end - 1) 
+        {
+            int done = i - args->ne_start + 1;
+            double percent = (double)done / total;
+            int barwidth = (int)(percent * PROGRESS_WIDTH);
+
+            fprintf(stderr, "\rThread %d [", args->thread_id);
+            for (int k = 0; k < PROGRESS_WIDTH; ++k)
+                fprintf(stderr, k < barwidth ? "#" : " ");
+            fprintf(stderr, "] %3.0f%%", percent * 100);
+            fflush(stderr);
+        }
     }
+
+    // Final newline after the progress bar
+    fprintf(stderr, "\n"); 
 
     fclose(frow); fclose(fcol); fclose(fval); fclose(fdnnz);
     return NULL;
@@ -82,7 +112,7 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
     if (env) num_threads = atoi(env);
     if (num_threads <= 0) num_threads = 1;
 
-    printf("\nUsing %d threads to build the filter matrix. \n");
+    printf("\nUsing %d threads to build the filter matrix. \n", num_threads);
 
     
     ITG ne0 = *ne;
@@ -101,6 +131,8 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
     // Divide the total elements across threads
     int elems_per_thread = (ne0 + num_threads - 1) / num_threads;
 
+    printf("Number of elements per thread %d \n", elems_per_thread);
+    printf("Creating threads and excuting thread-local streaming...");
     // Launch a thread per chunk of elements
     for (int t = 0; t < num_threads; ++t) 
     {
@@ -124,10 +156,14 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
         // Launch thread for streaming filter entries
         pthread_create(&threads[t], NULL, filter_thread_streamed, &args[t]);
     }
+    printf("done. \n");
 
+    printf("Waiting on all threads to finish...");
     // Wait for all threads to complete
     for (int t = 0; t < num_threads; ++t)
         pthread_join(threads[t], NULL);
+    
+    printf("done \n");
 
     // After threads finish, aggregate number of neighbours per element into dnnz.dat
     FILE *fdnnz = fopen("dnnz.dat", "w");
