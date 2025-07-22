@@ -8,6 +8,9 @@
 
 #define PROGRESS_WIDTH 40
 
+// Global mutex for synchronized output
+pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 typedef struct {
     int thread_id;
     int ne0;
@@ -78,23 +81,33 @@ void *filter_thread_streamed(void *args_ptr)
         }
         args->filternnzElems[i] = count;
 
-        // Print progress bar every 100 iterations or at the end
         if ((i - args->ne_start) % 100 == 0 || i == args->ne_end - 1) 
         {
             int done = i - args->ne_start + 1;
             double percent = (double)done / total;
             int barwidth = (int)(percent * PROGRESS_WIDTH);
 
-            fprintf(stderr, "\rThread %d [", args->thread_id);
+            char buffer[128];
+            int pos = 0;
+            pos += snprintf(buffer + pos, sizeof(buffer) - pos, "Thread %2d [", args->thread_id);
             for (int k = 0; k < PROGRESS_WIDTH; ++k)
-                fprintf(stderr, k < barwidth ? "#" : " ");
-            fprintf(stderr, "] %3.0f%%", percent * 100);
+                pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%c", k < barwidth ? '#' : ' ');
+            snprintf(buffer + pos, sizeof(buffer) - pos, "] %3.0f%%", percent * 100);
+
+            pthread_mutex_lock(&print_mutex);
+            fprintf(stderr, "\033[%d;1H", args->thread_id + 1);  // Move to line for this thread
+            fprintf(stderr, "%s", buffer);                      // No newline
             fflush(stderr);
+            pthread_mutex_unlock(&print_mutex);
         }
     }
+    
 
     // Final newline after the progress bar
-    fprintf(stderr, "\n"); 
+    pthread_mutex_lock(&print_mutex);
+    fprintf(stderr, "Thread %2d completed.\n", args->thread_id);
+    pthread_mutex_unlock(&print_mutex);
+ 
 
     fclose(frow); fclose(fcol); fclose(fval); fclose(fdnnz);
     return NULL;
@@ -133,6 +146,8 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
 
     printf("Number of elements per thread %d \n", elems_per_thread);
     printf("Creating threads and excuting thread-local streaming...");
+    // Clear screen and move cursor to top
+    printf("\033[2J\033[H");
     // Launch a thread per chunk of elements
     for (int t = 0; t < num_threads; ++t) 
     {
