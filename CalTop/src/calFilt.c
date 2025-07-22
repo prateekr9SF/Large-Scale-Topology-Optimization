@@ -375,7 +375,6 @@ int main(int argc,char *argv[])
             /* Print version */
 	        printf("\nThis is calFilt v1.0: A CalculiX-based filter matrix assembly module \n");
             printf(" Authors: Prateek Ranjan, Massachusetts Institute of Technology \n");
-            printf(" Authors: Ghanendra Das, Georgia Institute of Technology \n");
             printf(" Kai. A James, Georgia Institute of Technology \n");
 	        FORTRAN(stop,());
         }
@@ -1947,7 +1946,7 @@ while(istat>=0)
   }
   if(istep == 1)
   {
-    printf("Linear analysis complete!\n");
+    //printf("Linear analysis complete!\n");
     break;
   }
 
