@@ -73,30 +73,44 @@ void *filter_thread_streamed(void *args_ptr) {
 void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                                 ITG *ne, double *ttime, double *timepar,
                                 ITG *mortar, double *rmin, ITG *filternnz,
-                                ITG *filternnzElems, ITG itertop, ITG *fnnzassumed) {
+                                ITG *filternnzElems, ITG itertop, ITG *fnnzassumed) 
+                                
+{
+    // Determine number of threads from environment variable
     int num_threads = 1;
     char *env = getenv("OMP_NUM_THREADS");
     if (env) num_threads = atoi(env);
     if (num_threads <= 0) num_threads = 1;
 
+    printf("\nUsing %d threads to build the filter matrix. \n");
+
+    
     ITG ne0 = *ne;
     double time = timepar[1];
 
     double *elCentroid = NULL;
     NNEW(elCentroid, double, 3 * ne0);
+
+    // Compute element centroids
     mafillsmmain_filter(co, nk, *konp, *ipkonp, *lakonp, ne, ttime, &time, mortar, &ne0, elCentroid);
 
+    // Allcate handles for pthread handles and thread arguments
     pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
     ThreadArgs *args = malloc(num_threads * sizeof(ThreadArgs));
 
+    // Divide the total elements across threads
     int elems_per_thread = (ne0 + num_threads - 1) / num_threads;
 
-    for (int t = 0; t < num_threads; ++t) {
+    // Launch a thread per chunk of elements
+    for (int t = 0; t < num_threads; ++t) 
+    {
         int start = t * elems_per_thread;
         int end = (t + 1) * elems_per_thread;
         if (end > ne0) end = ne0;
 
-        args[t] = (ThreadArgs){
+        // Set up argument struct for thread
+        args[t] = (ThreadArgs)
+        {
             .thread_id = t,
             .ne0 = ne0,
             .ne_start = start,
@@ -107,14 +121,18 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
             .filternnzElems = filternnzElems
         };
 
+        // Launch thread for streaming filter entries
         pthread_create(&threads[t], NULL, filter_thread_streamed, &args[t]);
     }
 
+    // Wait for all threads to complete
     for (int t = 0; t < num_threads; ++t)
         pthread_join(threads[t], NULL);
 
+    // After threads finish, aggregate number of neighbours per element into dnnz.dat
     FILE *fdnnz = fopen("dnnz.dat", "w");
-    for (int t = 0; t < num_threads; ++t) {
+    for (int t = 0; t < num_threads; ++t) 
+    {
         char fname[64];
         sprintf(fname, "dnnz_%d.dat", t);
         FILE *in = fopen(fname, "r");
@@ -124,12 +142,30 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
         fclose(in);
         remove(fname);
     }
+
     fclose(fdnnz);
 
     *filternnz = 0;
     for (int i = 0; i < ne0; ++i)
-        *filternnz += 2 * filternnzElems[i];
+        *filternnz += 2 * filternnzElems[i]; // Each connection mirrored
 
     SFREE(elCentroid);
     free(threads); free(args);
+
+    printf("Merging filter triplet files from all threads...\n");
+    int status = 0;
+
+    status = system("cat drow_*.dat > drow.dat");
+    if (status != 0) fprintf(stderr, "Failed to merge drow files\n");
+
+    status = system("cat dcol_*.dat > dcol.dat");
+    if (status != 0) fprintf(stderr, "Failed to merge dcol files\n");
+
+    status = system("cat dval_*.dat > dval.dat");
+    if (status != 0) fprintf(stderr, "Failed to merge dval files\n");
+
+    // Remove intermediate thread-local files
+    system("rm -f drow_*.dat dcol_*.dat dval_*.dat");
+
+    printf("Filter matrix written: %d total nonzeros (symmetric)\n", *filternnz);
 }
