@@ -39,12 +39,13 @@ void *filter_thread_streamed(void *args_ptr)
 
     if (!frow || !fcol || !fval || !fdnnz) 
     {
+        pthread_mutex_lock(&print_mutex);
         fprintf(stderr, "Thread %d: Failed to open output files.\n", args->thread_id);
+        pthread_mutex_unlock(&print_mutex);
         exit(EXIT_FAILURE);
     }
 
     int total = args->ne_end - args->ne_start;
-
 
     for (int i = args->ne_start; i < args->ne_end; ++i) 
     {
@@ -65,9 +66,9 @@ void *filter_thread_streamed(void *args_ptr)
             if (dist <= args->rmin_local) 
             {
                 double w = args->rmin_local - dist;
-                fprintf(frow, "%d\n%d\n", i + 1, j + 1);
-                fprintf(fcol, "%d\n%d\n", j + 1, i + 1);
-                fprintf(fval, "%.6f\n%.6f\n", w, w);
+                fprintf(frow, "%d\n%d\n ", i + 1, j + 1);
+                fprintf(fcol, "%d\n%d\n ", j + 1, i + 1);
+                fprintf(fval, "%.6f\n%.6f\n ", w, w);
                 count++;
             }
         }
@@ -76,11 +77,14 @@ void *filter_thread_streamed(void *args_ptr)
         fprintf(fdnnz, "%d\n", count);
         if (count > *args->fnnzassumed) 
         {
+            pthread_mutex_lock(&print_mutex);
             printf("WARNING: Element %d has %d neighbors. Increase fnnzassumed.\n", i, count);
+            pthread_mutex_unlock(&print_mutex);
             exit(EXIT_FAILURE);
         }
         args->filternnzElems[i] = count;
 
+        // Print progress bar every 100 iterations or at the end
         if ((i - args->ne_start) % 100 == 0 || i == args->ne_end - 1) 
         {
             int done = i - args->ne_start + 1;
@@ -95,8 +99,9 @@ void *filter_thread_streamed(void *args_ptr)
             snprintf(buffer + pos, sizeof(buffer) - pos, "] %3.0f%%", percent * 100);
 
             pthread_mutex_lock(&print_mutex);
-            fprintf(stderr, "\033[%d;1H", args->thread_id + 1);  // Move to line for this thread
-            fprintf(stderr, "%s", buffer);                      // No newline
+            //fprintf(stderr, "\033[%d;1H", args->thread_id + 1);  // Move to line for this thread
+            fprintf(stderr, "\033[%d;1H\033[2K%s", args->thread_id + 1, buffer);
+            //fprintf(stderr, "%s", buffer);                      // No newline
             fflush(stderr);
             pthread_mutex_unlock(&print_mutex);
         }
@@ -105,7 +110,9 @@ void *filter_thread_streamed(void *args_ptr)
 
     // Final newline after the progress bar
     pthread_mutex_lock(&print_mutex);
-    fprintf(stderr, "Thread %2d completed.\n", args->thread_id);
+    fprintf(stderr, "\033[%d;1H\033[2K\033[32mThread %2d [########################################] 100%% - completed\033[0m", args->thread_id + 1, args->thread_id);
+    fflush(stderr);
+    //fprintf(stderr, "Thread %2d completed.\n", args->thread_id);
     pthread_mutex_unlock(&print_mutex);
  
 
@@ -124,6 +131,8 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
     char *env = getenv("OMP_NUM_THREADS");
     if (env) num_threads = atoi(env);
     if (num_threads <= 0) num_threads = 1;
+
+    printf("\033[2J\033[H"); // Clear screen and move cursor to top
 
     printf("\nUsing %d threads to build the filter matrix. \n", num_threads);
 
@@ -144,13 +153,20 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
     // Divide the total elements across threads
     int elems_per_thread = (ne0 + num_threads - 1) / num_threads;
 
+    // Reserve lines for thread progress bars
+    for (int t = 0; t < num_threads; ++t) printf("\n");
+
+    // Move cursor after reserved lines
+    printf("\033[%d;1H", num_threads + 2);
     printf("Number of elements per thread %d \n", elems_per_thread);
-    printf("Creating threads and excuting thread-local streaming...");
-    // Clear screen and move cursor to top
-    printf("\033[2J\033[H");
+    printf("Creating threads and executing thread-local streaming...\n");
+
+    
     // Launch a thread per chunk of elements
     for (int t = 0; t < num_threads; ++t) 
     {
+
+
         int start = t * elems_per_thread;
         int end = (t + 1) * elems_per_thread;
         if (end > ne0) end = ne0;
