@@ -164,7 +164,7 @@ export OMP_NUM_THREADS=N
 where ```N``` is the number of threads available on the core. Then build the filter matrix as
 
 ``` sh
-calFilt -i <filename_without_extension> -r <filter_spehere_radius> -f <number_of_non-zeros_in_filter_kernel>
+calFilt.exe -i <filename_without_extension> -r <filter_spehere_radius> -f <number_of_non-zeros_in_filter_kernel>
 ```
 
 ## Usage: calGeo
@@ -219,7 +219,7 @@ Additionally, the following files are also written:
 
 **NOTE**: When running in a shared-memeory environment, before calling calTop, set the number of processes as:
 ``` sh
-export OMP_NUM_THREADS =<num_procs>
+export OMP_NUM_THREADS=<num_procs>
 ```
 
 ## Adding FADO and IPOPT
