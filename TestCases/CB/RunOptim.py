@@ -20,7 +20,7 @@ import subprocess
 # this defines initial value and how they are written to an arbitrary file
 NCPU = 8
 penalty = 3
-rmin = 0.1
+rmin = 0.075
 volfrac=0.12
 InputFileName="CB"
 nDV = 109945
@@ -29,12 +29,6 @@ nnz = 5000
 
 cpucmd = "export OMP_NUM_THREADS="+str(int(NCPU))
 os.system(cpucmd)
-
-#First Run the problem once
-cpucmd = "export OMP_NUM_THREADS="+str(int(NCPU))
-cmd = ["calTop.exe", InputFileName, "-p", str(penalty), "-r", str(rmin), "-f", str(nnz)]
-os.system(cpucmd)
-result = subprocess.run(cmd)
 
 #Now remove the garbage density.dat, and write the new formatted one
 with open('density.dat', 'w') as file:
