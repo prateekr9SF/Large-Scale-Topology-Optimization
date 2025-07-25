@@ -451,15 +451,14 @@ int main(int argc,char *argv[])
     printf(" ##       ##   ##  ##        ##        ##    ##         ##     \n");
     printf("  #####   ##   ##  #######   ##       ####   ######     ##     \n");
 
+    printf("\n");
     printf("A density filter matrix assembly routine \n");
     
     printf("\n");
 
     printf("* Contributors:\n");
-    printf("* Prateek Ranjan, Dept. of Aerospace Engineering,\n");
+    printf("* Prateek Ranjan, Dept. of Aeronautics and Astronautics,\n");
     printf("* Massachusetts Institute of Technology \n");
-    printf("* Ghanendra Kumar Das, Dept. of Aerospace Engineering,\n");
-    printf("* Georgia Institute of Technology\n");
     printf("* Kai A. James, Dept. of Aerospace Engineering,\n");
     printf("* Georgia Institute of Technology\n");
 
