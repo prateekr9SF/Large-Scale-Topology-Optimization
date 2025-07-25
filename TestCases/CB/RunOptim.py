@@ -20,10 +20,10 @@ import subprocess
 # this defines initial value and how they are written to an arbitrary file
 NCPU = 8
 penalty = 3
-rmin = 0.075
+rmin = 0.1
 volfrac=0.12
 InputFileName="CB"
-nDV = 109945
+nDV = 149132
 nnz = 5000
 
 
@@ -57,10 +57,10 @@ driver = IpoptDriver()
 driver.addObjective("min", fun1, 1)
 driver.addUpperBound(con,volfrac)
 
-optIter = 500
+optIter = 100
 
 driver.setEvaluationMode(False,2.0)
-driver.setStorageMode(True, "DSN_")
+driver.setStorageMode(False, "DSN_")
 driver.setFailureMode("HARD")
 
 nlp = driver.getNLP()

@@ -294,7 +294,7 @@ def get_fixed_nodes(su2_filepath, output_filepath="Nfix1.nam"):
         
         # Write nodes one per line, with a comma after each entry
         for node in new_root_nodes:
-            output_file.write(f"{node},\n")
+            output_file.write(f"{node}\n")
 
     print("done!")
     #return f"Successfully extracted {len(root_nodes)} ROOT nodes with offset, written one per line with comma (original order preserved), saved to {output_filepath}"
