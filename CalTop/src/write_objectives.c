@@ -22,6 +22,9 @@ void write_objectives(int ne,
     /* total material volume with optimized rho */
     double  designVol_sum = 0;
 
+    /* design domain discreteness */
+    double discreteness = 0.0;
+
     /* Check for old sensitivity file and delete it */
     if (access(filename, F_OK) == 0)
     {
@@ -46,13 +49,15 @@ void write_objectives(int ne,
 
 
     /* Write file header */
-    fprintf(obj_file, "COMPLIANCE, ORIGINAL VOLUME, DESIGN VOLUME, VOLUME_FRACTION\n");
+    fprintf(obj_file, "COMPLIANCE, ORIGINAL VOLUME, DESIGN VOLUME, VOLUME_FRACTION, DISCRETENESS\n");
 
     /* Loop over all elements and compute the initial and current volume*/
     for (int i = 0; i < ne; i++)
     {
         initialVol_sum+= eleVol[i];
         designVol_sum+= (eleVol[i]*rhoPhys[i]);
+        discreteness += rhoPhys[i] * (1.0 - rhoPhys[i]);
+
         //fprintf(sens_file, "%.15f,%.15f,%.15f\n", eleVol[i], eleVol[i] * rhoPhys[i], eleVolFiltered[i]);
     }
 
@@ -60,7 +65,7 @@ void write_objectives(int ne,
     double volume_fraction = designVol_sum / initialVol_sum;
 
     /* Write structure compliance and volume to file */
-    fprintf(obj_file, "%.15f, %.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum, volume_fraction);
+    fprintf(obj_file, "%.15f, %.15f, %.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum, volume_fraction, discreteness);
     
     fclose(obj_file);
 }

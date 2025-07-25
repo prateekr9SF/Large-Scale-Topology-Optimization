@@ -2290,18 +2290,18 @@ while(istat>=0)
       /* discreteness is a metric often used in topology optimization problems to assess hpw close the design
        is to a "0-1" or binary solution. */
 
-      double mnd = 0.0;
+      //double mnd = 0.0;
         
 
 
       /* loop over all element density values */
-      for (int iii=0;iii<ne;iii++)
-      {
-        mnd+=(rhoPhys[iii]*(1-rhoPhys[iii]));               
-      }
+      //for (int iii=0;iii<ne;iii++)
+      //{
+      //  mnd+=(rhoPhys[iii]*(1-rhoPhys[iii]));               
+     // }
 
       /* Normalize and average */
-      mnd=(4*mnd*100/ne);
+      //mnd=(4*mnd*100/ne);
   
      /* print output */
       
@@ -2309,7 +2309,7 @@ while(istat>=0)
       //printf("Total domain volume:         %.6f \n",initialVol_sum);
       //printf("Current domain volume:       %.6f \n",designVol_sum);
       //printf("Volume constraint violation:: %.6f \n",designVol_sum-volfrac*initialVol_sum);
-      printf("Discreteness, mnd, percent:               %.6f \n",mnd);
+      //printf("Discreteness, mnd, percent:               %.6f \n",mnd);
 
     } // end adjoint calculation
 
