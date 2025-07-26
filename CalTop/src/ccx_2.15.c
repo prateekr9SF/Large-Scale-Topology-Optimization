@@ -1816,7 +1816,7 @@ while(istat>=0)
 
         /* Try the multi-threaded */
         printf("Filtering element densities...\n");
-        filterVector_projected_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+        filterVector_buffered_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
         printf("Done!");
 
         rhoPhys=designFiltered;
@@ -2214,13 +2214,13 @@ while(istat>=0)
       printf("Filter compliance gradient...");
       /* Filter compliance gradient */
       //filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter Compliance sensitivity
-      filterVector_projected_mt(gradCompl, gradComplFiltered,filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+      filterVector_buffered_mt(gradCompl, gradComplFiltered,filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
       printf("done! \n");
 
       printf("Filter element volume gradient...");
       /* Filter element volume gradient */
       //filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter volume sensitivity
-      filterVector_projected_mt(eleVol, eleVolFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+      filterVector_buffered_mt(eleVol, eleVolFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
       ends = time(NULL);
       printf("done!\n");
 	    //printf("Time taken for sensitivity calculation: %.2f seconds \n", 

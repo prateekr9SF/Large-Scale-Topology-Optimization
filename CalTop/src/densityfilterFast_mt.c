@@ -253,8 +253,8 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
             .filternnzElems = filternnzElems
         };
 
-        //pthread_create(&threads[t], NULL, filter_thread_streamed, &args[t]);
-        pthread_create(&threads[t], NULL, filter_thread_projected, &args[t]);
+        pthread_create(&threads[t], NULL, filter_thread_streamed, &args[t]);
+        //pthread_create(&threads[t], NULL, filter_thread_projected, &args[t]);
     }
 
     for (int t = 0; t < num_threads; ++t)
