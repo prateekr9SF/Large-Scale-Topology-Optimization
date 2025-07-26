@@ -82,7 +82,11 @@ void *thread_filter_worker_projected(void *args_ptr)
         int row = args->drow[i] - 1;
         int col = args->dcol[i] - 1;
 
-        if (row < 0 || row >= args->ne || col < 0 || col >= args->ne) continue;
+        if (row < 0 || row >= args->ne || col < 0 || col >= args->ne) 
+        {
+            fprintf(stderr, "Invalid row/col index: row=%d, col=%d\n", row, col);
+            continue;
+        }
 
         double w = pow(args->dval[i], args->q);
         double contrib = w * args->Vector[col];
@@ -242,6 +246,7 @@ void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
 }
 
 
+
 void filterVector_projected_mt(double *rho, double *rho_projected,
                                int *ne_ptr, int *fnnzassumed_ptr,
                                double *q_ptr, int filternnz_total,
@@ -257,34 +262,47 @@ void filterVector_projected_mt(double *rho, double *rho_projected,
 
     printf("Using %d thread(s) for projected density filtering...\n", num_threads);
 
+    printf("Opening filter matrix files...");
     FILE *frow = fopen("drow.dat", "r");
     FILE *fcol = fopen("dcol.dat", "r");
     FILE *fval = fopen("dval.dat", "r");
+    printf("Done!\n");
+
     if (!frow || !fcol || !fval) {
         perror("Error opening filter input files");
         exit(EXIT_FAILURE);
     }
 
+    // Allocate memory in chunks of filter matrix 
     int *drow_block = malloc(BLOCK_SIZE * sizeof(int));
     int *dcol_block = malloc(BLOCK_SIZE * sizeof(int));
     double *dval_block = malloc(BLOCK_SIZE * sizeof(double));
 
     double *weight_sum = calloc(ne, sizeof(double));
     double *filtered = calloc(ne, sizeof(double));
-    if (!drow_block || !dcol_block || !dval_block || !weight_sum || !filtered) {
-        fprintf(stderr, "Memory allocation failed.\n");
+
+    if (!drow_block || !dcol_block || !dval_block || !weight_sum || !filtered) 
+    {
+        fprintf(stderr, "Memory allocation for weights and pre-filtered densities failed.\n");
         exit(EXIT_FAILURE);
     }
 
+    /* Initialize rho_projected to zero*/
     for (int i = 0; i < ne; ++i) rho_projected[i] = 0.0;
 
+    for (int i = 0; i < ne; ++i) filtered[i] = 0.0;
+
+    // Allocate for pthread management
     pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
     ThreadArgs *thread_args = malloc(num_threads * sizeof(ThreadArgs));
+
     row_locks = malloc(ne * sizeof(pthread_mutex_t));
     for (int i = 0; i < ne; ++i) pthread_mutex_init(&row_locks[i], NULL);
 
     int total_read = 0;
-    while (total_read < filternnz_total) {
+
+    while (total_read < filternnz_total) 
+    {
         int block_read = (filternnz_total - total_read < BLOCK_SIZE) ? (filternnz_total - total_read) : BLOCK_SIZE;
 
         for (int i = 0; i < block_read; ++i) {
@@ -295,8 +313,9 @@ void filterVector_projected_mt(double *rho, double *rho_projected,
                 exit(EXIT_FAILURE);
             }
         }
-
-        for (int t = 0; t < num_threads; ++t) {
+        printf("Launching threads to process the block...\n");
+        for (int t = 0; t < num_threads; ++t) 
+        {
             thread_args[t] = (ThreadArgs){
                 .thread_id = t,
                 .num_threads = num_threads,
@@ -311,25 +330,30 @@ void filterVector_projected_mt(double *rho, double *rho_projected,
                 .block_read = block_read
             };
 
-            if (pthread_create(&threads[t], NULL, thread_filter_worker_projected, &thread_args[t]) != 0) {
+            if (pthread_create(&threads[t], NULL, thread_filter_worker_projected, &thread_args[t]) != 0) 
+            {
                 perror("Thread creation failed");
                 exit(EXIT_FAILURE);
             }
         }
 
-        for (int t = 0; t < num_threads; ++t) {
+        // Waiting on all blocks to finish 
+        for (int t = 0; t < num_threads; ++t) 
+        {
             pthread_join(threads[t], NULL);
         }
 
         total_read += block_read;
     }
 
-    // Apply tanh projection
+    // Compute tanh fraction terms
     double tanh_beta_eta = tanh(beta * eta);
     double tanh_beta_1_eta = tanh(beta * (1.0 - eta));
     double denom = tanh_beta_eta + tanh_beta_1_eta;
 
-    for (int i = 0; i < ne; ++i) {
+    // Apply projection
+    for (int i = 0; i < ne; ++i) 
+    {
         double rho_bar = (weight_sum[i] > 0.0) ? (filtered[i] / weight_sum[i]) : 0.0;
         rho_projected[i] = (tanh_beta_eta + tanh(beta * (rho_bar - eta))) / denom;
     }

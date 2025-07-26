@@ -105,100 +105,119 @@ void *filter_thread_streamed(void *args_ptr)
 }
 
 
+/**
+ * Builds a symmetric density filter matrix (in triplet format) in parallel.
+ * Each thread processes a block of elements, computes filter weights
+ * based on distance to neighbors within a radius `rmin_local`, and writes
+ * output to thread-local files: drow_*.dat, dcol_*.dat, dval_*.dat, dnnz_*.dat.
+ */
 void *filter_thread_projected(void *args_ptr)
 {
     ThreadArgs *args = (ThreadArgs *)args_ptr;
-    char fname_row[64], fname_col[64], fname_val[64], fname_dnnz[64];
 
-    sprintf(fname_row, "drow_%d.dat", args->thread_id);
-    sprintf(fname_col, "dcol_%d.dat", args->thread_id);
-    sprintf(fname_val, "dval_%d.dat", args->thread_id);
+    // Prepare thread-local filenames
+    char fname_row[64], fname_col[64], fname_val[64], fname_dnnz[64];
+    sprintf(fname_row,  "drow_%d.dat", args->thread_id);
+    sprintf(fname_col,  "dcol_%d.dat", args->thread_id);
+    sprintf(fname_val,  "dval_%d.dat", args->thread_id);
     sprintf(fname_dnnz, "dnnz_%d.dat", args->thread_id);
 
+    // Open thread-local output files
     FILE *frow = fopen(fname_row, "w");
     FILE *fcol = fopen(fname_col, "w");
     FILE *fval = fopen(fname_val, "w");
     FILE *fdnnz = fopen(fname_dnnz, "w");
 
-    if (!frow || !fcol || !fval || !fdnnz) {
+    if (!frow || !fcol || !fval || !fdnnz) 
+    {
         pthread_mutex_lock(&print_mutex);
         fprintf(stderr, "Thread %d: Failed to open output files.\n", args->thread_id);
         pthread_mutex_unlock(&print_mutex);
         exit(EXIT_FAILURE);
     }
 
-
     int total = args->ne_end - args->ne_start;
-    const double beta = 2.0; // Sharpness control
-    const double eta = 0.5;  // Threshold
 
-        for (int i = args->ne_start; i < args->ne_end; ++i) 
+    // Loop over this thread's assigned element block
+    for (int i = args->ne_start; i < args->ne_end; ++i) 
+    {
+        int count = 0;
+
+        // Get centroid of element i
+        double xi = args->elCentroid[3 * i + 0];
+        double yi = args->elCentroid[3 * i + 1];
+        double zi = args->elCentroid[3 * i + 2];
+
+        for (int j = 0; j < args->ne0; ++j) 
         {
-            int count = 0;
-            double xi = args->elCentroid[3 * i + 0];
-            double yi = args->elCentroid[3 * i + 1];
-            double zi = args->elCentroid[3 * i + 2];
+            if (i == j) continue;
+            double xj = args->elCentroid[3 * j + 0];
+            double yj = args->elCentroid[3 * j + 1];
+            double zj = args->elCentroid[3 * j + 2];
+            double dx = xi - xj, dy = yi - yj, dz = zi - zj;
+            double dist = sqrt(dx * dx + dy * dy + dz * dz);
 
-            for (int j = 0; j < args->ne0; ++j)   
+            if (dist <= args->rmin_local) 
             {
-                if (i == j) continue;
-                double xj = args->elCentroid[3 * j + 0];
-                double yj = args->elCentroid[3 * j + 1];
-                double zj = args->elCentroid[3 * j + 2];
-                double dx = xi - xj, dy = yi - yj, dz = zi - zj;
-                double dist = sqrt(dx * dx + dy * dy + dz * dz);
-
-                if (dist <= args->rmin_local) 
-                {
-                    double w = args->rmin_local - dist;
-
-                    // Projection function can be embedded later in optimization loop;
-                    // here, just precompute weight entries (normalized later in Python or Fortran)
-                    fprintf(frow, "%d\n%d\n", i + 1, j + 1);
-                    fprintf(fcol, "%d\n%d\n", j + 1, i + 1);
-                    fprintf(fval, "%.6f\n%.6f\n", w, w);
-                    count++;
-                }
-            }
-
-            fprintf(fdnnz, "%d\n", count);
-            if (count > *args->fnnzassumed) 
-            {
-                pthread_mutex_lock(&print_mutex);
-                printf("WARNING: Element %d has %d neighbors. Increase fnnzassumed.\n", i, count);
-                pthread_mutex_unlock(&print_mutex);
-                exit(EXIT_FAILURE);
-            }
-            args->filternnzElems[i] = count;
-
-            if ((i - args->ne_start) % 100 == 0 || i == args->ne_end - 1) 
-            {
-                int done = i - args->ne_start + 1;
-                double percent = (double)done / total;
-                int barwidth = (int)(percent * PROGRESS_WIDTH);
-
-                char buffer[128];
-                int pos = 0;
-                pos += snprintf(buffer + pos, sizeof(buffer), "Thread %2d [", args->thread_id);
-                for (int k = 0; k < PROGRESS_WIDTH; ++k)
-                    pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%c", k < barwidth ? '#' : ' ');
-                snprintf(buffer + pos, sizeof(buffer) - pos, "] %3.0f%%", percent * 100);
-
-                pthread_mutex_lock(&print_mutex);
-                fprintf(stderr, "\033[%d;1H\033[2K%s", args->thread_id + 1, buffer);
-                fflush(stderr);
-                pthread_mutex_unlock(&print_mutex);
+                double w = args->rmin_local - dist;
+                fprintf(frow, "%d\n%d\n", i + 1, j + 1);
+                fprintf(fcol, "%d\n%d\n", j + 1, i + 1);
+                fprintf(fval, "%.6f\n%.6f\n", w, w);
+                count++;
             }
         }
 
-        pthread_mutex_lock(&print_mutex);
-        fprintf(stderr, "\033[%d;1H\033[2K\033[32mThread %2d [########################################] 100%% - completed\033[0m", args->thread_id + 1, args->thread_id);
-        fflush(stderr);
-        pthread_mutex_unlock(&print_mutex);
+        // Write number of neighbors for element i
+        fprintf(fdnnz, "%d\n", count);
 
-        fclose(frow); fclose(fcol); fclose(fval); fclose(fdnnz);
-        return NULL;
+        // Guard: check if fnnzassumed is too small
+        if (count > *args->fnnzassumed) 
+        {
+            pthread_mutex_lock(&print_mutex);
+            printf("WARNING: Element %d has %d neighbors. Increase fnnzassumed.\n", i, count);
+            pthread_mutex_unlock(&print_mutex);
+            exit(EXIT_FAILURE);
+        }
+
+        // Store neighbor count for postprocessing
+        args->filternnzElems[i] = count;
+
+        // Progress bar update every 100 elements
+        if ((i - args->ne_start) % 100 == 0 || i == args->ne_end - 1) 
+        {
+            int done = i - args->ne_start + 1;
+            double percent = (double)done / total;
+            int barwidth = (int)(percent * PROGRESS_WIDTH);
+
+            char buffer[128];
+            int pos = 0;
+            pos += snprintf(buffer + pos, sizeof(buffer), "Thread %2d [", args->thread_id);
+            for (int k = 0; k < PROGRESS_WIDTH; ++k)
+                pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%c", k < barwidth ? '#' : ' ');
+            snprintf(buffer + pos, sizeof(buffer) - pos, "] %3.0f%%", percent * 100);
+
+            pthread_mutex_lock(&print_mutex);
+            fprintf(stderr, "\033[%d;1H\033[2K%s", args->thread_id + 1, buffer);
+            fflush(stderr);
+            pthread_mutex_unlock(&print_mutex);
+        }
+    }
+
+    // Print final progress as completed
+    pthread_mutex_lock(&print_mutex);
+    fprintf(stderr, "\033[%d;1H\033[2K\033[32mThread %2d [########################################] 100%% - completed\033[0m", args->thread_id + 1, args->thread_id);
+    fflush(stderr);
+    pthread_mutex_unlock(&print_mutex);
+
+    // Close all file handles
+    fclose(frow); 
+    fclose(fcol); 
+    fclose(fval); 
+    fclose(fdnnz);
+
+    return NULL;
 }
+
 
 
 
@@ -253,8 +272,8 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
             .filternnzElems = filternnzElems
         };
 
-        pthread_create(&threads[t], NULL, filter_thread_streamed, &args[t]);
-        //pthread_create(&threads[t], NULL, filter_thread_projected, &args[t]);
+        //pthread_create(&threads[t], NULL, filter_thread_streamed, &args[t]);
+        pthread_create(&threads[t], NULL, filter_thread_projected, &args[t]);
     }
 
     for (int t = 0; t < num_threads; ++t)
