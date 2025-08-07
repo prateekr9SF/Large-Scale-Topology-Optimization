@@ -164,7 +164,7 @@ export OMP_NUM_THREADS=N
 where ```N``` is the number of threads available on the core. Then build the filter matrix as
 
 ``` sh
-calFilt -i <filename_without_extension> -r <filter_spehere_radius> -f <number_of_non-zeros_in_filter_kernel>
+calFilt.exe -i <filename_without_extension> -r <filter_spehere_radius> -f <number_of_non-zeros_in_filter_kernel>
 ```
 
 ## Usage: calGeo
@@ -181,6 +181,11 @@ Thereafter, source your `.bashrc`. Now calGeo.py is aliased as `calGeo` in your 
 
 ``` sh
 calGeo mesh_name.su2
+```
+Additionally if you wish to detect skin element and mark them as passive, use argument "--SkinMarkerList" followed by a list of marker names identified as "skin<N>", where <N> is a positive integer that represents the layer of skins. An example case for a "mesh_name.su2" constaining markers named "skin1,skin3,skin10" is written as 
+
+```sh
+calGeo mesh_name.su2 SkinMarkerList skin1 skin3 skin10
 ```
 
 which will result in the necessary `.nam ` and `.msh` files for calTop
@@ -214,7 +219,7 @@ Additionally, the following files are also written:
 
 **NOTE**: When running in a shared-memeory environment, before calling calTop, set the number of processes as:
 ``` sh
-export OMP_NUM_THREADS =<num_procs>
+export OMP_NUM_THREADS=<num_procs>
 ```
 
 ## Adding FADO and IPOPT
