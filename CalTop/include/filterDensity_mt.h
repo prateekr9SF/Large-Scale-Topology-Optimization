@@ -50,7 +50,7 @@ void *thread_filter_worker_atomic(void *args_ptr);
  * @param q                Filter power/exponent
  * @param filternnz_total  Total number of filter triplets to process
  */
-void filterVector_buffered_mt(double *Vector, double *VectorFiltered,
+void filterDensity_buffered_mt(double *Vector, double *VectorFiltered,
                               int *filternnzElems,
                               int *ne_ptr, int *fnnzassumed_ptr,
                               double *q_ptr, int filternnz_total);

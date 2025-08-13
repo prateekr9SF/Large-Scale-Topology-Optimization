@@ -1,5 +1,5 @@
 // pthread_filtering.c
-#include "filterVector_mt.h"
+#include "filterDensity_mt.h"
 #include <pthread.h>
 #include <math.h>
 #include <stdatomic.h>
