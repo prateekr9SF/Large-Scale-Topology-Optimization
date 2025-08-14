@@ -2216,11 +2216,11 @@ while(istat>=0)
       //filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter Compliance sensitivity
       //filterDensity_buffered_mt(gradCompl, gradComplFiltered,filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
 
-      filter_sensitivities_buffered_mt(gradCompl, gradComplFiltered, ne, filternnz, &qfilter);
+      filterSensitivity_buffered_mt(gradCompl, gradComplFiltered, ne, filternnz);
       printf("done! \n");
 
       printf("Filter element volume gradient...");
-      filter_sensitivities_buffered_mt(eleVol, eleVolFiltered, ne, filternnz, &qfilter);
+      filterSensitivity_buffered_mt(eleVol, eleVolFiltered, ne, filternnz);
       /* Filter element volume gradient */
       //filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter volume sensitivity
       //filterDensity_buffered_mt(eleVol, eleVolFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
