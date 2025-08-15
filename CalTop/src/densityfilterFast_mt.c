@@ -116,11 +116,12 @@ void *filter_thread_projected(void *args_ptr)
     ThreadArgs *args = (ThreadArgs *)args_ptr;
 
     // Prepare thread-local filenames
-    char fname_row[64], fname_col[64], fname_val[64], fname_dnnz[64];
+    char fname_row[64], fname_col[64], fname_val[64], fname_dnnz[64], fname_dsum[64];
     sprintf(fname_row,  "drow_%d.dat", args->thread_id);
     sprintf(fname_col,  "dcol_%d.dat", args->thread_id);
     sprintf(fname_val,  "dval_%d.dat", args->thread_id);
     sprintf(fname_dnnz, "dnnz_%d.dat", args->thread_id);
+    sprintf(fname_dsum, "dsum_%d.dat", args->thread_id);
 
     // Open thread-local output files
     FILE *frow = fopen(fname_row, "w");
@@ -132,6 +133,15 @@ void *filter_thread_projected(void *args_ptr)
     {
         pthread_mutex_lock(&print_mutex);
         fprintf(stderr, "Thread %d: Failed to open output files.\n", args->thread_id);
+        pthread_mutex_unlock(&print_mutex);
+        exit(EXIT_FAILURE);
+    }
+
+    // Thread-local row-sum accumulator (full length ne0)
+    double *row_sum_local = (double*)calloc((size_t)args->ne0, sizeof(double));
+    if (!row_sum_local) {
+        pthread_mutex_lock(&print_mutex);
+        fprintf(stderr, "Thread %d: Failed to allocate row_sum_local.\n", args->thread_id);
         pthread_mutex_unlock(&print_mutex);
         exit(EXIT_FAILURE);
     }
@@ -160,9 +170,19 @@ void *filter_thread_projected(void *args_ptr)
             if (dist <= args->rmin_local) 
             {
                 double w = args->rmin_local - dist;
+
+                // Emit symmetric pair: (i,j) and (j,i) with same weight
+                // (1-based indices in files)
                 fprintf(frow, "%d\n%d\n", i + 1, j + 1);
                 fprintf(fcol, "%d\n%d\n", j + 1, i + 1);
                 fprintf(fval, "%.6f\n%.6f\n", w, w);
+
+
+               // Accumulate row-wise sums for symmetric H:
+                // row i gains w for (i,j), row j gains w for (j,i)
+                row_sum_local[i] += w;  // row i gets w for (i,j)
+                row_sum_local[j] += w;  // row j gets w for (j,i)
+
                 count++;
             }
         }
@@ -203,11 +223,27 @@ void *filter_thread_projected(void *args_ptr)
         }
     }
 
-    // Print final progress as completed
+    
     pthread_mutex_lock(&print_mutex);
     fprintf(stderr, "\033[%d;1H\033[2K\033[32mThread %2d [########################################] 100%% - completed\033[0m", args->thread_id + 1, args->thread_id);
     fflush(stderr);
     pthread_mutex_unlock(&print_mutex);
+
+    // NEW: write the per-thread row-sum partial to disk (length = ne0)
+    FILE *fdsum = fopen(fname_dsum, "w");
+
+    if (!fdsum) 
+    {
+        pthread_mutex_lock(&print_mutex);
+        fprintf(stderr, "Thread %d: Failed to open %s for write.\n", args->thread_id, fname_dsum);
+        pthread_mutex_unlock(&print_mutex);
+        exit(EXIT_FAILURE);
+    }
+
+    for (int r = 0; r < args->ne0; ++r)
+        fprintf(fdsum, "%.10f\n", row_sum_local[r]);
+    fclose(fdsum);
+
 
     // Close all file handles
     fclose(frow); 
@@ -215,12 +251,16 @@ void *filter_thread_projected(void *args_ptr)
     fclose(fval); 
     fclose(fdnnz);
 
+    free(row_sum_local);
+
     return NULL;
 }
 
 
 
-
+/* Top-level driver: launches threads that stream/write triplets and per-row nnz,
+   then merges thread-local files into drow.dat, dcol.dat, dval.dat, dnnz.dat,
+   and reduces row sums into dsum.dat. */
 void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                           ITG *ne, double *ttime, double *timepar,
                           ITG *mortar, double *rmin, ITG *filternnz,
@@ -321,5 +361,52 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
     system("rm -f drow_*.dat dcol_*.dat dval_*.dat");
 
     printf("Filter matrix written: %d total nonzeros (symmetric)\n", *filternnz);
+
+    
+
+
+    // Reduce per-thread row-sum partials -> dsum.dat
+    printf("Merging row-wise sums from all threads into dsum.dat...\n");
+    double *dsum = (double*)calloc((size_t)ne0, sizeof(double));
+
+    if (!dsum) { fprintf(stderr, "Failed to allocate dsum accumulator.\n"); exit(EXIT_FAILURE); }
+
+    for (int t = 0; t < num_threads; ++t)
+    {
+        char fname[64];
+
+        sprintf(fname, "dsum_%d.dat", t);
+        FILE *in = fopen(fname, "r");
+        if (!in)
+        {
+            fprintf(stderr, "Warning: missing %s *t=%d); treating as zeros \n", fname, t);
+            continue;
+        }
+
+        for (int r = 0; r < ne0; ++r)
+        {
+            double v;
+            if (fscanf(in, "%lf", &v) == 1) dsum[r] += v;
+            else{
+                fprintf(stderr, "Error reading %s at line %d\n", fname, r+1);
+                fclose(in);
+                free(dsum);
+                exit(EXIT_FAILURE);
+            }
+        }
+        fclose(in);
+        remove(fname);
+    } // End loop over threads
+
+    FILE *out_dsum = fopen("dsum.dat", "w");
+    if (!out_dsum) { fprintf(stderr, "Failed to open dsum.dat for write.\n"); free(dsum); exit(EXIT_FAILURE); }
+    for (int r = 0; r < ne0; ++r) fprintf(out_dsum, "%.10f\n", dsum[r]);
+    fclose(out_dsum);
+    free(dsum);
+
+    printf("Row-wise sums written to dsum.dat (one value per row).\n");
+
     printf("===============================================================\n");
+
+
 }
