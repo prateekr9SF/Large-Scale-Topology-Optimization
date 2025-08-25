@@ -319,6 +319,13 @@ void densityfilterFast_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **
     FILE *Fdval = fopen("dval.bin","wb");
     FILE *Fdnnz = fopen("dnnz.bin","wb");
 
+
+    // make merges faster
+    setvbuf(Fdrow, NULL, _IOFBF, 8<<20);
+    setvbuf(Fdcol, NULL, _IOFBF, 8<<20);
+    setvbuf(Fdval, NULL, _IOFBF, 8<<20);
+    setvbuf(Fdnnz, NULL, _IOFBF, 8<<20);
+
     if (!Fdrow||!Fdcol||!Fdval||!Fdnnz) 
     {
         fprintf(stderr,"Failed to open final binary files.\n");
