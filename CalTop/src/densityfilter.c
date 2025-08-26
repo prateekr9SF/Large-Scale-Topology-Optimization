@@ -190,10 +190,10 @@ void densityfilter(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     // Read the number of non-zeros in drow.dat for streaming downstream
     *filternnz = 0;
 
-    //*filternnz = count_lines("drow.dat");
+    *filternnz = count_lines("drow.dat");
 
     // New (binary):
-    *filternnz = count_nnz_from_bin("drow.bin");
+    //*filternnz = count_nnz_from_bin("drow.bin");
 
   
 
