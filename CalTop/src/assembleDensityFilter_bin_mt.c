@@ -300,6 +300,23 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     }
     fclose(Fdrow); fclose(Fdcol); fclose(Fdval);
 
+        // --- Preview: first 5 entries of dval.bin (after merge) ---
+    {
+        FILE *fin = fopen("dval.bin", "rb");
+        if (fin) {
+            double buf[5];
+            size_t got = fread(buf, sizeof(double), 5, fin);
+            fclose(fin);
+            int nshow = (got < 5) ? (int)got : 5;
+            printf("First %d entries of dval.bin: ", nshow);
+            for (int i = 0; i < nshow; ++i) {
+                printf("%.10g%s", buf[i], (i == nshow - 1) ? "\n" : ", ");
+            }
+        } else {
+            fprintf(stderr, "Warning: could not reopen dval.bin for preview\n");
+        }
+    }
+
     // Merge dnnz (already contiguous per thread)
     for (int t = 0; t < num_threads; ++t) {
         char fpath[64];
