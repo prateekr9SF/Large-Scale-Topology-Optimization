@@ -1816,8 +1816,20 @@ while(istat>=0)
 
         /* Try the multi-threaded */
         printf("Filtering element densities...\n");
-        filterDensity_buffered_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+        filterDensity_buffered_dat_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
         printf("Done!");
+
+        // Print first five and last five values of designFiltered
+        printf("First five designFiltered values:\n");
+        for (int i = 0; i < 5 && i < ne_; ++i) {
+            printf("  designFiltered[%d] = %g\n", i, designFiltered[i]);
+        }
+
+        printf("Last five designFiltered values:\n");
+        for (int i = (ne_ > 5 ? ne_ - 5 : 0); i < ne_; ++i) {
+            printf("  designFiltered[%d] = %g\n", i, designFiltered[i]);
+        }
+
 
         rhoPhys=designFiltered;
       }

@@ -83,7 +83,7 @@ void *thread_filter_worker_mutex(void *args_ptr)
 }
 
 
-void filterDensity_buffered_mt(double *Vector, double *VectorFiltered,
+void filterDensity_buffered_dat_mt(double *Vector, double *VectorFiltered,
                               int *filternnzElems,
                               int *ne_ptr, int *fnnzassumed_ptr,
                               double *q_ptr, int filternnz_total)
