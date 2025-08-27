@@ -118,6 +118,9 @@ void *filter_thread_bin(void *args_ptr)
                 fwrite(&col1, sizeof(int64_t), 1, fcol);
                 fwrite(&col2, sizeof(int64_t), 1, fcol);
 
+                fwrite(&w, sizeof(double), 1, fval);
+                fwrite(&w, sizeof(double), 1, fval);
+
                // Accumulate row-wise sums for symmetric H:
                 // row i gains w for (i,j), row j gains w for (j,i)
                 row_sum_local[i] += w;  // row i gets w for (i,j)
