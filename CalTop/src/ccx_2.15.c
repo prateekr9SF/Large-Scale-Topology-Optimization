@@ -1816,7 +1816,8 @@ while(istat>=0)
 
         /* Try the multi-threaded */
         printf("Filtering element densities...\n");
-        filterDensity_buffered_dat_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+        //filterDensity_buffered_dat_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+        filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
         printf("Done!");
 
         // Print first five and last five values of designFiltered

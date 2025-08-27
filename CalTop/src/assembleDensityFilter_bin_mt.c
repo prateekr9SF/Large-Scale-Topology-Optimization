@@ -6,6 +6,8 @@
 #include <string.h>
 #include "CalculiX.h"
 
+#include <stdint.h> 
+
 #define PROGRESS_WIDTH 40
 
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -108,18 +110,13 @@ void *filter_thread_bin(void *args_ptr)
             {
                 double w = args->rmin_local - dist;
 
-                // Write symmetric pair in binary (1-based ints)
-                int row1 = i + 1, col1 = j + 1;
-                int row2 = j + 1, col2 = i + 1;
-                
-                fwrite(&row1, sizeof(int),    1, frow);     
-                fwrite(&row2, sizeof(int),    1, frow);   
-
-                fwrite(&col1, sizeof(int),    1, fcol);     
-                fwrite(&col2, sizeof(int),    1, fcol);     
-
-                fwrite(&w,    sizeof(double), 1, fval);    
-                fwrite(&w,    sizeof(double), 1, fval);     
+                // Write symmetric pair in binary (1-based ints)(64-bin indices)                
+                int64_t row1 = (int64_t)i + 1, col1 = (int64_t)j + 1;
+                int64_t row2 = (int64_t)j + 1, col2 = (int64_t)i + 1;
+                fwrite(&row1, sizeof(int64_t), 1, frow);
+                fwrite(&row2, sizeof(int64_t), 1, frow);
+                fwrite(&col1, sizeof(int64_t), 1, fcol);
+                fwrite(&col2, sizeof(int64_t), 1, fcol);
 
                // Accumulate row-wise sums for symmetric H:
                 // row i gains w for (i,j), row j gains w for (j,i)
@@ -333,6 +330,15 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
         for (int r = 0; r < ne0; ++r) dsum[r] += tmpbuf[r];
     }
     free(tmpbuf);
+
+    // --- Preview: first 5 entries of dsum (after merge/reduction) ---
+    {
+    int nshow = (ne0 < 5) ? ne0 : 5;
+    printf("First %d entries of dsum: ", nshow);
+    for (int i = 0; i < nshow; ++i) {
+        printf("%.10g%s", dsum[i], (i == nshow - 1) ? "\n" : ", ");
+    }
+    }
 
     FILE *Fdsum = fopen("dsum.bin","wb");
     if (!Fdsum) { fprintf(stderr,"Failed to open dsum.bin for write.\n"); free(dsum); exit(EXIT_FAILURE); }

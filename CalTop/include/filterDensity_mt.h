@@ -14,8 +14,8 @@
 typedef struct {
     int thread_id;            ///< ID of the current thread (0 to num_threads-1)
     int num_threads;          ///< Total number of threads
-    int *drow;                ///< Row indices of filter matrix
-    int *dcol;                ///< Column indices of filter matrix
+    int64_t *drow;                ///< Row indices of filter matrix
+    int64_t *dcol;                ///< Column indices of filter matrix
     double *dval;             ///< Filter weights
     double *Vector;           ///< Input vector to be filtered
     double *VectorFiltered;   ///< Shared output vector (filtered result)
