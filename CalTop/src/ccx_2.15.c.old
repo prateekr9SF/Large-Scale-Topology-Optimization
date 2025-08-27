@@ -1808,7 +1808,7 @@ while(istat>=0)
                   &rmin,&filternnz,
                   FilterMatrixs,rowFilters,colFilters,filternnzElems,itertop,&fnnzassumed);
 
-        printf("Read within densityfilter:%d \n", filternnz);
+        //printf("Read within densityfilter:%d \n", filternnz);
 
         
         /* apply the filter matrix on rho to get rhoPhys */ 
