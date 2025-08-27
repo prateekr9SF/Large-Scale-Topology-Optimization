@@ -10,6 +10,47 @@ pthread_mutex_t *row_locks;
 
 void *thread_filter_worker_mutex(void *args_ptr) 
 {
+
+    /**
+    * @brief Thread worker that applies one block of filter triplets to
+    *        accumulate weighted contributions into filtered element densities.
+    *
+ * Each thread is assigned a contiguous block of triplets [start, end)
+ * within the current buffer. For each triplet i:
+ *
+ *    row = drow[i] - 1;    // receiver element (0-based)
+ *    col = dcol[i] - 1;    // donor element (0-based)
+ *    w   = dval[i];        // weight, precomputed as (rmin - dist)
+ *
+ * The contribution from donor "col" is accumulated as:
+ *
+ *    VectorFiltered[row] += w * Vector[col];
+ *    weight_sum[row]     += w;
+ *
+ * Updates to per-row accumulators are protected by a mutex
+ * (row_locks[row]) to avoid race conditions across threads.
+ *
+ * @param args_ptr Pointer to a ThreadArgs struct with the following fields:
+ *        - int thread_id        : Thread index (0 .. num_threads-1).
+ *        - int num_threads      : Total number of threads.
+ *        - int block_read       : Number of triplets in the current block.
+ *        - int *drow, *dcol     : Arrays of row and col indices (1-based).
+ *        - double *dval         : Array of triplet weights.
+ *        - int ne               : Number of elements (vector length).
+ *        - const double *Vector : Input vector of element densities.
+ *        - double *VectorFiltered : Output vector (accumulated values).
+ *        - double *weight_sum   : Row-wise sum of weights (for normalization).
+ *
+ * @return Always returns NULL (pthread signature).
+ *
+ * @note
+ * - Indices in drow/dcol are 1-based; they are converted to 0-based here.
+ * - Rows with no incident triplets will retain weight_sum[row] == 0,
+ *   so normalization must guard against divide-by-zero.
+ * - Duplicate triplets are allowed: they scale both numerator and
+ *   denominator equally, so normalized results are unaffected.
+ */
+
     ThreadArgs *args = (ThreadArgs *)args_ptr;
 
     int start = (args->block_read * args->thread_id) / args->num_threads;
@@ -47,6 +88,52 @@ void filterDensity_buffered_mt(double *Vector, double *VectorFiltered,
                               int *ne_ptr, int *fnnzassumed_ptr,
                               double *q_ptr, int filternnz_total)
 {
+
+    /**
+ * @brief Apply the density filter to a vector using buffered, multi-threaded processing.
+ *
+ * This routine reads the sparse filter matrix triplets (row, col, value) from
+ * disk files written previously (`drow.dat`, `dcol.dat`, `dval.dat`), partitions
+ * them into blocks of size BLOCK_SIZE, and processes each block in parallel using
+ * pthreads. Each triplet contributes:
+ *
+ *    VectorFiltered[row] += w * Vector[col];
+ *    weight_sum[row]     += w;
+ *
+ * where w = dval[i] (the precomputed linear weight rmin − dist).
+ *
+ * After all blocks are processed, the result is normalized row-wise:
+ *
+ *    VectorFiltered[i] = (weight_sum[i] > 0.0) ?
+ *                        VectorFiltered[i] / weight_sum[i] : 0.0;
+ *
+ * @param Vector            [in]  Original per-element values (length = ne).
+ * @param VectorFiltered    [out] Filtered values (length = ne, zeroed here then filled).
+ * @param filternnzElems    [in]  Array of neighbor counts per element (not used here).
+ * @param ne_ptr            [in]  Pointer to number of elements.
+ * @param fnnzassumed_ptr   [in]  Pointer to assumed maximum nnz per row (not used here).
+ * @param q_ptr             [in]  Pointer to exponent q (ignored in current implementation).
+ * @param filternnz_total   [in]  Total number of nonzero triplets to read and process.
+ *
+ * @details
+ * - Triplet files (`drow.dat`, `dcol.dat`, `dval.dat`) must contain exactly
+ *   filternnz_total entries each, with 1-based indices.
+ * - Duplicate triplets are allowed; they scale numerator and denominator equally,
+ *   so normalized results are unaffected.
+ * - Rows with no incident weights yield VectorFiltered[i] = 0.0.
+ *
+ * @sideeffects
+ * - Allocates temporary buffers and per-row mutexes.
+ * - Opens and reads drow.dat, dcol.dat, dval.dat from disk.
+ * - Prints progress messages to stdout.
+ *
+ * @note
+ * - Thread safety across rows is enforced with one pthread_mutex_t per row.
+ * - If BLOCK_SIZE is large, memory usage for buffers may be significant.
+ *
+ * @return void
+ */
+
 
     int ne = *ne_ptr;
     int fnnzassumed = *fnnzassumed_ptr;
