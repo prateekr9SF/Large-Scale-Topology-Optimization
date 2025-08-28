@@ -7,8 +7,5 @@
 *.vtu
 *.csv
 *.swp
-*.nam
-*.msh
 *.dat
 !density.dat
-*.su2
