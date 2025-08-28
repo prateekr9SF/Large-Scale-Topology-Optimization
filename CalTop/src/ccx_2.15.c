@@ -1794,19 +1794,19 @@ while(istat>=0)
         printf("Checking if filter matrix needs to be built \n");
 
 
-        NNEW(FilterMatrixs,double,fnnzassumed*ne_); //Sparse filter matrix stored as row,colum,value with fassumed nnzs per element assumed
+        //NNEW(FilterMatrixs,double,fnnzassumed*ne_); //Sparse filter matrix stored as row,colum,value with fassumed nnzs per element assumed
     
-        NNEW(rowFilters,ITG,fnnzassumed*ne_);
+        //NNEW(rowFilters,ITG,fnnzassumed*ne_);
     
-        NNEW(colFilters,ITG,fnnzassumed*ne_);
+        //NNEW(colFilters,ITG,fnnzassumed*ne_);
     
         NNEW(filternnzElems,ITG,ne_);
         NNEW(designFiltered,double,ne_);
 
         /* Create or assemble the density filter */
-        densityfilter(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
-                  &rmin,&filternnz,
-                  FilterMatrixs,rowFilters,colFilters,filternnzElems,itertop,&fnnzassumed);
+        //densityfilter(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
+        //          &rmin,&filternnz,
+        //          FilterMatrixs,rowFilters,colFilters,filternnzElems,itertop,&fnnzassumed);
 
         //printf("Read within densityfilter:%d \n", filternnz);
 
