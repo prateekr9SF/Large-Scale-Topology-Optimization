@@ -54,7 +54,7 @@ def compute_and_plot_filter_radius_from_csv(
 
     plt.xlabel("Edge Length (m)", fontsize=22, fontname="Times New Roman")
     plt.ylabel("Count", fontsize=22, fontname="Times New Roman")
-    plt.legend(frameon=False, loc ='upper right', prop={'size': 13, 'family': 'Times New Roman'}, ncol=2)
+    plt.legend(frameon=False, loc ='upper right', prop={'size': 18, 'family': 'Times New Roman'}, ncol=2)
 
     ax1.grid(which='major', color='black', linestyle=':', linewidth='0.01')
     ax1.minorticks_on()
