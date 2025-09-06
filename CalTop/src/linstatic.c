@@ -1087,6 +1087,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 						NNEW(enerini,double,mi[0]**ne);
 					}
 
+
+					printf("Calling results.c in linstatic.c...");
     				results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    			elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	    			ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
@@ -1104,6 +1106,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             		mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    			islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
             		inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun);
+					
+					printf("done!");
 
     				SFREE(eei);
     				if(*nener==1)

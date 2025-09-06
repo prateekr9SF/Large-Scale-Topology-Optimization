@@ -266,7 +266,7 @@ int main(int argc,char *argv[])
   double  *xload=NULL; /**< distriubuted load magnitudes */
   double  *xbounold=NULL; /**< values of SPCs at the start of a step */
   double  *xforcold=NULL; /**< magnitudes of concentrated forces applied to nodes at an old step */
-	double *vold=NULL; /**< Unknown (?) */
+	double *vold=NULL; /**< Displacement vector */
   double  *sti=NULL; /**< Unknown (?) */
   double  *xloadold=NULL; /**< magnitudes of distributed loads at an old step */
   double  *xnor=NULL; /**< Unknown (?) */
