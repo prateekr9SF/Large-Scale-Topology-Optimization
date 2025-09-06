@@ -304,7 +304,10 @@ def main():
 
     # Fixed/surface NSETs
     get_fixed_nodes(args.su2_file, args.fixed_out)
-    get_traction_nodes(args.su2_file, args.surface_out)
+    try:
+        get_traction_nodes(args.su2_file, args.surface_out)
+    except:
+        print('No surface found ,continueing calGeo without logging Load surface .nam files')
 
     # Mesh (nodes + streamed elements)
     nDV = extract_su2_mesh_data_with_element_index(args.su2_file, args.mesh_out)
