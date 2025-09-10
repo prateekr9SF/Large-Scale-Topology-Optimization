@@ -8,11 +8,13 @@
  * @param ne                Number of elements.
  * @param eleVol            Array of original (geometric) element volumes.
  * @param rhoPhys           Array of filtered element densities.
+ * @param mass              Structrual mass.
  */
 void write_objectives(int ne,
                                 const double *eleVol,
                                 const double *rhoPhys,
-                                const double * compliance_sum)
+                                const double * compliance_sum,
+                                const double *Mass)
 {
     const char *filename = "objectives.csv";
 
@@ -49,7 +51,7 @@ void write_objectives(int ne,
 
 
     /* Write file header */
-    fprintf(obj_file, "COMPLIANCE, ORIGINAL VOLUME, DESIGN VOLUME, VOLUME_FRACTION, DISCRETENESS\n");
+    fprintf(obj_file, "COMPLIANCE, ORIGINAL VOLUME, DESIGN VOLUME, VOLUME_FRACTION, DISCRETENESS, MASS\n");
 
     /* Loop over all elements and compute the initial and current volume*/
     for (int i = 0; i < ne; i++)
@@ -68,7 +70,7 @@ void write_objectives(int ne,
     double discreteness = (4.0 /ne) * discreteness_sum;
 
     /* Write structure compliance and volume to file */
-    fprintf(obj_file, "%.15f, %.15f, %.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum, volume_fraction, discreteness);
+    fprintf(obj_file, "%.15f, %.15f, %.15f, %.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum, volume_fraction, discreteness, *Mass);
     
     fclose(obj_file);
 }

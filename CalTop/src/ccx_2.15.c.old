@@ -2236,7 +2236,21 @@ while(istat>=0)
 	     ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
              jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol);
+
+
+      // Mass and C.G properties
+      double M, cgx, cgy, cgz;
+      double *dCGx = (double*)calloc(ne, sizeof(double));
+      double *dCGy = (double*)calloc(ne, sizeof(double));
+      double *dCGz = (double*)calloc(ne, sizeof(double));
+
+      compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+                            &M, &cgx, &cgy, &cgz,
+                            dCGx, dCGy, dCGz);
+
       printf("done! \n");
+
+      printf("Structural mass: %.4f \n", M);
 
       printf("Filter compliance gradient...");
       /* Filter compliance gradient */
@@ -2287,7 +2301,7 @@ while(istat>=0)
       printf("Done!\n");
       
       printf("Writing objectives...");
-      write_objectives(ne, eleVol, rhoPhys, &compliance_sum);
+      write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M);
       printf("Done!\n");
 
 

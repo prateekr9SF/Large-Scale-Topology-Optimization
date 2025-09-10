@@ -119,7 +119,7 @@ void rho(double *design,int ne);
 
 void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, double *v, double *stx, double *rhoPhy);
 
-void write_objectives(int ne,double *eleVol, double *rhoPhys, double * compliance_sum);
+void write_objectives(int ne,double *eleVol, double *rhoPhys, double * compliance_sum, double *Mass);
 
 void assembleFilter(double *FilterMatrixs, int *rowFilters, int *colFilters,
                 int *filternnzElems, int *drow, int *dcol, double *dval,
