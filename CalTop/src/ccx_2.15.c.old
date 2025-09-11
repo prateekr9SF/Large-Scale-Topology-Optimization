@@ -2212,6 +2212,17 @@ while(istat>=0)
       /* allocate memory for filtered volume gradient and initialize to zero */
       NNEW(eleVolFiltered,double,ne_);
 
+      /* Allocate memory for CG sensitivities */
+      double *dCGx = (double*)calloc(ne, sizeof(double));
+      double *dCGy = (double*)calloc(ne, sizeof(double));
+      double *dCGz = (double*)calloc(ne, sizeof(double));
+
+      /* Allocate memory for filteredCG sensitivities */
+      double *dCGxFiltered = (double*)calloc(ne, sizeof(double));
+      double *dCGyFiltered = (double*)calloc(ne, sizeof(double));
+      double *dCGzFiltered = (double*)calloc(ne, sizeof(double));
+
+
       time_t starts, ends; 
 	    starts = time(NULL);
 
@@ -2240,9 +2251,7 @@ while(istat>=0)
 
       // Mass and C.G properties
       double M, cgx, cgy, cgz;
-      double *dCGx = (double*)calloc(ne, sizeof(double));
-      double *dCGy = (double*)calloc(ne, sizeof(double));
-      double *dCGz = (double*)calloc(ne, sizeof(double));
+
 
       compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
@@ -2265,6 +2274,15 @@ while(istat>=0)
       /* Filter element volume gradient */
       //filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter volume sensitivity
       //filterDensity_buffered_mt(eleVol, eleVolFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+
+      printf("Filter element CGx gradient...");
+      filterSensitivity_bin_buffered_mts(dCGx, dCGxFiltered, ne, filternnz);
+
+      printf("Filter element CGy gradient...");
+      filterSensitivity_bin_buffered_mts(dCGy, dCGyFiltered, ne, filternnz);
+
+      printf("Filter element CGz gradient...");
+      filterSensitivity_bin_buffered_mts(dCGz, dCGzFiltered, ne, filternnz);
 
       ends = time(NULL);
       printf("done!\n");
@@ -2299,10 +2317,35 @@ while(istat>=0)
       printf("Writing volume sensitivities...");
       write_volume_sensitivities(ne, eleVol, rhoPhys, eleVolFiltered);
       printf("Done!\n");
+
+      printf("Writing CG sensitivities...");
+
+      /* ... after you fill dCGx, dCGy, dCGz ... */
+      int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
+      if (rc != 0) 
+      {
+        printf("Unable to write CG sensitivities to disk!\n");
+      }
+
+
+      printf("done!\n");
       
       printf("Writing objectives...");
       write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M);
       printf("Done!\n");
+
+        free(dCGx);
+  free(dCGy);
+  free(dCGz);
+  free(dCGxFiltered);
+  free(dCGyFiltered);
+  free(dCGzFiltered);
+  dCGx = NULL;
+  dCGy = NULL; 
+  dCGz = NULL; 
+  dCGxFiltered = NULL;
+  dCGyFiltered = NULL;
+  dCGzFiltered = NULL;
 
 
       /* initialize for total materal volume with rho = 1 */
@@ -2599,7 +2642,9 @@ while(istat>=0)
   rhoPhys = NULL;
   free(passiveIDs);
 
-  
+
+
+
 
   SFREE(ipoinpc);
   SFREE(inpc);

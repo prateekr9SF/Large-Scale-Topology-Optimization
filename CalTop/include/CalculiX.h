@@ -154,6 +154,14 @@ void mafillsmvectorfilter_buffered_filtering(double *Vector, double *VectorFilte
                                              int ne, int fnnzassumed,
                                              double q, int filternnz_total);
 
+
+
+
+											 int write_cg_sens(const char *path,
+                      size_t ne,
+                      const double *dCGx,
+                      const double *dCGy,
+                      const double *dCGz);
 void FORTRAN(mafillsm_filter2_full,(ITG *ne, double *ttime, double *time,
                       ITG *ne0, ITG *nea, ITG *neb,
                       double *elCentroid, double *rmin, ITG *filternnz,
