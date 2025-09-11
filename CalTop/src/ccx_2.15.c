@@ -2262,27 +2262,22 @@ while(istat>=0)
       printf("Structural mass: %.4f \n", M);
 
       printf("Filter compliance gradient...");
-      /* Filter compliance gradient */
-      //filterVector(&ipkon,gradCompl,gradComplFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter Compliance sensitivity
-      //filterDensity_buffered_mt(gradCompl, gradComplFiltered,filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
-
       filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
       printf("done! \n");
 
       printf("Filter element volume gradient...");
-      filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
-      /* Filter element volume gradient */
-      //filterVector(&ipkon,eleVol,eleVolFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz); //Filter volume sensitivity
-      //filterDensity_buffered_mt(eleVol, eleVolFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+      //filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
 
       printf("Filter element CGx gradient...");
-      filterSensitivity_bin_buffered_mts(dCGx, dCGxFiltered, ne, filternnz);
+      //filterSensitivity_bin_buffered_mts(dCGx, dCGxFiltered, ne, filternnz);
 
       printf("Filter element CGy gradient...");
-      filterSensitivity_bin_buffered_mts(dCGy, dCGyFiltered, ne, filternnz);
+      //filterSensitivity_bin_buffered_mts(dCGy, dCGyFiltered, ne, filternnz);
 
       printf("Filter element CGz gradient...");
-      filterSensitivity_bin_buffered_mts(dCGz, dCGzFiltered, ne, filternnz);
+      //filterSensitivity_bin_buffered_mts(dCGz, dCGzFiltered, ne, filternnz);
+
+    filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
 
       ends = time(NULL);
       printf("done!\n");
