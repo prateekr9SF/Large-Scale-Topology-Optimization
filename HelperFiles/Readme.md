@@ -28,5 +28,9 @@ DistributeLoad NSurface.nam CB.inp -10  2
 ```
 Reads in NSurface.nam to record the number of loaded points. Then calculates the load per node by dividing the total load of (-10) by the number of loaded points. It then modifies CB.inp to find the line beneath `*CLOAD` and inputs the distributed load magnitude and the loading direction (2 stands for Y direction).
 
+## PlotSens
+``` sh
+plotSens --compliance compliance_sens.csv --volume volume_sens.csv --cg cg_sens.csv
+```
 
-
+Parses the sensitivity CSVs from CalTop and plots a stacked bar chart
