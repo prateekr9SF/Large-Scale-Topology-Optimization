@@ -70,7 +70,7 @@ void densityfilterFast(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lak
                 if (dist <= rmin_local) {
                     double w = rmin_local - dist;
 
-                    // ✅ Write 1-based indices for downstream compatibility
+                    // Write 1-based indices for downstream compatibility
                     fprintf(frow, "%d\n", i + 1);
                     fprintf(fcol, "%d\n", j + 1);
                     fprintf(fval, "%.6f\n", w);

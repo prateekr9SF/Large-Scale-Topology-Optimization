@@ -34,3 +34,10 @@ plotSens --compliance compliance_sens.csv --volume volume_sens.csv --cg cg_sens.
 ```
 
 Parses the sensitivity CSVs from CalTop and plots a stacked bar chart
+
+## ReadIPOPT.py
+``` sh
+ReadIPOPT --log log.OPT --out <output file name>.csv
+```
+
+Parses the log file from IPOPT (print level = 6) and writes a csv file with relevant convergence metrics
