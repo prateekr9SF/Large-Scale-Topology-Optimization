@@ -2266,7 +2266,7 @@ while(istat>=0)
       printf("done! \n");
 
       printf("Filter element volume gradient...");
-      //filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
+      filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
 
       printf("Filter element CGx gradient...");
       //filterSensitivity_bin_buffered_mts(dCGx, dCGxFiltered, ne, filternnz);
