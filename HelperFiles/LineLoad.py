@@ -33,7 +33,7 @@ def parse_su2_and_record_nodes(filename_in, filename_out,xcoord,ycoord,zcoord):
     """
 
     nodes_of_interest = []
-
+    coord_of_interest = []
     with open(filename_in, 'r') as f:
         lines = f.readlines()
 
@@ -56,17 +56,24 @@ def parse_su2_and_record_nodes(filename_in, filename_out,xcoord,ycoord,zcoord):
             if xcoord==[]:
                 if abs(y - ycoord[0])<=1e-4 and abs(z- zcoord[0])<= 1e-4:
                     nodes_of_interest.append(idx)
+                    coord_of_interest.append(x)
             elif ycoord==[]:
                 if abs(x - xcoord[0])<=1e-4 and abs(z- zcoord[0])<= 1e-4:
                     nodes_of_interest.append(idx)
+                    coord_of_interest.append(y)
             elif zcoord==[]:
                 if abs(x - xcoord[0])<=1e-4 and abs(y- ycoord[0])<= 1e-4:
                     nodes_of_interest.append(idx)
+                    coord_of_interest.append(z)
 
     with open(filename_out, 'w') as f:
         f.write("*NSET, NSET=Nsurface\n")
         for idx in nodes_of_interest:
             f.write(f"{idx+1}\n")
+    with open('LoadCoord.dat','w')as f:
+        for i in range(len(nodes_of_interest)):
+            f.write(f"{nodes_of_interest[i]+1}, {coord_of_interest[i]}\n")
+            
 
     print(f"Number of loaded Point is {len(nodes_of_interest)}")
     return nodes_of_interest

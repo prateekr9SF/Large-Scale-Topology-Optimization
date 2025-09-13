@@ -40,7 +40,7 @@ def distribute_load(filename_in, INPfile,Load,Vector):
     for i, line in enumerate(lines):
         if line.strip().upper() =="*CLOAD":
             node_set = lines[i+1].strip().split(",")[0].strip()
-            lines[i+1] = f"{node_set}, {int(Vector)}, {Dload:.5f}\n"
+            lines[i+1] = f"Nsurface, {int(Vector)}, {Dload:.4f}\n"
 
             break
     with open(INPfile, "w") as f:
