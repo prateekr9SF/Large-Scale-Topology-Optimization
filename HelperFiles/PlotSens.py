@@ -24,6 +24,7 @@ import matplotlib as mpl
 mpl.rcParams['font.family'] = 'Times New Roman'
 mpl.rcParams['xtick.labelsize'] = 20
 mpl.rcParams['ytick.labelsize'] = 20
+mpl.rcParams['agg.path.chunksize'] = 20000  
 
 plt.style.use("seaborn-v0_8-deep")
 
