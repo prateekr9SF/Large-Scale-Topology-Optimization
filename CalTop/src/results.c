@@ -73,7 +73,9 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        ITG *islavsurf,ITG *ielprop,double *prop,double *energyini,
        double *energy,ITG *kscale,ITG *iponoel,ITG *inoel,ITG *nener,
        char *orname,ITG *network,ITG *ipobody,double *xbody,ITG *ibody,
-       char *typeboun){
+       char *typeboun, double *design, double *penal)
+       
+       {
 
     ITG intpointvarm,calcul_fn,calcul_f,calcul_qa,calcul_cauchy,ikin,
         intpointvart,mt=mi[1]+1,i,j;
@@ -425,6 +427,8 @@ void *resultsmechmt(ITG *i){
     neb=nebpar[*i]+1;
 
     list1=0;
+
+    
     FORTRAN(resultsmech,(co1,kon1,ipkon1,lakon1,ne1,v1,
           stx1,elcon1,nelcon1,rhcon1,nrhcon1,alcon1,nalcon1,alzero1,
           ielmat1,ielorien1,norien1,orab1,ntmat1_,t01,t11,ithermal1,prestr1,
@@ -437,6 +441,9 @@ void *resultsmechmt(ITG *i){
 	  &ikin1,&nal[indexnal],ne01,thicke1,emeini1,
 	  pslavsurf1,pmastsurf1,mortar1,clearini1,&nea,&neb,ielprop1,prop1,
 	  kscale1,&list1,ilist1));
+
+
+    
 
     return NULL;
 }

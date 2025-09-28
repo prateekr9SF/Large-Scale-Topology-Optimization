@@ -369,7 +369,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   	NNEW(fn,double,mt**nk);
   	//NNEW(stx,double,6*mi[0]**ne); No passing stx as an input argument to linstatic
   	NNEW(inum,ITG,*nk);
-
+	
   	results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	  ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
@@ -387,7 +387,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	  mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-          inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun);
+    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
 
   	SFREE(v);
 	SFREE(fn);
@@ -660,7 +660,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		   				sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		   				mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 		  	 			islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-		   				inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun);
+		   				inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
 
 	      				xbounact[iretain[i]-1]=0.;
 
@@ -852,7 +852,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		   					sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		   					mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 		   					islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-		   					inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun);
+		   					inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
 
 	      					SFREE(eei);
 	      					if(*nener==1)
@@ -1105,7 +1105,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             		sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             		mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    			islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            		inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun);
+            		inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
 					
 					printf("done!");
 

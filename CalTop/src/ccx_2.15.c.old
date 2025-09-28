@@ -2267,18 +2267,11 @@ while(istat>=0)
 
       printf("Filter element volume gradient...");
       filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
+      printf("done! \n");
 
-      printf("Filter element CGx gradient...");
-      //filterSensitivity_bin_buffered_mts(dCGx, dCGxFiltered, ne, filternnz);
-
-      printf("Filter element CGy gradient...");
-      //filterSensitivity_bin_buffered_mts(dCGy, dCGyFiltered, ne, filternnz);
-
-      printf("Filter element CGz gradient...");
-      //filterSensitivity_bin_buffered_mts(dCGz, dCGzFiltered, ne, filternnz);
-
-    filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
-
+      printf("Filter CG gradient...");
+      filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+      
       ends = time(NULL);
       printf("done!\n");
 	    //printf("Time taken for sensitivity calculation: %.2f seconds \n", 
