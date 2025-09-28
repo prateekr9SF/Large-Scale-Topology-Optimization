@@ -73,7 +73,7 @@
       real*8 design(*), penal
 
 !     p-norm scratch
-      real*8 sx, sy, sz, txy, txz, tyz, vm, pexp, sump, vol, wgt  
+      real*8 sx, sy, sz, txy, txz, tyz, vm, vm2, pexp, sump, vol, wgt  
       integer ngp 
       intent(in) co,kon,ipkon,lakon,ne,v,
      &  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
@@ -414,7 +414,11 @@ c         write(*,*) 'resultsmech ',i,lakonl,mint3d
                enddo
             enddo            
          endif
-!
+! ADD (init per element for p-norm)
+      sump = 0.d0
+      vol  = 0.d0
+      ngp  = 0
+      pexp = 20.d0        ! choose a
          do jj=1,mint3d
             if(lakonl(4:5).eq.'8R') then
                xi=gauss3d1(1,jj)
@@ -1162,8 +1166,34 @@ c     Bernhardi end
                stx(5,jj,i)=ckl(3,1)
                stx(6,jj,i)=ckl(3,2)
             endif
+! --- p-norm accumulation (AFTER the Cauchy block) ------
+            sx  = stx(1,jj,i)
+            sy  = stx(2,jj,i)
+            sz  = stx(3,jj,i)
+            txy = stx(4,jj,i)
+            txz = stx(5,jj,i)
+            tyz = stx(6,jj,i)
+
+            vm2 = (sx-sy)*(sx-sy) + (sy-sz)*(sy-sz) + (sz-sx)*(sz-sx)
+            vm2 = 0.5d0*vm2 + 3.d0*(txy*txy + txz*txz + tyz*tyz)
+            vm  = dsqrt(vm2)
+
+
+
+            wgt  = xsj*weight
+            sump = sump + (vm**pexp)*wgt
+            vol  = vol  + wgt
+            ngp  = ngp  + 1
+
 !
-         enddo
+         enddo  ! <--- end of jj=1, mint3d
+
+         ! --- ADD: element p-norm reduction (volume-weighted) ----------------------
+         if (vol .gt. 0.d0) then
+            qa(4) = (sump / vol)**(1.d0/pexp)
+         else
+            qa(4) = 0.d0
+         endif
 !
 !        q contains the contributions to the nodal force in the nodes
 !        belonging to the element at stake from other elements (elements
