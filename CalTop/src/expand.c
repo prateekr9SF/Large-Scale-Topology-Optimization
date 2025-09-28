@@ -94,6 +94,9 @@ void expand(double *co, ITG *nk, ITG *kon, ITG *ipkon, char *lakon,
         atrab[9],acs[9],diff,fin[3],fout[3],*sumi=NULL,
         *vti=NULL,*pslavsurf=NULL,*pmastsurf=NULL,*cdn=NULL,
         *energyini=NULL,*energy=NULL;
+
+	double *design;
+	double *penal;
     
     /* dummy arguments for the results call */
     
@@ -526,7 +529,7 @@ void expand(double *co, ITG *nk, ITG *kon, ITG *ipkon, char *lakon,
               sideload,xload,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	      &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	      islavsurf,ielprop,prop,energyini,energy,&iit,iponoel,
-	      inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun);
+	      inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun, design, penal);
 	    
 	}
 	SFREE(eei);

@@ -71,6 +71,10 @@
 !     
 !     Element density and penalization vector
       real*8 design(*), penal
+
+!     p-norm scratch
+      real*8 sx, sy, sz, txy, txz, tyz, vm, pexp, sump, vol, wgt  
+      integer ngp 
       intent(in) co,kon,ipkon,lakon,ne,v,
      &  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
      &  ielorien,norien,orab,ntmat_,t0,t1,ithermal,

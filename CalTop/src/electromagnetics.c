@@ -451,7 +451,7 @@ void electromagnetics(double **cop, ITG *nk, ITG **konp, ITG **ipkonp,
 	  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
           &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun);
+          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal);
   
   SFREE(fn);SFREE(inum);SFREE(v);
   
@@ -565,7 +565,7 @@ void electromagnetics(double **cop, ITG *nk, ITG **konp, ITG **ipkonp,
 	  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
           &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun);
+          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal);
   
 //  memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
   

@@ -114,6 +114,9 @@ void complexfreq(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     *pslavsurf=NULL,*pmastsurf=NULL,*cdnr=NULL,*cdni=NULL,*tinc,*tper,
     *tmin,*tmax,*energyini=NULL,*energy=NULL;
 
+	double *design;
+	double *penal;
+
   FILE *f1;
 
 #ifdef SGI
@@ -1361,7 +1364,7 @@ void complexfreq(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             sideload,xload,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	    &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    islavsurf,ielprop,prop,energyini,energy,&iit,iponoel,
-	    inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun);}
+	    inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun, design, penal);}
       else{
 	results(co,nk,kon,ipkon,lakon,ne,&v[kkv],&stn[kk6],inum,
             &stx[kkx],elcon,
@@ -1381,7 +1384,7 @@ void complexfreq(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             sideload,xload,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	    &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    islavsurf,ielprop,prop,energyini,energy,&iit,iponoel,
-	    inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun);
+	    inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun, design, penal);
       }
 
     }
