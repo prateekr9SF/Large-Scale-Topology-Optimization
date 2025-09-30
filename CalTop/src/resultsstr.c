@@ -37,6 +37,8 @@ static double *co1,*v1,*stx1,*elcon1,*rhcon1,*alcon1,*alzero1,*orab1,*t01,*t11,
     *vini1,*ener1,*eei1,*enerini1,*springarea1,*reltime1,
     *thicke1,*emeini1,*prop1,*pslavsurf1,*pmastsurf1,*clearini1;
 
+static double *design, *penal;
+
 void resultsstr(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
        double *rhcon,ITG *nrhcon,double *alcon,ITG *nalcon,double *alzero,
@@ -175,6 +177,7 @@ void resultsstr(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         emeini1=emeini;pslavsurf1=pslavsurf;clearini1=clearini;
         pmastsurf1=pmastsurf;mortar1=mortar;ielprop1=ielprop;prop1=prop;
         kscale1=kscale;neapar1=neapar;
+
 	nebpar1=nebpar;
 
 	/* calculating the stresses */
@@ -274,6 +277,8 @@ void *resultsmechmtstr(ITG *i){
     if((*i==num_cpus-1)&&(neb<*ne1)) neb=*ne1;
 
     list=0;
+
+    /*
     FORTRAN(resultsmech,(co1,kon1,ipkon1,lakon1,ne1,v1,
           stx1,elcon1,nelcon1,rhcon1,nrhcon1,alcon1,nalcon1,alzero1,
           ielmat1,ielorien1,norien1,orab1,ntmat1_,t01,t11,ithermal1,prestr1,
@@ -287,5 +292,6 @@ void *resultsmechmtstr(ITG *i){
 	  pslavsurf1,pmastsurf1,mortar1,clearini1,&nea,&neb,ielprop1,prop1,
 	  kscale1,&list,ilist));
 
+    */
     return NULL;
 }

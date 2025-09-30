@@ -127,7 +127,8 @@ void stress_sen_2ndorder(double *co,ITG *nk,ITG *kon,ITG *ipkon,
       calcul_cauchy=1;
       
       list=0;
-      FORTRAN(resultsmech,(conew,kon,ipkon,lakon,ne,v,
+
+      /*FORTRAN(resultsmech,(conew,kon,ipkon,lakon,ne,v,
           stx,elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
           ielmat,ielorien,norien,orab,ntmat_,t0,t1,ithermal,prestr,
           iprestr,eme,iperturb,fn,&iout,qa,vold,
@@ -138,7 +139,7 @@ void stress_sen_2ndorder(double *co,ITG *nk,ITG *kon,ITG *ipkon,
           springarea,reltime,&calcul_fn,&calcul_qa,&calcul_cauchy,&nener,
           &ikin,&nal,ne0,thicke,emeini,
           pslavsurf,pmastsurf,mortar,clearini,nestart,neend,ielprop,
-	  prop,kscale,&list,ilist));
+	  prop,kscale,&list,ilist)); */
 
       /* storing results in the .dat file
         extrapolation of integration point values to the nodes

@@ -68,6 +68,7 @@ void stress_sen_dv(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
   if(iperturb[1]==1){calcul_cauchy=1;}else{calcul_cauchy=0;}
   
   list=1;
+  /*
   FORTRAN(resultsmech,(co,kon,ipkon,lakon,ne,dv,
       dstx,elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
       ielmat,ielorien,norien,orab,ntmat_,t0,t1,ithermal,prestr,
@@ -81,6 +82,7 @@ void stress_sen_dv(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
       pslavsurf,pmastsurf,mortar,clearini,nea,neb,ielprop,
       prop,kscale,&list,ialnk));
 
+      */
   /* extrapolating the stresses */
 
   nfield=6;

@@ -2307,7 +2307,6 @@ while(istat>=0)
       printf("Done!\n");
 
       printf("Writing CG sensitivities...");
-
       /* ... after you fill dCGx, dCGy, dCGz ... */
       int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
       if (rc != 0) 
@@ -2319,21 +2318,21 @@ while(istat>=0)
       printf("done!\n");
       
       printf("Writing objectives...");
-      write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M);
+      write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz);
       printf("Done!\n");
 
-        free(dCGx);
-  free(dCGy);
-  free(dCGz);
-  free(dCGxFiltered);
-  free(dCGyFiltered);
-  free(dCGzFiltered);
-  dCGx = NULL;
-  dCGy = NULL; 
-  dCGz = NULL; 
-  dCGxFiltered = NULL;
-  dCGyFiltered = NULL;
-  dCGzFiltered = NULL;
+      free(dCGx);
+      free(dCGy);
+      free(dCGz);
+      free(dCGxFiltered);
+      free(dCGyFiltered);
+      free(dCGzFiltered);
+      dCGx = NULL;
+      dCGy = NULL; 
+      dCGz = NULL; 
+      dCGxFiltered = NULL;
+      dCGyFiltered = NULL;
+      dCGzFiltered = NULL;
 
 
       /* initialize for total materal volume with rho = 1 */

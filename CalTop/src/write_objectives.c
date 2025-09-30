@@ -9,12 +9,18 @@
  * @param eleVol            Array of original (geometric) element volumes.
  * @param rhoPhys           Array of filtered element densities.
  * @param mass              Structrual mass.
+ * @param cgx               C.G x coordinate
+ * @param cgy               C.G y coordinate
+ * @param cgz               C.G z coordinate
  */
 void write_objectives(int ne,
                                 const double *eleVol,
                                 const double *rhoPhys,
                                 const double * compliance_sum,
-                                const double *Mass)
+                                const double *Mass, 
+                                const double *cgx, 
+                                const double *cgy, 
+                                const double *cgz)
 {
     const char *filename = "objectives.csv";
 
@@ -51,7 +57,7 @@ void write_objectives(int ne,
 
 
     /* Write file header */
-    fprintf(obj_file, "COMPLIANCE, ORIGINAL VOLUME, DESIGN VOLUME, VOLUME_FRACTION, DISCRETENESS, MASS\n");
+    fprintf(obj_file, "COMPLIANCE, ORIGINAL VOLUME, DESIGN VOLUME, VOLUME_FRACTION, DISCRETENESS, MASS, CGx, CGy, CGz\n");
 
     /* Loop over all elements and compute the initial and current volume*/
     for (int i = 0; i < ne; i++)
@@ -70,7 +76,7 @@ void write_objectives(int ne,
     double discreteness = (4.0 /ne) * discreteness_sum;
 
     /* Write structure compliance and volume to file */
-    fprintf(obj_file, "%.15f, %.15f, %.15f, %.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum, volume_fraction, discreteness, *Mass);
+    fprintf(obj_file, "%.15f, %.15f, %.15f, %.15f, %.15f, %.15f, %.15f, %.15f, %.15f \n", *compliance_sum, initialVol_sum, designVol_sum, volume_fraction, discreteness, *Mass, *cgx, *cgy, *cgz);
     
     fclose(obj_file);
 }
