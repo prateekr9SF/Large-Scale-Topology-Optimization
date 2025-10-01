@@ -104,7 +104,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
          *adb=NULL,*pslavsurf=NULL,*pmastsurf=NULL,*cdn=NULL,*cdnr=NULL,
          *cdni=NULL,*submatrix=NULL,*xnoels=NULL,*cg=NULL,*straight=NULL,
          *areaslav=NULL,*xmastnor=NULL,theta=0.,*ener=NULL,*xstate=NULL,
-         *fnext=NULL,*energyini=NULL,*energy=NULL,*d=NULL,alea=0.1;
+         *fnext=NULL,*energyini=NULL,*energy=NULL,*d=NULL,alea=0.1, *brhs=NULL;
+
 
   FILE *f1,*f2;
 
@@ -325,7 +326,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      		xstateini[k]=xstate[k];
 	  		}
       	}
-  	}
+  	}  // end contact conditional
 
   	/* allocating a field for the instantaneous amplitude */
 
@@ -387,7 +388,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	  mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
+    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
 
   	SFREE(v);
 	SFREE(fn);
@@ -660,7 +661,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		   				sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		   				mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 		  	 			islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-		   				inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
+		   				inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
 
 	      				xbounact[iretain[i]-1]=0.;
 
@@ -852,7 +853,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		   					sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		   					mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 		   					islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-		   					inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
+		   					inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
 
 	      					SFREE(eei);
 	      					if(*nener==1)
@@ -1070,6 +1071,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     				/* the results in frd format for each valid eigenmode */
     				NNEW(v,double,mt**nk);
     				NNEW(fn,double,mt**nk);
+					NNEW(brhs,double,mt**nk);
     				NNEW(stn,double,6**nk);
     				NNEW(inum,ITG,*nk);
     				//NNEW(stx,double,6*mi[0]**ne);
@@ -1105,9 +1107,40 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             		sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             		mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    			islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            		inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal);
+            		inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
 					
-					printf("done!");
+					printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
+
+					/* --- Build adjoint RHS in the solver DOF space: b = map(brhs) --- */
+					for(ITG ii=0; ii<*neq; ++ii) b[ii] = 0.0;
+
+					/* resultsforc maps nodal forces (fn-like) -> global DOF vector (f-like)
+   							We can reuse it by passing brhs as "fn" and b as "f". */
+					{
+    					ITG calcul_fn_adj = 1, calcul_f_adj = 1;
+    					FORTRAN(resultsforc,(nk, b, brhs, nactdof, ipompc, nodempc,
+                         coefmpc, labmpc, nmpc, mi, fmpc,
+                         &calcul_fn_adj, &calcul_f_adj));
+					}
+
+					/* --- Adjoint sign: K^T λ = - dJ/du ; K is symmetric, so K λ = - dJ/du --- */
+					for(ITG ii=0; ii<*neq; ++ii) b[ii] = -b[ii];
+
+
+					if(*isolver==7)
+					{
+						printf("Solving stress adjoint system....");
+
+						#ifdef PARDISO
+						// Call PARDISO to solve linear system
+						printf("Calling PARSIDO from linstatic.c \n");
+      					pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,neq,nzs,
+		   				&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
+						#else
+            			printf("*ERROR in linstatic: the PARDISO library is not linked\n\n");
+            			FORTRAN(stop,());
+						#endif
+					}
 
     				SFREE(eei);
     				if(*nener==1)

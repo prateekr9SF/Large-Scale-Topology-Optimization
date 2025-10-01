@@ -44,7 +44,7 @@ static double *co1,*v1,*stx1,*elcon1,*rhcon1,*alcon1,*alzero1,*orab1,*t01,*t11,
 
 static double *design1, *penal1; /* Element densities and penalization paramter*/
 static double *rhs1=NULL;  /* per-thread RHS blocks*/
-static double *brhs=NULL;  /* reduced adjoint RHS (global)*/
+//static double *brhs1 = NULL;  /* reduced adjoint RHS (global)*/
 static double p1 = 0.0;   /* p in p-norm */ 
 static double alpha1 = 0.0; /* scalar used in adjoint RHS */
 
@@ -81,7 +81,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        ITG *islavsurf,ITG *ielprop,double *prop,double *energyini,
        double *energy,ITG *kscale,ITG *iponoel,ITG *inoel,ITG *nener,
        char *orname,ITG *network,ITG *ipobody,double *xbody,ITG *ibody,
-       char *typeboun, double *design, double *penal)
+       char *typeboun, double *design, double *penal, double *brhs)
        
        {
 
@@ -309,11 +309,13 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
     /* Allocate per-thread RHS blocks and the reduced RHS */
     NNEW(rhs1, double, num_cpus * mt * *nk);
-    NNEW(brhs, double, mt * *nk);
+    //NNEW(brhs, double, mt * *nk);
+
+    //brhs1 = brhs;
 
     /* Zero them (CalculiX NNEW doesn't zero by default) */
     for (size_t zz = 0; zz < (size_t)num_cpus * mt * *nk; ++zz) rhs1[zz] = 0.0;
-    for (size_t zz = 0; zz < (size_t)mt * *nk; ++zz)     brhs[zz] = 0.0;
+    //for (size_t zz = 0; zz < (size_t)mt * *nk; ++zz)     brhs1[zz] = 0.0;
 
     /* Spawn RHS threads */
     NNEW(ithread, ITG, num_cpus);

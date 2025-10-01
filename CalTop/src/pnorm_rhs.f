@@ -48,7 +48,7 @@ c--- working vars
       real*8             xi,et,ze,weight
       real*8             sx,sy,sz,txy,txz,tyz,vm2,vm
       real*8             g(6),ptvec(6),pt(3,3)
-      real*8             Hloc, p, epsvm
+      real*8             Hloc, p, epsvm, fac
       integer            konl(26)
 
 c--- gauss-bookkeeping and (rarely used here) layer vars
@@ -249,13 +249,15 @@ c             g = alpha * H_e * vm^(p-1) * d(vm)/d(sigma)
 c             with d(vm)/d(sigma) =
 c               [ (2σx-σy-σz)/(2vm), (2σy-σx-σz)/(2vm), (2σz-σx-σy)/(2vm),
 c                 3τxy/vm, 3τxz/vm, 3τyz/vm ]
-            g(1) = alpha * Hloc * (vm**(p-1)) * ( (2.d0*sx - sy - sz)/(2.d0*vm) )
-            g(2) = alpha * Hloc * (vm**(p-1)) * ( (2.d0*sy - sx - sz)/(2.d0*vm) )
-            g(3) = alpha * Hloc * (vm**(p-1)) * ( (2.d0*sz - sx - sy)/(2.d0*vm) )
-            g(4) = alpha * Hloc * (vm**(p-1)) * ( 3.d0*txy / vm )
-            g(5) = alpha * Hloc * (vm**(p-1)) * ( 3.d0*txz / vm )
-            g(6) = alpha * Hloc * (vm**(p-1)) * ( 3.d0*tyz / vm )
+            fac = alpha*Hloc*(vm**(p-1))
 
+            g(1) = fac*((2.d0*sx - sy - sz)/(2.d0*vm))
+            g(2) = fac*((2.d0*sy - sx - sz)/(2.d0*vm))
+            g(3) = fac*((2.d0*sz - sx - sy)/(2.d0*vm))
+            g(4) = fac*(3.d0*txy/vm)
+            g(5) = fac*(3.d0*txz/vm)
+            g(6) = fac*(3.d0*tyz/vm)
+      
 c----------- P = D * g  (Voigt).  D is symmetric, stored in xstiff(1:21)
 c           Voigt mapping (same as in resultsmech: mattyp=3 branch)
             ptvec(1)= g(1)*xstiff(1 ,jj,i)+g(2)*xstiff(2 ,jj,i)+
