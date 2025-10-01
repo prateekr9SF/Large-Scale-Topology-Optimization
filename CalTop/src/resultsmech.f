@@ -77,7 +77,7 @@
       real*8 g_sump, g_vol, g_pexp
 
 !     SIMP weighting helpers
-      real*8 rho_min, dens, dens_eff, alpha
+      real*8 rho_min, dens, dens_eff, wexp
 
 
       intent(in) co,kon,ipkon,lakon,ne,v,
@@ -112,7 +112,7 @@
 
       ! SIMP constants (tweak as needed)
       rho_min = 1.d-3    ! small stiffness floor
-      alpha   = 1.d0     ! weight power on density (often 1)
+      wexp   = 1.d0     ! weight power on density (often 1)
 !
       do m=nea,neb
 !
@@ -1188,16 +1188,16 @@ c     Bernhardi end
             vm2 = 0.5d0*vm2 + 3.d0*(txy*txy + txz*txz + tyz*tyz)
             vm  = dsqrt(vm2)
 
-            ! --- SIMP effective density for this element i ---
+            ! --- filtered design alread in [0,1] (clamp defenseively)  ---
             dens = design(i)
             ! (optional clamp, safe if design may drift)
             if (dens .lt. 0.d0) dens = 0.d0
             if (dens .gt. 1.d0) dens = 1.d0
 
-            dens_eff = rho_min + (1.d0 - rho_min) * dens**penal
+            dens_eff = rho_min + (1.d0 - rho_min) * dens
 
-            ! density-weighted measure (alpha=1 is common)
-            wgt  = xsj*weight * dens_eff**alpha
+            ! density-weighted measure (wexp=1 is common)
+            wgt  = xsj*weight * dens_eff**wexp
 
             g_sump = g_sump + (vm**g_pexp) * wgt
             g_vol  = g_vol  + wgt

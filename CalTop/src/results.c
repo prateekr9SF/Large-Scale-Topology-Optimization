@@ -46,6 +46,7 @@ static double *design1, *penal1; /* Element densities and penalization paramter*
 static double *rhs1=NULL;  /* per-thread RHS blocks*/
 static double *brhs=NULL;  /* reduced adjoint RHS (global)*/
 static double p1 = 0.0;   /* p in p-norm */ 
+static double alpha1 = 0.0; /* scalar used in adjoint RHS */
 
 void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
@@ -307,8 +308,8 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     /*  STRESS-ADJOINT RHS CALCULATION */
 
     /* Allocate per-thread RHS blocks and the reduced RHS */
-    NNEW(rhs1, double, (size_t)num_cpus * mt * *nk);
-    NNEW(brhs, double, (size_t)mt * *nk);
+    NNEW(rhs1, double, num_cpus * mt * *nk);
+    NNEW(brhs, double, mt * *nk);
 
     /* Zero them (CalculiX NNEW doesn't zero by default) */
     for (size_t zz = 0; zz < (size_t)num_cpus * mt * *nk; ++zz) rhs1[zz] = 0.0;

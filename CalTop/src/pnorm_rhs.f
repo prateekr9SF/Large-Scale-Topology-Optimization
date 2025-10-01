@@ -12,7 +12,7 @@ c  (D is symmetric => D^T = D; CalculiX assembly uses the same pattern
 c  as internal forces: σ replaced by P = D * (dJ/dσ) in the same
 c  3×3 mapping and multiplied by ∂N/∂x and jacobian/weight.)
 c=======================================================================
-      subroutine resultspnorm_rhs(co,kon,ipkon,lakon,ne,
+      subroutine pnorm_rhs(co,kon,ipkon,lakon,ne,
      &     stx,xstiff,mi,rhs,alpha,pexp,design,
      &     nea,neb,list,ilist)
 
@@ -36,6 +36,9 @@ c--- output RHS (same shape as mechanical force array)
 
 c--- p-norm controls passed in
       real*8             alpha,pexp,design(*)
+
+c --- element weightin
+      real*8 dens, dens_eff, rho_min, wexp      
 
 c--- working vars
       integer            i,j,k,jj,kk,nope,mint3d,indexe
@@ -148,8 +151,20 @@ c        gather nodal coords for this element
             xl(3,j) = co(3,konl(j))
          enddo
 
-c        per-element weight H (density/filter/Heaviside etc.)
-         Hloc = design(i)
+c        SIMP-style objective weight
+         dens = design(i)
+         if (dens .lt. 0.d0) dens = 0.d0
+         if (dens .gt. 1.d0) dens = 1.d0
+
+c        choose the same paramters used  when accumulating the p-norm
+c        rho_min: density floor (set to 0.d0 if we want voids)
+c        wexp: objective's density exponent (usually 1.d0)
+         rho_min = 1.d-3
+         wexp = 1.d0
+
+         dens_eff = rho_min + (1.d0 - rho_min) * dens
+         Hloc     = dens_eff**wexp
+
 
 c--------------------------------------------------------------------
 c        Gauss loop
