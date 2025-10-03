@@ -40,6 +40,10 @@ static double *co1,*v1,*stx1,*elcon1,*rhcon1,*alcon1,*alzero1,*orab1,*t01,*t11,
     *cocon1,*qfx1,*thicke1,*emeini1,*shcon1,*xload1,*prop1,
     *xloadold1,*pslavsurf1,*pmastsurf1,*clearini1,*xbody1;
 
+    static double sigma01 = 1.0;     /* your allowable stress */
+static double eps1    = 1e-3;    /* same eps_relax used in resultsmech */
+static double rhomin1 = 1e-3;    /* same rho_min        */
+
 
 
 static double *design1, *penal1; /* Element densities and penalization paramter*/
@@ -296,8 +300,6 @@ fflush(stdout);
 
     printf("Global p-norm (p=%.0f): %.6e  [sumP=%.6e, sumV=%.6e]\n",
         p1, J, sumP, sumV);
-
-
 
 
 	for(i=0;i<mt**nk;i++)
@@ -592,9 +594,9 @@ void *pnormRHSmt(ITG *i)
     neb = nebpar[*i] + 1;
 
     FORTRAN(pnorm_rhs,(co1,kon1,ipkon1,lakon1,ne1,
-        stx1,xstiff1,mi1,&rhs1[indexrhs],&alpha1,&p1,design1,
-        &nea,&neb,&list1,ilist1));
-
+    stx1,xstiff1,mi1,&rhs1[indexrhs],&alpha1,&p1,design1,penal1,
+    &sigma01,&eps1,&rhomin1,
+    &nea,&neb,&list1,ilist1));
     return NULL;
 }
 

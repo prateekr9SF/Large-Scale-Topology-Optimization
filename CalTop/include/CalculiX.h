@@ -4126,9 +4126,11 @@ void *resultsmechmtstr(ITG *i);
 
 void *resultsmechmt_se(ITG *i);
 
-void FORTRAN(pnorm_rhs,(double *co,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
-          double *stx, double *xstiff, ITG *mi, double* rhs, double* alpha, double *pexp, double* design,ITG *nea, ITG *neb, ITG *list, ITG *ilist));
-
+void FORTRAN(pnorm_rhs,(double *co, ITG *kon, ITG *ipkon, char *lakon, ITG *ne,
+  double *stx, double *xstiff, ITG *mi,
+  double *rhs, double *alpha, double *pexp,
+  double *design, double *penal, double *sigma0, double *epsilon, double *rhomin,
+  ITG *nea, ITG *neb, ITG *list, ITG *ilist));
 
 void FORTRAN(resultsmech_se,(double *co,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
           double *v,double *stx,double *elcon,ITG *nelcon,double *rhcon,
