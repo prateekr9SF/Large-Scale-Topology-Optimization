@@ -266,12 +266,16 @@ fflush(stdout);
         size_t idx = (size_t)t *4;
         sumP += qa1[idx + 2];   // thread's g_sump
         sumV += qa1[idx + 3];   // thread's g_vol
+
+        /* restore CCX defaults so downstream code doesnt misinterpret */
+        qa1[idx + 2] = -1.0;   /* qa(3) */
+        qa1[idx + 3] =  0.0;   /* qa(4) */     
     }
 
     /* must match the exponent used inside resultsmech() */
-    p1 = 20.0;
+    p1 = 4.0;
 
-    double J = 0.0;     /* volume-normalized p-norm */
+    double J = 0.0;     /*  stress p-norm */
     alpha1 = 0.0;       /* scalar used in adjoint RHS */
 
     printf("Current sumP: %f \n", sumP);
