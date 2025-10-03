@@ -265,7 +265,7 @@ fflush(stdout);
     {
         size_t idx = (size_t)t *4;
         sumP += qa1[idx + 2];   // thread's g_sump
-        sumV += qa1[idx + 3];   // thread's g_vol
+        sumV += qa1[idx + 3];   // thread's g_vol -> needed for p-mean
 
         /* restore CCX defaults so downstream code doesnt misinterpret */
         qa1[idx + 2] = -1.0;   /* qa(3) */
@@ -289,6 +289,7 @@ fflush(stdout);
             J = pow(ratio, 1.0 / p1);
             /* alpha = J^(1-p)/sumV (log/exp for stability) */
             const double logJ = log(J);
+            //alpha1 = exp((1.0 - p1) * logJ) / sumV; // valid for p-mean
             alpha1 = exp((1.0 - p1) * logJ) / sumV;
         }
     }
