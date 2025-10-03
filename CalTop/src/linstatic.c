@@ -1119,13 +1119,33 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					
 					printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
 
+					double *b_adj = NULL;
+					NNEW(b_adj,double,*neq);
+					DMEMSET(b_adj,0,*neq,0.0);
+
+					int nrhs_local =1;
+
+					/* Resuse the same assembly used for the internal force vector:
+					it maps nodal vectors -> active DOF vector */
+
+					ITG calc_fn = 1, calc_f = 1;
+					FORTRAN(resultsforc,(nk,b_adj,brhs,nactdof,ipompc,nodempc,
+                       		coefmpc,labmpc,nmpc,mi,fmpc,&calc_fn,&calc_f));
+					
+
 					if(*isolver==7)
 					{
-						printf("Solving stress adjoint system....");
+						#ifdef PARDISO
+						// Call PARDISO to solve the adjoint system
+						printf("Calling PARSIDO from linstatic.c to solve the stress adjoint system \n");
+      					pardiso_solve(b_adj, neq, &symmetryflag, &nrhs_local);
+						#endif
+					}	
 
-					}
+
 
     				SFREE(eei);
+					SFREE(b_adj);
     				if(*nener==1)
 					{
 						SFREE(stiini);SFREE(emeini);SFREE(enerini);

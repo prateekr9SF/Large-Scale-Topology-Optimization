@@ -368,7 +368,7 @@ fflush(stdout);
     SFREE(neapar);
     SFREE(nebpar);
 
-    printf("Done!");
+    printf("Done!\n");
 	
     
     /* determine the internal force */
