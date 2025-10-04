@@ -104,7 +104,7 @@ c-------- epsilon-relaxed phi (same as in resultsmech)
          if (phi .le. 0.d0) cycle
 
 c-------- dJ/dsigma factor
-         fac = alpha * p * (phi**(p-1)) / (rho_p*sig0)
+         fac = alpha * (phi**(p-1)) / (rho_p*sig0)
 
 c-------- dvm/dsigma in 3D Voigt, then scale by fac
          g(1) = fac * ((2.d0*sx - sy - sz) * 0.5d0 * invvm)
