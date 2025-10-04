@@ -631,8 +631,17 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				#ifdef PARDISO
 				// Call PARDISO to solve linear system
 				printf("Calling PARSIDO from linstatic.c \n");
-      			pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,neq,nzs,
-		   		&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
+      			//pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,neq,nzs,
+		   		//&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
+
+				printf("PARDISO: factorizing K...\n");
+				pardiso_factor(ad,au,adb,aub,&sigma,  /* adb/aub may be NULL if unused */
+               		icol,irow,neq,nzs,&symmetryflag,&inputformat,jq,&nzs[2]);
+
+				/* --- Primal solve: K u = b --- */
+				printf("PARDISO: solving primal...\n");
+				pardiso_solve(b,neq,&symmetryflag,&nrhs);
+
 				#else
             	printf("*ERROR in linstatic: the PARDISO library is not linked\n\n");
             	FORTRAN(stop,());
@@ -652,13 +661,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 						printf("L2 norm of RHS: %f \n", l2_norm_disp);
     				}*/
 
-    			SFREE(ad);
-				SFREE(au);
-    			if(iglob<0)
-				{
-					SFREE(adb);
-					SFREE(aub);
-				}
+
 
     			/* calculating the displacements and the stresses and storing */
     			/* the results in frd format for each valid eigenmode */
@@ -667,7 +670,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				NNEW(brhs,double,mt**nk);
     			NNEW(stn,double,6**nk);
     			NNEW(inum,ITG,*nk);
-    				//NNEW(stx,double,6*mi[0]**ne);
 
     			if(strcmp1(&filab[261],"E   ")==0) NNEW(een,double,6**nk);
     			if(strcmp1(&filab[2697],"ME  ")==0) NNEW(emn,double,6**nk);
@@ -704,30 +706,33 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					
 				printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
 
+				printf("Current symmetry flag: %d", symmetryflag);
+
 				double *b_adj = NULL;
 				NNEW(b_adj,double,*neq);
-					DMEMSET(b_adj,0,*neq,0.0);
+				DMEMSET(b_adj,0,*neq,0.0);
 
-					int nrhs_local =1;
 
-					/* Resuse the same assembly used for the internal force vector:
+				/* Resuse the same assembly used for the internal force vector:
 					it maps nodal vectors -> active DOF vector */
 
-					ITG calc_fn = 1, calc_f = 1;
-					FORTRAN(resultsforc,(nk,b_adj,brhs,nactdof,ipompc,nodempc,
+				ITG calc_fn = 1, calc_f = 1;
+				FORTRAN(resultsforc,(nk,b_adj,brhs,nactdof,ipompc,nodempc,
                        		coefmpc,labmpc,nmpc,mi,fmpc,&calc_fn,&calc_f));
 					
 
-					if(*isolver==7)
-					{
-						#ifdef PARDISO
-						// Call PARDISO to solve the adjoint system
-						printf("Calling PARSIDO from linstatic.c to solve the stress adjoint system \n");
-      					pardiso_solve(b_adj, neq, &symmetryflag, &nrhs_local);
-						#endif
-					}	
+				printf("Calling PARSIDO from linstatic.c to solve the stress adjoint system \n");
+      			pardiso_solve(b_adj, neq, &symmetryflag, &nrhs);
+			
+    			SFREE(ad);
+				SFREE(au);
+    			if(iglob<0)
+				{
+					SFREE(adb);
+					SFREE(aub);
+				}
 
-
+		
 
     				SFREE(eei);
 					SFREE(b_adj);
@@ -745,12 +750,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     				if(*mcs>0)
 					{
 						ptime=*ttime+time;
-      					/*frdcyc(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,kode,filab,een,t1act,
-		   				fn,&ptime,epn,ielmat,matname,cs,mcs,nkon,enern,xstaten,
-                   		nstate_,istep,&iinc,iperturb,ener,mi,output,ithermal,
-                   		qfn,ialset,istartset,iendset,trab,inotr,ntrans,orab,
-	           			ielorien,norien,sti,veold,&noddiam,set,nset,emn,thicke,
-	           			jobnamec,&ne0,cdn,mortar,nmat,qfx,ielprop,prop); */
+
     				}
     				else
 					{
@@ -760,14 +760,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	    					NNEW(ipneigh,ITG,*nk);
 						}
 						ptime=*ttime+time;
-						/*frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
-	    				kode,filab,een,t1act,fn,&ptime,epn,ielmat,matname,enern,xstaten,
-	    				nstate_,istep,&iinc,ithermal,qfn,&mode,&noddiam,trab,inotr,
-	    				ntrans,orab,ielorien,norien,description,ipneigh,neigh,
-	    				mi,stx,vr,vi,stnr,stni,vmax,stnmax,&ngraph,veold,ener,ne,
-	    				cs,set,nset,istartset,iendset,ialset,eenmax,fnr,fni,emn,
-	    				thicke,jobnamec,output,qfx,cdn,mortar,cdnr,cdni,nmat,ielprop,prop);
-						*/
 
 						if(strcmp1(&filab[1044],"ZZS")==0)
 						{
