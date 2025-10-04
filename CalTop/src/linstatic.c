@@ -191,160 +191,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			printf("done!\n");
   		}
 
-  		/* contact conditions */
-
-  		if(*icontact==1)
-  		{
-    		memmpc_=mpcinfo[0];mpcfree=mpcinfo[1];icascade=mpcinfo[2];
-    		maxlenmpc=mpcinfo[3];
-
-    		inicont(nk,&ncont,ntie,tieset,nset,set,istartset,iendset,ialset,&itietri,
-	  		lakon,ipkon,kon,&koncont,&nslavs,tietol,&ismallsliding,&itiefac,
-          	&islavsurf,&islavnode,&imastnode,&nslavnode,&nmastnode,
-          	mortar,&imastop,nkon,&iponoels,&inoels,&ipe,&ime,ne,&ifacecount,
-			iperturb,ikboun,nboun,co,istep,&xnoels);
-
-    		if(ncont!=0)
-			{
-				NNEW(cg,double,3*ncont);
-	  			NNEW(straight,double,16*ncont);
-
-	  			/* 11 instead of 10: last position is reserved for the
-	     		local contact spring element number; needed as
-	     		pointer into springarea */
-
-	  			if(*mortar==0)
-				{
-	      			RENEW(kon,ITG,*nkon+11*nslavs);
-	      			NNEW(springarea,double,2*nslavs);
-
-	      			if(*nener==1)
-		  			{
-		  				RENEW(ener,double,mi[0]*(*ne+nslavs)*2);
-	      			}
-
-	      			RENEW(ipkon,ITG,*ne+nslavs);
-	      			RENEW(lakon,char,8*(*ne+nslavs));
-
-	      			if(*norien>0)
-		  			{
-		  				RENEW(ielorien,ITG,mi[2]*(*ne+nslavs));
-		  				for(k=mi[2]**ne;k<mi[2]*(*ne+nslavs);k++) ielorien[k]=0;
-	      			}
-
-	      			RENEW(ielmat,ITG,mi[2]*(*ne+nslavs));
-
-	      			for(k=mi[2]**ne;k<mi[2]*(*ne+nslavs);k++) ielmat[k]=1;
-
-	      			if(nslavs!=0)
-		  			{
-		  				RENEW(xstate,double,*nstate_*mi[0]*(*ne+nslavs));
-
-		  				for(k=*nstate_*mi[0]**ne;k<*nstate_*mi[0]*(*ne+nslavs);k++)
-						{
-		      				xstate[k]=0.;
-		  				}
-	      			}
-
-	      			NNEW(areaslav,double,ifacecount);
-	      			NNEW(xmastnor,double,3*nmastnode[*ntie]);
-	  			} // end if(*mortar ==0)
-				else if(*mortar==1)
-				{
-	      			NNEW(islavact,ITG,nslavnode[*ntie]);
-	      			DMEMSET(islavact,0,nslavnode[*ntie],1);
-	      			NNEW(clearini,double,3*9*ifacecount);
-	      			NNEW(xmastnor,double,3*nmastnode[*ntie]);
-	      			nintpoint=0;
-
-	      			precontact(&ncont,ntie,tieset,nset,set,istartset,
-			 		iendset,ialset,itietri,lakon,ipkon,kon,koncont,ne,
-			 		cg,straight,co,vold,istep,&iinc,&iit,itiefac,
-			 		islavsurf,islavnode,imastnode,nslavnode,nmastnode,
-			 		imastop,mi,ipe,ime,tietol,&iflagact,
-			 		&nintpoint,&pslavsurf,xmastnor,cs,mcs,ics,clearini,
-                         &nslavs);
-
-	      			/* changing the dimension of element-related fields */
-
-	      			RENEW(kon,ITG,*nkon+22*nintpoint);
-	      			RENEW(springarea,double,2*nintpoint);
-	      			RENEW(pmastsurf,double,6*nintpoint);
-
-	      			if(*nener==1)
-		  			{
-		  				RENEW(ener,double,mi[0]*(*ne+nintpoint)*2);
-	      			}
-	      			RENEW(ipkon,ITG,*ne+nintpoint);
-	      			RENEW(lakon,char,8*(*ne+nintpoint));
-
-	      			if(*norien>0)
-		  			{
-		  				RENEW(ielorien,ITG,mi[2]*(*ne+nintpoint));
-		  				for(k=mi[2]**ne;k<mi[2]*(*ne+nintpoint);k++) ielorien[k]=0;
-	      			}
-
-	      			RENEW(ielmat,ITG,mi[2]*(*ne+nintpoint));
-	      			for(k=mi[2]**ne;k<mi[2]*(*ne+nintpoint);k++) ielmat[k]=1;
-
-        			/* interpolating the state variables */
-
-	      			if(*nstate_!=0)
-		  			{
-						RENEW(xstate,double,*nstate_*mi[0]*(ne0+nintpoint));
-		  				for(k=*nstate_*mi[0]*ne0;k<*nstate_*mi[0]*(ne0+nintpoint);k++)
-						{
-		      				xstate[k]=0.;
-		  				}
-
-		  				RENEW(xstateini,double,*nstate_*mi[0]*(ne0+nintpoint));
-
-		  				for(k=0;k<*nstate_*mi[0]*(ne0+nintpoint);++k)
-		  				{
-		      				xstateini[k]=xstate[k];
-		  				}
-	      			}
-	  			} 
-
-        		/* generating contact spring elements */
-
-				contact(&ncont,ntie,tieset,nset,set,istartset,iendset,
-	     		ialset,itietri,lakon,ipkon,kon,koncont,ne,cg,straight,nkon,
-	     		co,vold,ielmat,cs,elcon,istep,&iinc,&iit,ncmat_,ntmat_,
-	     		&ne0,vini,nmethod,
-	     		iperturb,ikboun,nboun,mi,imastop,nslavnode,islavnode,islavsurf,
-	     		itiefac,areaslav,iponoels,inoels,springarea,tietol,&reltime,
-	     		imastnode,nmastnode,xmastnor,filab,mcs,ics,&nasym,
-	     		xnoels,mortar,pslavsurf,pmastsurf,clearini,&theta,
-	     		xstateini,xstate,nstate_,&icutb,&ialeatoric,jobnamef,
-             	&alea);
-
-	  			printf("number of contact spring elements=%" ITGFORMAT "\n\n",*ne-ne0);
-
-          		/* determining the structure of the stiffness/mass matrix */
-
-	  			remastructar(ipompc,&coefmpc,&nodempc,nmpc,
-		 		&mpcfree,nodeboun,ndirboun,nboun,ikmpc,ilmpc,ikboun,ilboun,
-		 		labmpc,nk,&memmpc_,&icascade,&maxlenmpc,
-		 		kon,ipkon,lakon,ne,nactdof,icol,jq,&irow,isolver,
-		 		neq,nzs,nmethod,ithermal,iperturb,mass,mi,ics,cs,
-		 		mcs,mortar,typeboun,&iit,&network);
-      		} // end if(ncont!=0)
-
-      		/* field for initial values of state variables (needed for contact */
-
-      		if((*nstate_!=0)&&((*mortar==0)||(ncont==0)))
-			{
-	  			NNEW(xstateini,double,*nstate_*mi[0]*(ne0+nslavs));
-	  			for(k=0;k<*nstate_*mi[0]*(ne0+nslavs);++k)
-				{
-	      			xstateini[k]=xstate[k];
-	  			}
-      		}
-  		}  // end contact conditional
-
-		// ######################################### END CONTACT CONDITONALS #########################################//
-
   		/* allocating a field for the instantaneous amplitude */
 
   		NNEW(ampli,double,*nam);
@@ -734,149 +580,146 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 		
 
-    				SFREE(eei);
-					SFREE(b_adj);
-    				if(*nener==1)
-					{
-						SFREE(stiini);SFREE(emeini);SFREE(enerini);
-					}
-
-    				memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
-   	 				memcpy(&sti[0],&stx[0],sizeof(double)*6*mi[0]*ne0);
-
-    				++*kode;
-
-    				/* for cyclic symmetric sectors: duplicating the results */
-    				if(*mcs>0)
-					{
-						ptime=*ttime+time;
-
-    				}
-    				else
-					{
-						if(strcmp1(&filab[1044],"ZZS")==0)
-						{
-	    					NNEW(neigh,ITG,40**ne);
-	    					NNEW(ipneigh,ITG,*nk);
-						}
-						ptime=*ttime+time;
-
-						if(strcmp1(&filab[1044],"ZZS")==0)
-						{
-							SFREE(ipneigh);
-							SFREE(neigh);
-						}
-    				}
-
-    				/* updating the .sta file */
-    				iitsta=1;
-    				FORTRAN(writesta,(istep,&iinc,&icutb,&iitsta,ttime,&time,&dtime));
-
-    				SFREE(v);SFREE(stn);SFREE(inum);
-    				SFREE(b);
-					//SFREE(stx);
-					SFREE(fn);
-					SFREE(brhs);
-
-    				if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
-    				if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);
-    				if(strcmp1(&filab[522],"ENER")==0) SFREE(enern);
-    				if(strcmp1(&filab[2175],"CONT")==0) SFREE(cdn);
-  				}
-  				else 
+    			SFREE(eei);
+				SFREE(b_adj);
+    			if(*nener==1)
 				{
-					/* error occurred in mafill: storing the geometry in frd format */
-    				++*kode;
-    				NNEW(inum,ITG,*nk);for(k=0;k<*nk;k++) inum[k]=1;
-    				if(strcmp1(&filab[1044],"ZZS")==0)
+					SFREE(stiini);SFREE(emeini);SFREE(enerini);
+				}
+
+    			memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
+   	 			memcpy(&sti[0],&stx[0],sizeof(double)*6*mi[0]*ne0);
+
+    			++*kode;
+
+    			/* for cyclic symmetric sectors: duplicating the results */
+    			if(*mcs>0)
+				{
+					ptime=*ttime+time;
+
+    			}
+    			else
+				{
+					if(strcmp1(&filab[1044],"ZZS")==0)
 					{
-						NNEW(neigh,ITG,40**ne);
-						NNEW(ipneigh,ITG,*nk);
-    				}
+	    				NNEW(neigh,ITG,40**ne);
+	    				NNEW(ipneigh,ITG,*nk);
+					}
+					ptime=*ttime+time;
 
-    				ptime=*ttime+time;
-    				/*frd(co,nk,kon,ipkon,lakon,ne,v,stn,inum,nmethod,
-	    			kode,filab,een,t1,fn,&ptime,epn,ielmat,matname,enern,xstaten,
-	    			nstate_,istep,&iinc,ithermal,qfn,&mode,&noddiam,trab,inotr,
-	    			ntrans,orab,ielorien,norien,description,ipneigh,neigh,
-	    			mi,sti,vr,vi,stnr,stni,vmax,stnmax,&ngraph,veold,ener,ne,
-	    			cs,set,nset,istartset,iendset,ialset,eenmax,fnr,fni,emn,
-	    			thicke,jobnamec,output,qfx,cdn,mortar,cdnr,cdni,nmat,ielprop,prop); */
-
-    				if(strcmp1(&filab[1044],"ZZS")==0)
+					if(strcmp1(&filab[1044],"ZZS")==0)
 					{
 						SFREE(ipneigh);
 						SFREE(neigh);
 					}
-    				SFREE(inum);
-					FORTRAN(stop,());
-				}
+    			}
 
-  				if(*icontact==1)
+    			SFREE(v);
+				SFREE(stn);
+				SFREE(inum);
+    			SFREE(b);
+				SFREE(fn);
+				SFREE(brhs);
+
+    			if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
+    			if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);
+    			if(strcmp1(&filab[522],"ENER")==0) SFREE(enern);
+    			if(strcmp1(&filab[2175],"CONT")==0) SFREE(cdn);
+  			}  // end if (isolver == 7)
+  			else 
+			{
+				/* error occurred in mafill: storing the geometry in frd format */
+    			++*kode;
+    			NNEW(inum,ITG,*nk);for(k=0;k<*nk;k++) inum[k]=1;
+    			if(strcmp1(&filab[1044],"ZZS")==0)
 				{
-      				if(ncont!=0)
+					NNEW(neigh,ITG,40**ne);
+					NNEW(ipneigh,ITG,*nk);
+    			}
+
+    			ptime=*ttime+time;
+
+
+    			if(strcmp1(&filab[1044],"ZZS")==0)
+				{
+					SFREE(ipneigh);
+					SFREE(neigh);
+				}
+    			SFREE(inum);
+				FORTRAN(stop,());
+			}
+
+  			if(*icontact==1)
+			{
+      			if(ncont!=0)
+				{
+	  				*ne=ne0;
+	  				if(*nener==1)
 					{
-	  					*ne=ne0;
-	  					if(*nener==1)
-						{
-	      					RENEW(ener,double,mi[0]**ne*2);
-	  					}
-	  					RENEW(ipkon,ITG,*ne);
-	  					RENEW(lakon,char,8**ne);
-	  					RENEW(kon,ITG,*nkon);
+	      				RENEW(ener,double,mi[0]**ne*2);
+	  				}
+	  				RENEW(ipkon,ITG,*ne);
+	  				RENEW(lakon,char,8**ne);
+	  				RENEW(kon,ITG,*nkon);
 
-	  					if(*norien>0)
-						{
-	      					RENEW(ielorien,ITG,mi[2]**ne);
-	  					}
+	  				if(*norien>0)
+					{
+	      				RENEW(ielorien,ITG,mi[2]**ne);
+	  				}
 
-	  					RENEW(ielmat,ITG,mi[2]**ne);
-	 	 				SFREE(cg);SFREE(straight);
-	  					SFREE(imastop);SFREE(itiefac);SFREE(islavnode);SFREE(islavsurf);
-	  					SFREE(nslavnode);SFREE(iponoels);SFREE(inoels);SFREE(imastnode);
-	  					SFREE(nmastnode);SFREE(itietri);SFREE(koncont);SFREE(xnoels);
-	  					SFREE(springarea);SFREE(xmastnor);
+	  				RENEW(ielmat,ITG,mi[2]**ne);
+	 	 			SFREE(cg);SFREE(straight);
+	  				SFREE(imastop);SFREE(itiefac);SFREE(islavnode);SFREE(islavsurf);
+	  				SFREE(nslavnode);SFREE(iponoels);SFREE(inoels);SFREE(imastnode);
+	  				SFREE(nmastnode);SFREE(itietri);SFREE(koncont);SFREE(xnoels);
+	  				SFREE(springarea);SFREE(xmastnor);
 
-	  					if(*mortar==0)
-						{
-	      					SFREE(areaslav);
-	  					}
-						else if(*mortar==1)
-						{
-	      					SFREE(pmastsurf);SFREE(ipe);SFREE(ime);SFREE(pslavsurf);
-	      					SFREE(islavact);SFREE(clearini);
-	  					}
-      				}
-      				mpcinfo[0]=memmpc_;mpcinfo[1]=mpcfree;mpcinfo[2]=icascade;
-      				mpcinfo[3]=maxlenmpc;
-  				}
+	  				if(*mortar==0)
+					{
+	      				SFREE(areaslav);
+	  				}
+					else if(*mortar==1)
+					{
+	      				SFREE(pmastsurf);SFREE(ipe);SFREE(ime);SFREE(pslavsurf);
+	      				SFREE(islavact);SFREE(clearini);
+	  				}
+      			} // end if(ncont!=0)
+      			mpcinfo[0]=memmpc_;mpcinfo[1]=mpcfree;mpcinfo[2]=icascade;
+      			mpcinfo[3]=maxlenmpc;
+  			} // end if(*icontact ==1)
 
-  				/* updating the loading at the end of the step;
+  			/* updating the loading at the end of the step;
      			important in case the amplitude at the end of the step
      			is not equal to one */
-  				for(k=0;k<*nboun;++k){xbounold[k]=xbounact[k];}
-  				for(k=0;k<*nforc;++k){xforcold[k]=xforcact[k];}
-  				for(k=0;k<2**nload;++k){xloadold[k]=xloadact[k];}
-  				for(k=0;k<7**nbody;k=k+7){xbodyold[k]=xbodyact[k];}
+  			for(k=0;k<*nboun;++k){xbounold[k]=xbounact[k];}
+  			for(k=0;k<*nforc;++k){xforcold[k]=xforcact[k];}
+  			for(k=0;k<2**nload;++k){xloadold[k]=xloadact[k];}
+  			for(k=0;k<7**nbody;k=k+7){xbodyold[k]=xbodyact[k];}
 
-  				if(*ithermal==1)
-				{
-    				for(k=0;k<*nk;++k){t1old[k]=t1act[k];}
-    				for(k=0;k<*nk;++k){vold[mt*k]=t1act[k];}
-  				}
+  			if(*ithermal==1)
+			{
+    			for(k=0;k<*nk;++k){t1old[k]=t1act[k];}
+    			for(k=0;k<*nk;++k){vold[mt*k]=t1act[k];}
+  			}
 
-  				SFREE(xbounact);SFREE(xforcact);SFREE(xloadact);SFREE(t1act);SFREE(ampli);
-  				SFREE(xbodyact);if(*nbody>0) SFREE(ipobody);SFREE(xstiff);
+  			SFREE(xbounact);
+			SFREE(xforcact);
+			SFREE(xloadact);
+			SFREE(t1act);
+			SFREE(ampli);
+  			SFREE(xbodyact);
+			if(*nbody>0) SFREE(ipobody);
+			SFREE(xstiff);
 
-  				if(iglob!=0)
-				{
-					SFREE(integerglob);
-					SFREE(doubleglob);
-				}
+  			if(iglob!=0)
+			{
+				SFREE(integerglob);
+				SFREE(doubleglob);
+			}
 
-  				*irowp=irow;*enerp=ener;*xstatep=xstate;*ipkonp=ipkon;*lakonp=lakon;
-  				*konp=kon;*ielmatp=ielmat;*ielorienp=ielorien;*icolp=icol;
-  				(*ttime)+=(*tper);
+  			*irowp=irow;*enerp=ener;*xstatep=xstate;*ipkonp=ipkon;*lakonp=lakon;
+  			*konp=kon;*ielmatp=ielmat;*ielorienp=ielorien;*icolp=icol;
+  			(*ttime)+=(*tper);
   			return;
 		}
 	}
