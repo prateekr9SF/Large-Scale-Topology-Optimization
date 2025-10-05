@@ -24,7 +24,7 @@
 
 static char *lakon1,*matname1,*sideload1;
 
-static void *pnorm_explicitmt(ITG *i);
+//static void *pnorm_explicitmt(ITG *i);
 
 static ITG *kon1,*ipkon1,*ne1,*nelcon1,*nrhcon1,*nalcon1,*ielmat1,*ielorien1,
     *norien1,*ntmat1_,*ithermal1,*iprestr1,*iperturb1,*iout1,*nmethod1,
@@ -369,7 +369,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     {
         ithread[i] = i;
 
-        pthread_create(&tid[i], NULL, (void *)pnorm_explicitmt, (void *)&ithread[i]);
+        //pthread_create(&tid[i], NULL, (void *)pnorm_explicitmt, (void *)&ithread[i]);
+
+        pthread_create(&tid[i], NULL,
+            (void *(*)(void *))pnorm_explicitmt, (void *)&ithread[i]);
     }
 
     for (i = 0; i < num_cpus; ++i) 
@@ -671,8 +674,8 @@ void *pnorm_explicitmt(ITG *i)
     FORTRAN(pnorm_explicit,(co1,kon1,ipkon1,lakon1,ne1,
         stx1,mi1,design1,penal1,&sigma01,&eps1,&rhomin1,
         &alpha1,&p1,&nea,&neb,&list1,ilist1,djdrho1));
-
-    return NULL;
+    
+       return NULL;
 }
 
 /* subroutine for multithreading of resultsmech for thermal calculations */

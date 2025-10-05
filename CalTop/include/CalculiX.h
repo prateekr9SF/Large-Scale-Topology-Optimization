@@ -4146,7 +4146,7 @@ void *stresspnormmt(ITG *i);
 
 void *pnormRHSmt(ITG *i);
 
-//void *pnorm_explicitmt(ITG *i)
+void *pnorm_explicitmt(ITG *i);
 
 void *resultsmechmtstr(ITG *i);
 

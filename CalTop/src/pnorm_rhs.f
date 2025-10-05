@@ -80,7 +80,7 @@ c-------- single Gauss point for C3D4
          et     = gauss3d4(2,jj)
          ze     = gauss3d4(3,jj)
          weight = weight3d4(jj)
-
+         
 c-------- shapes & jacobian
          call shape4tet(xi,et,ze,xl,xsj,shp,iflag)
 

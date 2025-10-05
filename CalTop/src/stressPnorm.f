@@ -607,6 +607,7 @@ c     Bernhardi end
 !
             do m1=1,nope
                do m2=1,3
+               
                   do m3=1,3
                      vkl(m2,m3)=vkl(m2,m3)+shp(m3,m1)*vl(m2,m1)
                   enddo
