@@ -84,43 +84,42 @@ c-------- single Gauss point for C3D4
          ze     = gauss3d4(3,jj)
          weight = weight3d4(jj)
          !print *, 'gp=', xi, et, ze, ' w=', weight
-         print *, 'gp= ', xi
 
-!         call shape4tet(xi,et,ze,xl,xsj,shp,iflag)
+         call shape4tet(xi,et,ze,xl,xsj,shp,iflag)
 
 c-------- stresses (Cauchy, Voigt order)
-!         sx  = stx(1,jj,i)
-!         sy  = stx(2,jj,i)
-!         sz  = stx(3,jj,i)
-!         txy = stx(4,jj,i)
-!         txz = stx(5,jj,i)
-!         tyz = stx(6,jj,i)
+         sx  = stx(1,jj,i)
+         sy  = stx(2,jj,i)
+         sz  = stx(3,jj,i)
+         txy = stx(4,jj,i)
+         txz = stx(5,jj,i)
+         tyz = stx(6,jj,i)
 
 c-------- von Mises
-!         vm2 = (sx-sy)*(sx-sy) + (sy-sz)*(sy-sz) + (sz-sx)*(sz-sx)
-!         vm2 = 0.5d0*vm2 + 3.d0*(txy*txy + txz*txz + tyz*tyz)
-!         if (vm2 .le. 0.d0) cycle
-!         vm  = dsqrt(vm2)
+         vm2 = (sx-sy)*(sx-sy) + (sy-sz)*(sy-sz) + (sz-sx)*(sz-sx)
+         vm2 = 0.5d0*vm2 + 3.d0*(txy*txy + txz*txz + tyz*tyz)
+         if (vm2 .le. 0.d0) cycle
+         vm  = dsqrt(vm2)
 
 c-------- phi (same as in resultsmech)
-!         phi = vm/(rho_p*sig0) + eps_relax - eps_relax/rho_eff
-!         if (phi .le. 0.d0) cycle
+         phi = vm/(rho_p*sig0) + eps_relax - eps_relax/rho_eff
+         if (phi .le. 0.d0) cycle
 
 c-------- piecewise derivative of rho_eff = max(rho, rho_min)
-!         if (rho .gt. rho_min) then
-!            heav = 1.d0
-!         else
-!            heav = 0.d0
-!         endif
+         if (rho .gt. rho_min) then
+            heav = 1.d0
+         else
+            heav = 0.d0
+         endif
 
 c-------- dphi/drho (explicit)
-!         dphi = heav * ( - penal*vm/(sig0 * rho_eff**(penal+1)) +
-!     &                   eps_relax/(rho_eff*rho_eff) )
+         dphi = heav * ( - penal*vm/(sig0 * rho_eff**(penal+1)) +
+     &                   eps_relax/(rho_eff*rho_eff) )
 
 c-------- accumulate explicit term for element i
 c         (no extra p outside; alpha = J^(1-p))
-!         djdrho(i) = djdrho(i) + alpha * (phi**(p-1)) * dphi *
-!     &               xsj * weight
+         djdrho(i) = djdrho(i) + alpha * (phi**(p-1)) * dphi *
+     &               xsj * weight
 
       enddo
 
