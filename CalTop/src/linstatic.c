@@ -252,6 +252,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  	islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
     	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
 
+
   		SFREE(v);
 		SFREE(fn);
 		SFREE(brhs);
