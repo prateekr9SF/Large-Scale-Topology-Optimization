@@ -22,6 +22,8 @@
 #include <pthread.h>
 #include "CalculiX.h"
 
+static void *pnorm_explicitmt(void *arg);
+
 static char *lakon1,*matname1,*sideload1;
 
 static ITG *kon1,*ipkon1,*ne1,*nelcon1,*nrhcon1,*nalcon1,*ielmat1,*ielorien1,
@@ -51,6 +53,7 @@ static double *rhs1=NULL;  /* per-thread RHS blocks*/
 //static double *brhs1 = NULL;  /* reduced adjoint RHS (global)*/
 static double p1 = 0.0;   /* p in p-norm */ 
 static double alpha1 = 0.0; /* scalar used in adjoint RHS */
+static double *djdrho1 = NULL;   /* per element sensiticvity dJ/drho_e (size = *ne) */
 
 void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
@@ -236,8 +239,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     fflush(stdout);
 
 
-    /************************************************** */
-    /*  STRESS CALCULATION (P-NORM AGGREGATION) */
+    /************************************************P-NORM AGGREGATION****************************************/
 
     design1 = design;
     penal1  = penal;
@@ -312,23 +314,17 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     SFREE(nebpar); */ // Free after stress calculation
 
 
-    /********************END STRESS CALCULATION *****************/
-    /************************************************************/
+    /******************************P-NORM ADJOINT RHS CALCULATION***************************************/
 
-    /************************************************** */
-    /*  STRESS-ADJOINT RHS CALCULATION */
 
     printf("Assembling RHS for stress adjoint...");
 
     /* Allocate per-thread RHS blocks and the reduced RHS */
     NNEW(rhs1, double, num_cpus * mt * *nk);
-    //NNEW(brhs, double, mt * *nk);
-
-    //brhs1 = brhs;
 
     /* Zero them (CalculiX NNEW doesn't zero by default) */
     for (size_t zz = 0; zz < (size_t)num_cpus * mt * *nk; ++zz) rhs1[zz] = 0.0;
-    //for (size_t zz = 0; zz < (size_t)mt * *nk; ++zz)     brhs1[zz] = 0.0;
+
 
     /* Spawn RHS threads */
     NNEW(ithread, ITG, num_cpus);
@@ -357,10 +353,24 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
     /* Done with per-thread storage*/
 	SFREE(rhs1);
+
+    /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
+
+    /* allocate once per call to results(); zero it */
+    NNEW(djdrho1, double, *ne);
+    for (ITG e = 0; e < *ne; ++e) djdrho1[e] = 0.0;
+
+
+
+
+
+
+    printf("Done!\n");
     SFREE(neapar);
     SFREE(nebpar);
 
-    printf("Done!\n");
+
+    /*********************************************P-NORM CALCULATION ENDS*******************************/
 	
     
     /* determine the internal force */
@@ -629,7 +639,21 @@ void *pnormRHSmt(ITG *i)
     return NULL;
 }
 
-/* subroutine for multithreading of resultsmech */
+/* thread entry for the explicit (density) part of dJ/drho */
+static void *pnorm_explicitmt(void *arg) {
+    ITG id  = *(ITG*)arg;
+    ITG nea = neapar[id] + 1;
+    ITG neb = nebpar[id] + 1;
+    ITG list1 = 0;
+    ITG *ilist1 = NULL;
+
+    FORTRAN(pnorm_explicit,(co1,kon1,ipkon1,lakon1,ne1,
+        stx1,mi1,design1,penal1,&sigma01,&eps1,&rhomin1,
+        &alpha1,&p1,&nea,&neb,&list1,ilist1,djdrho1));
+    return NULL;
+}
+
+/* subroutine for multithreading of resultsmech for thermal calculations */
 
 void *resultsthermmt(ITG *i){
 
