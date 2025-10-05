@@ -105,7 +105,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         *adb=NULL,*pslavsurf=NULL,*pmastsurf=NULL,*cdn=NULL,*cdnr=NULL,
         *cdni=NULL,*submatrix=NULL,*xnoels=NULL,*cg=NULL,*straight=NULL,
         *areaslav=NULL,*xmastnor=NULL,theta=0.,*ener=NULL,*xstate=NULL,
-        *fnext=NULL,*energyini=NULL,*energy=NULL,*d=NULL,alea=0.1, *brhs=NULL;
+        *fnext=NULL,*energyini=NULL,*energy=NULL,*d=NULL,alea=0.1, *brhs=NULL,
+		*djdrho = NULL;
 
 
   		FILE *f1,*f2;
@@ -120,6 +121,14 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   		irow=*irowp;ener=*enerp;xstate=*xstatep;ipkon=*ipkonp;lakon=*lakonp;
   		kon=*konp;ielmat=*ielmatp;ielorien=*ielorienp;icol=*icolp;
+
+	
+		
+
+		//for (ITG e=0; e<ne; ++e) djdrho[e]=0.0;
+
+
+
 
   		for(k=0;k<3;k++)
   		{
@@ -228,6 +237,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   		iout=-1;
   		NNEW(v,double,mt**nk);
+		NNEW(djdrho, double, *ne);
   		NNEW(fn,double,mt**nk);
 		NNEW(brhs,double,mt**nk);
   		//NNEW(stx,double,6*mi[0]**ne); No passing stx as an input argument to linstatic
@@ -250,7 +260,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	  	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  	islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho);
 
 
   		SFREE(v);
@@ -258,6 +268,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		SFREE(brhs);
 		//SFREE(stx); No free stx in main driver
 		SFREE(inum);
+		SFREE(djdrho);
   		iout=1;
 
   		if((*nmethod==1)&&(iglob<0)&&(iperturb[0]>0))
@@ -517,6 +528,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				NNEW(brhs,double,mt**nk);
     			NNEW(stn,double,6**nk);
     			NNEW(inum,ITG,*nk);
+				NNEW(djdrho, double, *ne);
 
     			if(strcmp1(&filab[261],"E   ")==0) NNEW(een,double,6**nk);
     			if(strcmp1(&filab[2697],"ME  ")==0) NNEW(emn,double,6**nk);
@@ -549,7 +561,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho);
 					
 				printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
 
@@ -621,6 +633,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     			SFREE(b);
 				SFREE(fn);
 				SFREE(brhs);
+				SFREE(djdrho);
 
     			if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
     			if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);

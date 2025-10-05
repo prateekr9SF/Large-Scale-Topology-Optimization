@@ -1876,7 +1876,7 @@ void dyna(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp, ITG *n
 	    }
 	}
 
-	results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,
+	/*results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,
 		stx,elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
 		ielmat,ielorien,norien,orab,ntmat_,t0,t1,
 		ithermal,prestr,iprestr,filab,eme,emn,een,
@@ -1895,7 +1895,7 @@ void dyna(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp, ITG *n
 		sideload,xload,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		&mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
                 islavsurf,ielprop,prop,energyini,energy,&iit,iponoel,
-                inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+                inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
 
 	/* restoring */
 

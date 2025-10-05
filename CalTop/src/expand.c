@@ -512,7 +512,7 @@ void expand(double *co, ITG *nk, ITG *kon, ITG *ipkon, char *lakon,
 		}
 	    }
 	    
-	    results(co,nk,kon,ipkon,lakon,ne,&v[kkv],&stn[kk6],inum,
+	    /*results(co,nk,kon,ipkon,lakon,ne,&v[kkv],&stn[kk6],inum,
 	      stx,elcon,
 	      nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,ielorien,
 	      norien,orab,ntmat_,t0,t0,ithermal,
@@ -530,7 +530,7 @@ void expand(double *co, ITG *nk, ITG *kon, ITG *ipkon, char *lakon,
               sideload,xload,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	      &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	      islavsurf,ielprop,prop,energyini,energy,&iit,iponoel,
-	      inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun, design, penal, brhs);
+	      inoel,nener,orname,&network,ipobody,xbody,ibody,typeboun, design, penal, brhs); */
 	    
 	}
 	SFREE(eei);

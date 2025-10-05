@@ -88,7 +88,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        ITG *islavsurf,ITG *ielprop,double *prop,double *energyini,
        double *energy,ITG *kscale,ITG *iponoel,ITG *inoel,ITG *nener,
        char *orname,ITG *network,ITG *ipobody,double *xbody,ITG *ibody,
-       char *typeboun, double *design, double *penal, double *brhs)
+       char *typeboun, double *design, double *penal, double *brhs, double *djdrho)
        
        {
 
@@ -359,8 +359,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
 
     /* allocate once per call to results(); zero it */
-    NNEW(djdrho1, double, *ne);
-    for (ITG e = 0; e < *ne; ++e) djdrho1[e] = 0.0;
+    //NNEW(djdrho1, double, *ne);
+    //for (ITG e = 0; e < *ne; ++e) djdrho1[e] = 0.0;
+
+    djdrho1 = djdrho;
 
     /* allocate per-thread indices */
     NNEW(ithread, ITG, num_cpus);

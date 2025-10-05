@@ -748,7 +748,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       NNEW(stx,double,6*mi[0]**ne);
       
       NNEW(inum,ITG,*nk);
-      results(co,nk,kon,ipkon,lakon,ne,vold,stn,inum,stx,
+      /*results(co,nk,kon,ipkon,lakon,ne,vold,stn,inum,stx,
 	      elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	      ielorien,norien,orab,ntmat_,t0,t1old,ithermal,
 	      prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -766,7 +766,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	      islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
               inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
-      
+      */
       SFREE(fn);SFREE(stx);SFREE(inum);
       
       iout=0;
@@ -926,7 +926,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
       NNEW(inum,ITG,*nk);
       dtime=1.235711130e-20;
-      results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+      /*results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	      elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	      ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 	      prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -943,7 +943,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	      mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
               islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-              inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+              inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
       SFREE(inum);
       dtime=0.;
 
@@ -1531,7 +1531,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  
 	  for(k=0;k<neq[1];++k){b[k]=f[k];}
 	  NNEW(inum,ITG,*nk);
-	  results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+	  /*results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 		  ielorien,norien,orab,ntmat_,t1ini,t1act,ithermal,
 		  prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -1548,7 +1548,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		  mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
                   islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-                  inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+                  inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
 	  iperturb[0]=0;SFREE(inum);
 	  
 	  /* check whether any displacements or temperatures are changed
@@ -1560,7 +1560,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       else{
 	  
 	  NNEW(inum,ITG,*nk);
-	  results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+	 /* results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 		  ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 		  prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -1577,7 +1577,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		  mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
                   islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-                  inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+                  inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
 	  SFREE(inum);
 	  
 	  memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
@@ -1797,7 +1797,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      iout=-1;
 	      
 	      NNEW(inum,ITG,*nk);
-	      results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+	     /* results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	        elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 		ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 		prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -1814,7 +1814,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                 sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 		mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-		inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design,penal, brhs);
+		inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design,penal, brhs); */
 	  
 	      memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
 	      
@@ -2244,7 +2244,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       NNEW(fn,double,mt**nk);
       
       NNEW(inum,ITG,*nk);
-      results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+      /*results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	      elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	      ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 	      prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -2261,7 +2261,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	      mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
               islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-              inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+              inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
       SFREE(inum);
 
       /* implicit dynamics (Matteo Pacher) */
@@ -2348,7 +2348,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  NNEW(fn,double,mt**nk);
 	  
 	  NNEW(inum,ITG,*nk);
-	  results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+	  /* results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	      elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	      ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 	      prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -2365,7 +2365,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	      sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	      mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	      islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-	      inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+	      inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
 	  SFREE(inum);
       }
       
@@ -2726,7 +2726,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 #ifdef COMPANY
       FORTRAN(uinit,());
 #endif
-      results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+   /*  results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	      elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	      ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 	      prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -2743,7 +2743,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
               sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
               mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	      islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-              inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+              inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
       
       memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
 
@@ -2829,7 +2829,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 #ifdef COMPANY
     FORTRAN(uinit,());
 #endif
-    results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+  /*  results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	    ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 	    prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -2846,7 +2846,7 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+            inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
     
     memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
 

@@ -437,7 +437,7 @@ void electromagnetics(double **cop, ITG *nk, ITG **konp, ITG **ipkonp,
   NNEW(inum,ITG,*nk);
   NNEW(v,double,mt**nk);
 
-  results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+  /*results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	  ielorien,norien,orab,ntmat_,t0,t1act,&ithermalact,
 	  prestr,iprestr,filab,eme,emn,een,iperturb,f,fn,nactdof,&iout,
@@ -453,7 +453,7 @@ void electromagnetics(double **cop, ITG *nk, ITG **konp, ITG **ipkonp,
 	  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
           &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
   
   SFREE(fn);SFREE(inum);SFREE(v);
   
@@ -550,7 +550,7 @@ void electromagnetics(double **cop, ITG *nk, ITG **konp, ITG **ipkonp,
   NNEW(fn,double,mt**nk);
   
   NNEW(inum,ITG,*nk);
-  results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+  /*results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	  ielorien,norien,orab,ntmat_,t0,t1act,&ithermalact,
 	  prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -567,7 +567,7 @@ void electromagnetics(double **cop, ITG *nk, ITG **konp, ITG **ipkonp,
 	  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
           &mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs);
+          inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs); */
   
 //  memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
   
