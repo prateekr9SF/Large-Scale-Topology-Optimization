@@ -22,9 +22,9 @@
 #include <pthread.h>
 #include "CalculiX.h"
 
-static void *pnorm_explicitmt(void *arg);
-
 static char *lakon1,*matname1,*sideload1;
+
+static void *pnorm_explicitmt(ITG *i);
 
 static ITG *kon1,*ipkon1,*ne1,*nelcon1,*nrhcon1,*nalcon1,*ielmat1,*ielorien1,
     *norien1,*ntmat1_,*ithermal1,*iprestr1,*iperturb1,*iout1,*nmethod1,
@@ -284,7 +284,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     {
         // Compute P-norm based on Duysinx and Sigmund 2012
         J = pow(sumP, 1.0 / p1);
-        alpha1 = pow(sumP, (1.0 /p1 ) - 1.0);
+        alpha1 = pow(J, (1.0 - p1));
     }
     else
     {
@@ -312,6 +312,8 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     SFREE(ithread);
     /*SFREE(neapar);
     SFREE(nebpar); */ // Free after stress calculation
+
+
 
 
     /******************************P-NORM ADJOINT RHS CALCULATION***************************************/
@@ -360,9 +362,27 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     NNEW(djdrho1, double, *ne);
     for (ITG e = 0; e < *ne; ++e) djdrho1[e] = 0.0;
 
+    /* allocate per-thread indices */
+    NNEW(ithread, ITG, num_cpus);
+
+   for (i = 0; i < num_cpus; ++i) 
+    {
+        ithread[i] = i;
+
+        pthread_create(&tid[i], NULL, (void *)pnorm_explicitmt, (void *)&ithread[i]);
+    }
+
+    for (i = 0; i < num_cpus; ++i) 
+    {
+        pthread_join(tid[i], NULL);
+    }
+
+    
+
+    SFREE(ithread);  
 
 
-
+    printf("Explicit dJ/drho assembled.\n");
 
 
     printf("Done!\n");
@@ -640,16 +660,18 @@ void *pnormRHSmt(ITG *i)
 }
 
 /* thread entry for the explicit (density) part of dJ/drho */
-static void *pnorm_explicitmt(void *arg) {
-    ITG id  = *(ITG*)arg;
-    ITG nea = neapar[id] + 1;
-    ITG neb = nebpar[id] + 1;
+void *pnorm_explicitmt(ITG *i)
+{
+    ITG nea  = neapar[*i] + 1;
+    ITG neb  = nebpar[*i] + 1;
     ITG list1 = 0;
     ITG *ilist1 = NULL;
 
+    /* Writes into djdrho1[e] for e in [nea..neb] inside the Fortran code */
     FORTRAN(pnorm_explicit,(co1,kon1,ipkon1,lakon1,ne1,
         stx1,mi1,design1,penal1,&sigma01,&eps1,&rhomin1,
         &alpha1,&p1,&nea,&neb,&list1,ilist1,djdrho1));
+
     return NULL;
 }
 
