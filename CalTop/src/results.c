@@ -42,18 +42,22 @@ static double *co1,*v1,*stx1,*elcon1,*rhcon1,*alcon1,*alzero1,*orab1,*t01,*t11,
     *cocon1,*qfx1,*thicke1,*emeini1,*shcon1,*xload1,*prop1,
     *xloadold1,*pslavsurf1,*pmastsurf1,*clearini1,*xbody1;
 
-    static double sigma01 = 1.0;     /* your allowable stress */
-static double eps1    = 1e-3;    /* same eps_relax used in resultsmech */
-static double rhomin1 = 1e-3;    /* same rho_min        */
+/* Stress aggregation terms */
+static double *sigma01, *eps1, *rhomin1, *pexp1;
+static double *djdrho_explicit1 = NULL;
+
+//    static double sigma01 = 1.0;     /* your allowable stress */
+//static double eps1    = 1e-3;    /* same eps_relax used in resultsmech */
+//static double rhomin1 = 1e-3;    /* same rho_min        */
 
 
 
 static double *design1, *penal1; /* Element densities and penalization paramter*/
 static double *rhs1=NULL;  /* per-thread RHS blocks*/
 //static double *brhs1 = NULL;  /* reduced adjoint RHS (global)*/
-static double p1 = 0.0;   /* p in p-norm */ 
+//static double p1 = 0.0;   /* p in p-norm */ 
 static double alpha1 = 0.0; /* scalar used in adjoint RHS */
-static double *djdrho1 = NULL;   /* per element sensiticvity dJ/drho_e (size = *ne) */
+//static double *djdrho1 = NULL;   /* per element sensiticvity dJ/drho_e (size = *ne) */
 
 void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
@@ -88,7 +92,8 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        ITG *islavsurf,ITG *ielprop,double *prop,double *energyini,
        double *energy,ITG *kscale,ITG *iponoel,ITG *inoel,ITG *nener,
        char *orname,ITG *network,ITG *ipobody,double *xbody,ITG *ibody,
-       char *typeboun, double *design, double *penal, double *brhs, double *djdrho, int get_adjoint)
+       char *typeboun, double *design, double *penal, double *sigma0, double *eps, double *rhomin,
+       double *pexp, double *brhs, double *djdrho_explicit, int get_adjoint)
        
        {
 
@@ -242,7 +247,9 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         nener1=nener;ikin1=ikin;mt1=mt;nk1=nk;ne01=ne0;thicke1=thicke;
         emeini1=emeini;pslavsurf1=pslavsurf;clearini1=clearini;
         pmastsurf1=pmastsurf;mortar1=mortar;ielprop1=ielprop;prop1=prop;
-        kscale1=kscale;
+        kscale1=kscale, sigma01 = sigma0, eps1 = eps, rhomin1 = rhomin, pexp1 = pexp;
+
+        //static double *sigma01, *eps1, *rhomin1, *pexp1, *djdrho1_explicit = NULL;
 
 	/* calculating the stresses */
 	
@@ -389,7 +396,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
         /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
 
-        djdrho1 = djdrho;
+        djdrho_explicit11 = djdrho_explicit;
 
         /* allocate per-thread indices */
         NNEW(ithread, ITG, num_cpus);

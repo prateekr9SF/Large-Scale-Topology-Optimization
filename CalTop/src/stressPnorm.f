@@ -26,7 +26,7 @@
      &  springarea,reltime,calcul_fn,calcul_qa,calcul_cauchy,nener,
      &  ikin,nal,ne0,thicke,emeini,pslavsurf,
      &  pmastsurf,mortar,clearini,nea,neb,ielprop,prop,kscale,
-     &  list,ilist, design, penal)
+     &  list,ilist, design, penal, sig0, eps_relax, rho_min, pexp)
 !
 !
 
@@ -93,7 +93,7 @@
      &  springarea,reltime,calcul_fn,calcul_qa,calcul_cauchy,nener,
      &  ikin,ne0,thicke,pslavsurf,
      &  pmastsurf,mortar,clearini,nea,neb,ielprop,prop,kscale,
-     &  list,ilist
+     &  list,ilist,design, penal, sig0, eps_relax, rho_min, pexp
 !
       intent(inout) nal,qa,fn,xstiff,ener,eme,eei,stx,ielmat,prestr,
      &  emeini
@@ -111,15 +111,15 @@
       ! --- INIT global p-norm accumulators ---
       g_sump = 0.d0
       g_vol  = 0.d0
-      pexp = 4.d0     ! choose your global p
+      !pexp = 4.d0     ! choose your global p
 
 
 
 
       ! SIMP constants (tweak as needed)
-      rho_min = 1.d-3      ! small stiffness floor
-      eps_relax = 1.d-3    ! stress relaxation paramter to avoid singularity
-      sig0 = 1.d0          ! set to thr allowable stress
+      !rho_min = 1.d-3      ! small stiffness floor
+      !eps_relax = 1.d-3    ! stress relaxation paramter to avoid singularity
+      !sig0 = 1.d0          ! set to thr allowable stress
 !
       do m=nea,neb
 !
