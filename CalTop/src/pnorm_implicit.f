@@ -24,7 +24,7 @@ c      nea,neb             : element range (can pass 1,ne)
 c      list, ilist(*)      : optional selection; if list=1 use ilist(k)
 c
 c    Output:
-c      djdrho(ne)          : accumulates the implicit contribution
+c      djdrho_impl(ne)          : accumulates the implicit contribution
 
       implicit none
 
@@ -57,10 +57,6 @@ c--- locals
 
 c--- Gauss rule (C3D4, 1 point)
       include 'gauss.f'
-
-c--- simple clamps
-      real*8 zero, one
-      parameter (zero=0.d0, one=1.d0)
 
 c--- init
       iflag = 3
@@ -145,8 +141,8 @@ c------ lambda^T * (K0 u)
 
 c------ ce = penal * rho^(penal-1)   (same logic as e_c3d_se.f)
          rho = design(i)
-         if (rho.lt.zero) rho = zero
-         if (rho.gt.one ) rho = one
+         if (rho .lt. 0.d0) rho = 0.d0
+         if (rho .gt. 1.d0 ) rho = 1.d0
          if (rho.le.0.d0) then
             ce = 0.d0
          else

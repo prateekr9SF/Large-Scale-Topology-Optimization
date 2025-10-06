@@ -4140,6 +4140,25 @@ void FORTRAN(pnorm_explicit,(double *co,ITG *kon,ITG *ipkon,char *lakon,
 		ITG *ne, double *stx, ITG *mi, double *design, double *penal, double *sigma01, double* eps1, double *rhomin1,
         double *alpha1, double *pexp, ITG *nea,ITG *neb, ITG *list, ITG *ilist, double *djdrho));
 
+void FORTRAN(pnorm_implicit_c3d4,
+( double *co,        /* 3*nk */
+  ITG    *kon,       /* connectivity */
+  ITG    *ipkon,     /* elem -> kon pointer */
+  char   *lakon,     /* element type char*8 per elem */
+  ITG    *ne,        /* #elements */
+  ITG    *mi,        /* CCX size array */
+  double *xstiff,    /* (27,mi(1),ne) packed D */
+  double *v,         /* primal nodal field */
+  double *lam,       /* adjoint nodal field */
+  double *design,    /* element densities */
+  double *penal,     /* SIMP exponent (by ref) */
+  ITG    *nea,       /* start element index */
+  ITG    *neb,       /* end element index */
+  ITG    *list,      /* 0: all, 1: use ilist */
+  ITG    *ilist,     /* optional selection list */
+  double *djdrho     /* output sensitivity per element */
+));
+
 void *resultsmechmt(ITG *i);
 
 void *stresspnormmt(ITG *i);

@@ -106,7 +106,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         *cdni=NULL,*submatrix=NULL,*xnoels=NULL,*cg=NULL,*straight=NULL,
         *areaslav=NULL,*xmastnor=NULL,theta=0.,*ener=NULL,*xstate=NULL,
         *fnext=NULL,*energyini=NULL,*energy=NULL,*d=NULL,alea=0.1, *brhs=NULL,
-		*djdrho = NULL;
+		*djdrho_expl = NULL, *djdrho_impl = NULL;
 
 
   		FILE *f1,*f2;
@@ -238,7 +238,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   		iout=-1;
   		NNEW(v,double,mt**nk);
-		NNEW(djdrho, double, *ne);
+		NNEW(djdrho_expl, double, *ne);
   		NNEW(fn,double,mt**nk);
 		NNEW(brhs,double,mt**nk);
   		//NNEW(stx,double,6*mi[0]**ne); No passing stx as an input argument to linstatic
@@ -261,7 +261,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	  	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  	islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho, 0);
+    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho_expl, 0);
 
 
   		SFREE(v);
@@ -269,7 +269,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		SFREE(brhs);
 		//SFREE(stx); No free stx in main driver
 		SFREE(inum);
-		SFREE(djdrho);
+		SFREE(djdrho_expl);
   		iout=1;
 
   		if((*nmethod==1)&&(iglob<0)&&(iperturb[0]>0))
@@ -529,7 +529,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				NNEW(brhs,double,mt**nk);
     			NNEW(stn,double,6**nk);
     			NNEW(inum,ITG,*nk);
-				NNEW(djdrho, double, *ne);
+				NNEW(djdrho_expl, double, *ne);
 
     			if(strcmp1(&filab[261],"E   ")==0) NNEW(een,double,6**nk);
     			if(strcmp1(&filab[2697],"ME  ")==0) NNEW(emn,double,6**nk);
@@ -562,7 +562,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho, 1);
+            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho_expl, 1);
 					
 				printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
 
@@ -592,7 +592,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				NNEW(stn, double, 6**nk);
 				NNEW(inum, ITG, *nk);
 				int iout = -1;
-
+				
+				/* Call results with adjoint flag = 2 to expand active DOF vector to nodal field*/
 				results(co,nk,kon,ipkon,lakon,ne,
         		lam,
         		stn,inum,stx,
@@ -611,6 +612,28 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         		islavnode,nslavnode,ntie,clearini,islavsurf,ielprop,prop,
         		energyini,energy,&kscale,iponoel,inoel,nener,orname,&network,
         		ipobody,xbodyact,ibody,typeboun,design,penal, NULL,NULL, 2);
+				
+
+				/* Allocate memory for implicit derivative*/
+				NNEW(djdrho_impl, double, *ne);
+				
+				/* Work on all elements */
+				ITG nea_loc = 1, neb_loc = *ne, list_loc = 0;
+				ITG *ilist_loc = NULL;
+
+				DMEMSET(djdrho_impl,0,*ne,0.0);
+
+				/* call Fortran:
+   				- primal nodal field: use vold (current solution in CCX)
+   				- adjoint nodal field: lam (just expanded)
+				*/
+				FORTRAN(pnorm_implicit_c3d4,(co,kon,ipkon,lakon,ne,mi,
+        		xstiff, vold, lam, design, penal,
+        		&nea_loc, &neb_loc, &list_loc, ilist_loc, djdrho_impl));
+
+
+
+
 
 
 				// All linear system calculations are complete, free terms
@@ -665,7 +688,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     			SFREE(b);
 				SFREE(fn);
 				SFREE(brhs);
-				SFREE(djdrho);
+				SFREE(djdrho_expl);
+				SFREE(djdrho_impl);
 
     			if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
     			if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);
