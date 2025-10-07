@@ -247,7 +247,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         nener1=nener;ikin1=ikin;mt1=mt;nk1=nk;ne01=ne0;thicke1=thicke;
         emeini1=emeini;pslavsurf1=pslavsurf;clearini1=clearini;
         pmastsurf1=pmastsurf;mortar1=mortar;ielprop1=ielprop;prop1=prop;
-        kscale1=kscale, sigma01 = sigma0, eps1 = eps, rhomin1 = rhomin, pexp1 = pexp;
+        kscale1=kscale; sigma01 = sigma0; eps1 = eps; rhomin1 = rhomin; pexp1 = pexp;
 
         //static double *sigma01, *eps1, *rhomin1, *pexp1, *djdrho1_explicit = NULL;
 
@@ -283,6 +283,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             pthread_create(&tid[i], NULL, (void *)stresspnormmt, (void *)&ithread[i]);
     	}
         for(i=0; i<num_cpus; i++)  pthread_join(tid[i], NULL);
+
+        SFREE(neapar);
+        SFREE(nebpar);
+
     }
 
     if (get_adjoint == 1)
@@ -312,7 +316,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         }
 
         /* must match the exponent used inside resultsmech() */
-        p1 = 4.0;
+        const double p = *pexp1; 
 
         double J = 0.0;     /*  stress p-norm */
         alpha1 = 0.0;       /* scalar used in adjoint RHS */
@@ -321,8 +325,8 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         if (sumP > 0.0)
         {
             // Compute P-norm based on Duysinx and Sigmund 2012
-            J = pow(sumP, 1.0 / p1);
-            alpha1 = pow(J, (1.0 - p1));
+            J = pow(sumP, 1.0 / p);
+            alpha1 = pow(J, (1.0 - p));
         }
         else
         {
@@ -396,7 +400,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
         /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
 
-        djdrho_explicit11 = djdrho_explicit;
+        djdrho_explicit1 = djdrho_explicit;
 
         /* allocate per-thread indices */
         NNEW(ithread, ITG, num_cpus);
@@ -670,7 +674,7 @@ void *stresspnormmt(ITG *i)
           springarea1,reltime1,&calcul_fn1,&calcul_qa1,&calcul_cauchy1,nener1,
 	  &ikin1,&nal[indexnal],ne01,thicke1,emeini1,
 	  pslavsurf1,pmastsurf1,mortar1,clearini1,&nea,&neb,ielprop1,prop1,
-	  kscale1,&list1,ilist1, design1, penal1));
+	  kscale1,&list1,ilist1, design1, penal1, sigma01, eps1, rhomin1, pexp1));
     return NULL;
 }
 
@@ -687,8 +691,8 @@ void *pnormRHSmt(ITG *i)
     neb = nebpar[*i] + 1;
 
     FORTRAN(pnorm_rhs,(co1,kon1,ipkon1,lakon1,ne1,
-    stx1,xstiff1,mi1,&rhs1[indexrhs],&alpha1,&p1,design1,penal1,
-    &sigma01,&eps1,&rhomin1,
+    stx1,xstiff1,mi1,&rhs1[indexrhs],&alpha1,pexp1,design1,penal1,
+    sigma01,eps1,rhomin1,
     &nea,&neb,&list1,ilist1));
     return NULL;
 }
@@ -703,8 +707,8 @@ void *pnorm_explicitmt(ITG *i)
 
     /* Writes into djdrho1[e] for e in [nea..neb] inside the Fortran code */
     FORTRAN(pnorm_explicit,(co1,kon1,ipkon1,lakon1,ne1,
-        stx1,mi1,design1,penal1,&sigma01,&eps1,&rhomin1,
-        &alpha1,&p1,&nea,&neb,&list1,ilist1,djdrho1));
+        stx1,mi1,design1,penal1,sigma01,eps1,rhomin1,
+        &alpha1,pexp1,&nea,&neb,&list1,ilist1,djdrho_explicit1));
     
        return NULL;
 }

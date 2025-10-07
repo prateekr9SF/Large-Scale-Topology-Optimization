@@ -4134,7 +4134,8 @@ void FORTRAN(stresspnorm,(double *co,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 	  ITG *iener,ITG *ikin,ITG *nal,ITG *ne0,double *thicke,
 	  double *emeini,double *pslavsurf,double *pmastsurf,ITG *mortar,
 	  double *clearini,ITG *nea,ITG *neb,ITG *ielprop,double *prop,
-	  ITG *kscale,ITG *list,ITG *ilist, double* design, double* penal));
+	  ITG *kscale,ITG *list,ITG *ilist, double* design, double* penal, double *sigma0, double *eps,
+	  double * rhomin, double *pexp));
 
 void FORTRAN(pnorm_explicit,(double *co,ITG *kon,ITG *ipkon,char *lakon,
 		ITG *ne, double *stx, ITG *mi, double *design, double *penal, double *sigma01, double* eps1, double *rhomin1,

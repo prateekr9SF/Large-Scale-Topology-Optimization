@@ -1,6 +1,6 @@
       subroutine pnorm_explicit(co,kon,ipkon,lakon,ne,
      &     stx,mi,design,penal,sig0,eps_relax,rho_min,
-     &     alpha,p,nea,neb,list,ilist,djdrho)
+     &     alpha,pexp,nea,neb,list,ilist,djdrho)
 
 c  Explicit term for dJ/drho_e (epsilon-relaxed, unnormalized p-norm)
 c
@@ -26,7 +26,7 @@ c--- stresses at IPs
 
 c--- design / params
       real*8 design(*),penal,sig0,eps_relax,rho_min
-      real*8 alpha,p
+      real*8 alpha,pexp
 
 c--- output: per-element explicit sensitivity
       real*8 djdrho(*)
@@ -117,7 +117,7 @@ c-------- dphi/drho (explicit)
      &                   eps_relax/(rho_eff*rho_eff) )
 
 c-------- accumulate explicit term for element i
-         djdrho(i) = djdrho(i) + alpha * p* (phi**(p-1)) * dphi *
+         djdrho(i) = djdrho(i) + alpha * pexp* (phi**(pexp-1)) * dphi *
      &               xsj * weight
 
       enddo
