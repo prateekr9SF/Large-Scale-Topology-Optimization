@@ -109,6 +109,13 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		*djdrho_expl = NULL, *djdrho_impl = NULL;
 
 
+
+		/* p-norm / stress aggregation parameters */
+		double sigma0 = 1.0;     /* allowable stress or scaling */
+		double eps   = 1e-3;    /* small relax epsilon */
+		double rhomin = 1e-3;    /* minimum density */
+		double pexp   = 8.0;     /* p-exponent for aggregation */
+
   		FILE *f1,*f2;
 
 		#ifdef SGI
@@ -261,7 +268,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	  	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  	islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho_expl, 0);
+    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, &sigma0, &eps, &rhomin,&pexp, brhs, djdrho_expl, 0);
 
 
   		SFREE(v);
@@ -562,7 +569,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, brhs, djdrho_expl, 1);
+            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, &sigma0, &eps, &rhomin, &pexp, brhs, djdrho_expl, 1);
 					
 				printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
 
@@ -611,7 +618,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         		xloadold,&icfd,inomat,pslavsurf,pmastsurf,mortar,islavact,cdn,
         		islavnode,nslavnode,ntie,clearini,islavsurf,ielprop,prop,
         		energyini,energy,&kscale,iponoel,inoel,nener,orname,&network,
-        		ipobody,xbodyact,ibody,typeboun,design,penal, NULL,NULL, 2);
+        		ipobody,xbodyact,ibody,typeboun,design,penal, &sigma0, &eps, &rhomin, &pexp, NULL,NULL, 2);
 				
 
 				/* Allocate memory for implicit derivative*/

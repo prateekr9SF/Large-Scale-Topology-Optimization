@@ -4055,7 +4055,8 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
              ITG *islavsurf,ITG *ielprop,double *prop,double *energyini,
              double *energy,ITG *kscale,ITG *iponoel,ITG *inoel,ITG *nener,
              char *orname,ITG *network,ITG *ipobody,double *xbodyact,
-             ITG *ibody,char *typeboun, double *design, double *penal, double *brhs, double *djdrho, int get_adjoint);
+             ITG *ibody,char *typeboun, double *design, double *penal,  double * sigma0, double *eps, double *rhomin,
+			 double *pexp, double *brhs, double *djdrho, int get_adjoint);
 
 void FORTRAN(resultsem,(double *co,ITG *kon,ITG *ipkon,char *lakon,
              double *v,double *elcon,ITG *nelcon,ITG *ielmat,ITG *ntmat_,
