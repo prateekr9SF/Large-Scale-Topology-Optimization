@@ -252,7 +252,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         //static double *sigma01, *eps1, *rhomin1, *pexp1, *djdrho1_explicit = NULL;
 
 	/* calculating the stresses */
-	
+	/*
 	if(((*nmethod!=4)&&(*nmethod!=5))||(iperturb[0]>1))
     {
         printf("I am in results.c \n");
@@ -260,10 +260,12 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 		printf("Using up to %" ITGFORMAT " cpu(s) for the stress calculation.\n\n", num_cpus);
 	}
 
+    */
+
 
     fflush(stdout);
 
-    printf("Current exponent in results(): %f", *pexp1);
+    //printf("Current exponent in results(): %f", *pexp1);
 
 
     /************************************************P-NORM AGGREGATION****************************************/
@@ -277,7 +279,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
     if (get_adjoint == 0)
     {
-        printf("Will compute stress components only\n");
+        printf(" Initializing fields...");
         for(i=0; i<num_cpus; i++)  
         {
 	        ithread[i]=i;
@@ -288,18 +290,18 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
         SFREE(neapar);
         SFREE(nebpar);
+        printf("done!\n");
 
     }
 
     if (get_adjoint == 1)
     {   
-        printf("Evaluating stress adjoint terms \n");
+        printf(" Evaluating stress adjoint terms \n");
 
         printf(" Results.c Pexp: %f, \n", *pexp1);
         printf(" Results.c Sigma0: %f, \n", *sigma0);
         printf(" Results.c rhomin: %f, \n", *rhomin1);
         printf(" Results.c Eps-relax: %f, \n", *eps1);
-        printf("Curent Pnorm value: %f, \n", *Pnorm);
 
 	    for(i=0; i<num_cpus; i++)  
         {
@@ -342,10 +344,12 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             *Pnorm = 0.0;
             alpha1 = 0.0;
         }
+        // Debug only
 
+        /*
         printf("sumP (unnormalized): %.12e\n", sumP);
         printf("J (p-norm)        : %.12e\n", *Pnorm);
-        printf("alpha1 = J^(1-p2)  : %.12e\n", alpha1);
+        printf("alpha1 = J^(1-p2)  : %.12e\n", alpha1); */
     }  // end adjoint condition
 
 
@@ -372,7 +376,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     if (get_adjoint == 1)
     {
 
-        printf("Assembling RHS for stress adjoint...");
+        printf(" Assembling RHS for stress adjoint...");
 
         /* Allocate per-thread RHS blocks and the reduced RHS */
         NNEW(rhs1, double, num_cpus * mt * *nk);
@@ -406,10 +410,13 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
         /* Done with per-thread storage*/
 	    SFREE(rhs1);
+        printf("done!");
 
         /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
 
         djdrho_explicit1 = djdrho_explicit;
+
+        printf(" Assembling explicit term...");
 
         /* allocate per-thread indices */
         NNEW(ithread, ITG, num_cpus);
@@ -429,10 +436,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         SFREE(ithread);  
 
 
-        printf("Explicit dJ/drho assembled.\n");
+        //printf(" Explicit dJ/drho assembled.\n");
 
 
-        printf("Done!\n");
+        printf("done!\n");
         SFREE(neapar);
         SFREE(nebpar);
 

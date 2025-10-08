@@ -115,7 +115,7 @@ void filterSensitivity_bin_buffered_mts(const double *SensIn,
 
     if (env && *env) { int tmp = atoi(env); if (tmp > 0) num_threads = tmp; }
 
-    printf("filterSensitivity_onepass_bin: using %d thread(s)\n", num_threads);
+    printf("using %d thread(s) ", num_threads);
 
     // Load row sums from binary
     FILE *frs = fopen("dsum.bin","rb");
@@ -195,5 +195,5 @@ void filterSensitivity_bin_buffered_mts(const double *SensIn,
 
     //printf("Processed %lld triplets (binary)\n", total_read);
 
-    printf("Processed %" PRId64 " triplets (binary)\n", total_read); // new
+    //printf("Processed %" PRId64 " triplets (binary)\n", total_read); // new
 }

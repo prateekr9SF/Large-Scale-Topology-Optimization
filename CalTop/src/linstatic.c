@@ -76,10 +76,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			double *rhomin, double *pexp, double *Pnorm)
 	{
 
-		printf("Current exponsnet in linstaitc: %f \n", *pexp);
-		printf("Current sigma0 %f \n", *sigma0);
-
-
   		char description[13]="            ",*lakon=NULL,stiffmatrix[132]="",
        	fneig[132]="",jobnamef[396]="";
 
@@ -210,7 +206,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
       		RENEW(ipobody,ITG,2*(ifreebody-1));
 
-			printf("done!\n");
+			printf(" done!\n");
   		}
 
   		/* allocating a field for the instantaneous amplitude */
@@ -352,7 +348,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			/*############################################################################################*/
 			/* linear static calculation */
 
-			printf("Starting linstatic calculation...\n");
+			printf(" Starting linstatic calculation...\n");
       		NNEW(au,double,*nzs);
       		nmethodl=*nmethod;
 
@@ -418,7 +414,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   		/* determining the right hand side */
 
-		printf("Computing the Right Hand Side after mafillsmas...");
+		//printf(" Computing the Right Hand Side after mafillsmas...");
   		NNEW(b,double,*neq);
 
 		double res_l2 = 0.0;   // ||b||_2
@@ -433,9 +429,9 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 		res_l2 = sqrt(res_l2);
 
-		printf("L2-norm : %f \n", res_l2);
+		//printf("L2-norm : %f \n", res_l2);
 
-		printf("done!\n");
+		//printf("done!\n");
 
 
   		SFREE(fext);
@@ -443,9 +439,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 		if(*nmethod!=0)
 		{
-
-			printf("current nmethod : %d \n", *nmethod);
-
    			/* linear static applications */
     		if(*isolver==0)
 			{
@@ -501,16 +494,16 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			{
 				#ifdef PARDISO
 				// Call PARDISO to solve linear system
-				printf("Calling PARSIDO from linstatic.c \n");
+				//printf("Calling PARSIDO from linstatic.c \n");
       			//pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,neq,nzs,
 		   		//&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
 
-				printf("PARDISO: factorizing K...\n");
+				printf(" PARDISO: factorizing K...\n");
 				pardiso_factor(ad,au,adb,aub,&sigma,  /* adb/aub may be NULL if unused */
                		icol,irow,neq,nzs,&symmetryflag,&inputformat,jq,&nzs[2]);
 
 				/* --- Primal solve: K u = b --- */
-				printf("PARDISO: solving primal...\n");
+				printf(" PARDISO: solving primal...\n");
 				pardiso_solve(b,neq,&symmetryflag,&nrhs);
 
 				#else
@@ -557,7 +550,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				}
 
 
-				printf("Calling results.c in linstatic.c...");
+				//printf("Calling results.c in linstatic.c...");
     			results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    		elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	    		ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
@@ -576,9 +569,9 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
             	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, 1);
 					
-				printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
+				//printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
 
-				printf("Current symmetry flag: %d", symmetryflag);
+				//printf("Current symmetry flag: %d", symmetryflag);
 
 				
 				double *b_adj = NULL;
@@ -594,7 +587,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                        		coefmpc,labmpc,nmpc,mi,fmpc,&calc_fn,&calc_f));
 					
 
-				printf("Calling PARSIDO from linstatic.c to solve the stress adjoint system \n");
+				printf(" PARSIDO: adjoint solve \n");
       			pardiso_solve(b_adj, neq, &symmetryflag, &nrhs);
 	
 				// At this point we have the explicit and adjoint variables.
@@ -643,10 +636,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				FORTRAN(pnorm_implicit_c3d4,(co,kon,ipkon,lakon,ne,mi,
         		xstiff, vold, lam, design, penal,
         		&nea_loc, &neb_loc, &list_loc, ilist_loc, djdrho_impl));
-
-
-
-
 
 
 				// All linear system calculations are complete, free terms

@@ -123,7 +123,7 @@ void filterSensitivity_bin_buffered_mts_multi(const double * const *SensInArr,
         int tmp = atoi(env);
         if (tmp > 0) num_threads = tmp;
     }
-    printf("filterSensitivity_onepass_bin (multi): using %d thread(s)\n", num_threads);
+    printf(" using %d thread(s) ", num_threads);
 
     // load donor row sums
     FILE *frs = fopen("dsum.bin","rb");
@@ -223,7 +223,7 @@ void filterSensitivity_bin_buffered_mts_multi(const double * const *SensInArr,
     free(row_sum); free(threads); free(targs);
 
     //printf("Processed %lld triplets (binary)\n", total_read);
-    printf("Processed %" PRId64 " triplets (binary)\n", total_read);
+    //printf("Processed %" PRId64 " triplets (binary)\n", total_read);
 }
 
 // Convenience wrapper for exactly 3 sensitivities (CGx, CGy, CGz)

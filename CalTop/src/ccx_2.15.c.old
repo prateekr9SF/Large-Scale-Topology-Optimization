@@ -1777,21 +1777,28 @@ while(istat>=0)
 	      FORTRAN(stop,());
 	    }
 
-      printf("\n#------------------------------TOPOLOGY OPTIMIZATION PARAMTERS----------------------------#\n");
-      printf("Penalty parameter                 %.2f\n", pstiff);
-      printf("Density filter radius             %.2f\n", rmin);
-      printf("Filter Order                      %.2f\n", qfilter);
-      printf("Volume fraction                   %.2f\n", volfrac);
-      printf("Non zeros in Filtermatrix         %d\n", fnnzassumed);
-      printf("#-----------------------------------------------------------------------------------------#\n");
+      printf("\nTOPOLOGY OPTIMIZATION PARAMTERS----------------------------|\n");
+      printf("SIMP \n");
+      printf("  Penalty parameter                 %.2f\n", pstiff);
+      printf("\n");
+      printf("FILTER MATRIX \n");
+      printf("  Density filter radius             %.2f\n", rmin);
+      printf("  Non zeros in Filtermatrix         %d\n", fnnzassumed);
+      printf("\n");
+      printf("STRESS AGGREGATION \n");
+      printf("  P-norm exponent                   %.2f\n", pexp);
+      printf("  Stress relaxation                 %.2f\n", eps_relax);
+      printf("  Stress threshold                  %.2f\n", sigma0);
+    
+      printf("|------------------------------------------------------------|\n");
      
       fflush(stdout);
 
       printf("\n");
       if(pSupplied!=0)
       {
-        printf("Penalization parameter found!\n");
-        printf("Will perform adjoint sensitivity analysis.\n");
+        printf("Penalization parameter found --> will evaluate senitivities\n");
+      
       }
 
       if(pSupplied!=0)
@@ -1825,16 +1832,21 @@ while(istat>=0)
         filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
         printf("Done!");
 
-        // Print first five and last five values of designFiltered
+        // DEBUG: Print first five and last five values of designFiltered
+        /*
         printf("First five designFiltered values:\n");
-        for (int i = 0; i < 5 && i < ne_; ++i) {
+        for (int i = 0; i < 5 && i < ne_; ++i) 
+        {
             printf("  designFiltered[%d] = %g\n", i, designFiltered[i]);
         }
 
         printf("Last five designFiltered values:\n");
-        for (int i = (ne_ > 5 ? ne_ - 5 : 0); i < ne_; ++i) {
+        for (int i = (ne_ > 5 ? ne_ - 5 : 0); i < ne_; ++i) 
+        {
             printf("  designFiltered[%d] = %g\n", i, designFiltered[i]);
         }
+
+        */
 
 
         rhoPhys=designFiltered;
@@ -1845,7 +1857,9 @@ while(istat>=0)
         /* design was initialized to 1.0 in rho.c */
         rhoPhys=design;
 
-        printf("First five rhoPhys values:\n");
+        // DEBUG only
+
+        /*printf("First five rhoPhys values:\n");
 
         for (int i = 0; i < 5 && i < ne_; ++i) {
             printf("  rhoPhys[%d] = %g\n", i, rhoPhys[i]);
@@ -1856,7 +1870,7 @@ while(istat>=0)
         {
             printf(" rhoPhys[%d] = %g\n", i, rhoPhys[i]);
         }
-
+        */
 
       }
 
@@ -1866,8 +1880,9 @@ while(istat>=0)
       time_t startl, endl; 
 	    startl = time(NULL);
 
-      printf("Calling linstatic from main driver....\n");
+      printf("\n\nSOLVING LINEAR SYSTEM----------------------------------------|\n\n");
       
+  
 	    linstatic(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
 	     ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,ndirforc,xforc,
              &nforc, nelemload,sideload,xload,&nload,
@@ -1890,7 +1905,8 @@ while(istat>=0)
 
 	    printf("\n Time taken for linstatic.c is %.8f seconds \n", 
 		  difftime(endl, startl)); 
-
+      
+      printf("|------------------------------------------------------------|\n");
 
 	    for(i=0;i<3;i++)
       {
@@ -2190,17 +2206,17 @@ while(istat>=0)
     } */
 
     /* Write elastic fields to a vtu file */
-    printf("Writing output fields...");
+    printf("\nWriting output fields...");
     tecplot_vtu(nk, ne, co, kon, ipkon, vold, stx, rhoPhys);
-    printf("done!");
+    printf("done!\n\n");
 
   
     /* adjoint sensitivity calculation */
     if(pSupplied!=0)
     {
-      printf("Performing adjoint sensitivty calculations");
-    
-
+      printf("SENSITIVITY ANALYSIS-----------------------------------------|\n\n");
+      
+      printf(" Allocating memory...");
       /* allocate memory for compliance gradient and initialize to zero */
       NNEW(gradCompl,double,ne_);
 
@@ -2228,14 +2244,14 @@ while(istat>=0)
       double *dCGxFiltered = (double*)calloc(ne, sizeof(double));
       double *dCGyFiltered = (double*)calloc(ne, sizeof(double));
       double *dCGzFiltered = (double*)calloc(ne, sizeof(double));
-
+      printf("done! \n");
 
       time_t starts, ends; 
 	    starts = time(NULL);
 
 
       /* Evaluate sensitivities */
-  
+      printf( "Evaluating compliance sensitivities...");
 	    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
              ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2255,28 +2271,29 @@ while(istat>=0)
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
              jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol);
 
-
+      //printf("done!\n");
       // Mass and C.G properties
       double M, cgx, cgy, cgz;
+      
 
-
+      printf(" Evaluating Center of Gravity sensitivities...");
       compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             dCGx, dCGy, dCGz);
 
       printf("done! \n");
 
-      printf("Structural mass: %.4f \n", M);
+      
 
-      printf("Filter compliance gradient...");
+      printf("  Filter compliance gradient...");
       filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
       printf("done! \n");
 
-      printf("Filter element volume gradient...");
+      printf("  Filter element volume gradient...");
       filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
       printf("done! \n");
 
-      printf("Filter CG gradient...");
+      printf("  Filter CG gradient...");
       filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
       
       ends = time(NULL);
@@ -2301,19 +2318,19 @@ while(istat>=0)
 
       /* initialize for compliance */
       double compliance_sum=0;
-      
-      printf("Writing compliance sensitivities...");
+      printf("\n\nOUTPUT FILEDS--------------------------------------------------------------|\n\n");
+      printf(" Writing compliance sensitivities...");
       write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
-      printf("Done!\n");
+      printf("done!\n");
 
       /* set the filtered volume sens of passive elements to 0 */
       filterOutPassiveElems_sens(eleVolFiltered, ne, passiveIDs, numPassive);
 
-      printf("Writing volume sensitivities...");
+      printf(" Writing volume sensitivities...");
       write_volume_sensitivities(ne, eleVol, rhoPhys, eleVolFiltered);
-      printf("Done!\n");
+      printf("done!\n");
 
-      printf("Writing CG sensitivities...");
+      printf(" Writing CG sensitivities...");
       /* ... after you fill dCGx, dCGy, dCGz ... */
       int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
       if (rc != 0) 
@@ -2324,9 +2341,9 @@ while(istat>=0)
 
       printf("done!\n");
       
-      printf("Writing objectives...");
+      printf(" Writing objectives...");
       write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz);
-      printf("Done!\n");
+      printf("done!\n");
 
       free(dCGx);
       free(dCGy);
@@ -2390,7 +2407,8 @@ while(istat>=0)
   
      /* print output */
       
-      printf("\nStructural  Compliance:          %.12f \n",compliance_sum);
+      printf("\n Compliance:          %.3f \n",compliance_sum);
+      printf(" Mass:                %.3f \n", M);
       //printf("Total domain volume:         %.6f \n",initialVol_sum);
       //printf("Current domain volume:       %.6f \n",designVol_sum);
       //printf("Volume constraint violation:: %.6f \n",designVol_sum-volfrac*initialVol_sum);
@@ -2398,7 +2416,7 @@ while(istat>=0)
 
     } // end adjoint calculation
 
-    printf("\nWriting rhos.dat...");
+    printf("\n Writing rhos.dat...");
     fflush(stdout);
 
     FILE *rho_file;
