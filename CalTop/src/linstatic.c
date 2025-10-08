@@ -77,6 +77,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	{
 
 		printf("Current exponsnet in linstaitc: %f \n", *pexp);
+		printf("Current sigma0 %f \n", *sigma0);
 
 
   		char description[13]="            ",*lakon=NULL,stiffmatrix[132]="",
@@ -272,7 +273,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
 	  	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	  	islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin,pexp, brhs, djdrho_expl, &Pnorm, 0);
+    	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl, &Pnorm, 0);
 
 
   		SFREE(v);

@@ -296,7 +296,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         printf("Evaluating stress adjoint terms \n");
 
         printf(" Results.c Pexp: %f, \n", *pexp1);
-        printf(" Results.c Sigma0: %f, \n", sigma01);
+        printf(" Results.c Sigma0: %f, \n", *sigma0);
         printf(" Results.c rhomin: %f, \n", *rhomin1);
         printf(" Results.c Eps-relax: %f, \n", *eps1);
         printf("Curent Pnorm value: %f, \n", *Pnorm);

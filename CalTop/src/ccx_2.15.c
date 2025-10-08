@@ -342,10 +342,10 @@ int main(int argc,char *argv[])
   double  qfilter = 3; /**< q-filter value */
   double Pnorm = 0;
 
-  double sigma0 = 1.0;
-  double eps_relax = 0.001;
-  double rhomin = 0.001;
-  double pexp = 1.0;
+  double sigma0 = 0.0;
+  double eps_relax = 1e-03;
+  double rhomin = 1e-04;
+  double pexp = 0.0;
 
   ITG itertop= 1; /**<iteration counter in topology optimization */
   ITG fnnzassumed = 500; /**< assume 500 non zeros in each row of filtermatrix */ 
@@ -368,7 +368,7 @@ int main(int argc,char *argv[])
   if(argc==1)
   { 
     /* Inadequate input arguments */
-    printf("Usage: Flags: -i jobname -p PENALTY-r RADIUS -f FILTERNNZ -pexp PNORM EXPONENT -sigmal SIGMA MINIMUM -eps STRESS RELAXATION\n");
+    printf("Usage: Flags: -i jobname -p PENALTY -r RADIUS -f FILTERNNZ --pexp PNORM EXPONENT --sigmin SIGMA MINIMUM --sigrelax STRESS RELAXATION\n");
     FORTRAN(stop,());
   }
 
@@ -435,7 +435,7 @@ else
   /* Read P-norm exponent */
   for(i=1; i<argc; i++)
   {
-    if(strcmp1(argv[i],"-e")==0) 
+    if(strcmp1(argv[i],"--pexp")==0) 
     {
       pexp=atof(argv[i+1]);
       break;
@@ -445,16 +445,17 @@ else
   /* Read Sigmal */
   for(i=1; i<argc; i++)
   {
-    if(strcmp1(argv[i],"-s")==0) 
+    if(strcmp1(argv[i],"--sigmin")==0) 
     {
       sigma0=atof(argv[i+1]);
       break;
     }
   }
 
+  /* Stress relaxation factor */
   for(i=1; i<argc; i++)
   {
-    if(strcmp1(argv[i],"-l")==0) 
+    if(strcmp1(argv[i],"--sigrelax")==0) 
     {
       eps_relax=atof(argv[i+1]);
       break;
@@ -486,8 +487,6 @@ else
   }
 
 //printf("\n*/*/*/*pstiff= %f\n",pstiff);
-
-printf("Current exponsnet in ccx: %f\n", pexp);
 
 
 //setenv("CCX_JOBNAME_GETJOBNAME",jobnamec,1);
