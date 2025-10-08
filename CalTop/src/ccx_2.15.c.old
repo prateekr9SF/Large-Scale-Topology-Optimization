@@ -1911,6 +1911,23 @@ while(istat>=0)
 	    printf("\n Time taken for linstatic.c is %.8f seconds \n", 
 		  difftime(endl, startl)); 
       
+
+      // NOTE: FILTER, WRITE AND FREE STRESS SENS to reduce memory signature downstrewam
+      /*--------------------------------------STRESS SENSITIVITY FILTERING AND I/O -----------------------------------*/
+      printf(" Filter element stress (P-norm) gradient ");
+      /* Allocate memory for P-norm stress sensitivities */
+      // NOTE: P-norm sensitivity initialized and passed to linstatic() earlier
+      NNEW(dPnorm_drhoFiltered, double, ne_);
+      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
+      if (rs != 0) 
+      {
+        printf(" Unable to write P-norm sensitivities to disk!\n");
+      }
+      SFREE(dPnorm_drho);
+      SFREE(dPnorm_drhoFiltered);
+      printf("done \n");
       printf("|------------------------------------------------------------|\n");
 
 	    for(i=0;i<3;i++)
@@ -2250,9 +2267,7 @@ while(istat>=0)
       double *dCGyFiltered = (double*)calloc(ne, sizeof(double));
       double *dCGzFiltered = (double*)calloc(ne, sizeof(double));
 
-      /* Allocate memory for P-norm stress sensitivities */
-      // NOTE: P-norm sensitivity initialized and passed to linstatic() earlier
-      NNEW(dPnorm_drhoFiltered, double, ne_);
+
 
       printf("done! \n");
 
@@ -2322,18 +2337,7 @@ while(istat>=0)
 
       /*---------------------------------------------------------------------------------------------------------------*/      
 
-      /*--------------------------------------STRESS SENSITIVITY FILTERING AND I/O -----------------------------------*/
-      printf(" Filter element stress (P-norm) gradient ");
-      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
 
-      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
-      if (rs != 0) 
-      {
-        printf("Unable to write P-norm sensitivities to disk!\n");
-      }
-      SFREE(dPnorm_drho);
-      SFREE(dPnorm_drhoFiltered);
-      printf("done \n");
       /*---------------------------------------------------------------------------------------------------------------*/
 
 
