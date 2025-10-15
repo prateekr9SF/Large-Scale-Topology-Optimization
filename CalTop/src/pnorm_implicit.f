@@ -44,7 +44,7 @@ c--- material (D) store
       real*8 xstiff(27,mi(1),*)
 
 c--- design / params
-      real*8 design(*), penal
+      real*8 design(*), penal, heav
 
 c--- output
       real*8 djdrho(*)
@@ -52,7 +52,7 @@ c--- output
 c--- locals
       real*8 xl(3,4), shp(4,4), xsj, xi, et, ze, weight
       real*8 B(6,12), ue(12), le(12), k0u(12), dotlam
-      real*8 eps(6), sig(6), rho, ce
+      real*8 eps(6), sig(6), rho, ce, rho_eff
       integer a, m, n, m1
 
 c--- Gauss rule (C3D4, 1 point)
@@ -143,11 +143,21 @@ c------ ce = penal * rho^(penal-1)   (same logic as e_c3d_se.f)
          rho = design(i)
          if (rho .lt. 0.d0) rho = 0.d0
          if (rho .gt. 1.d0 ) rho = 1.d0
-         if (rho.le.0.d0) then
-            ce = 0.d0
+         rho_eff = dmax1(rho, 1e-06)
+
+         if (rho .gt. 1e-06) then
+            heav = 1.d0
          else
-            ce = penal * rho**(penal-1.d0)
+            heav = 0.d0
          endif
+
+         !if (rho.le.0.d0) then
+         !   ce = 0.d0
+         !else
+         !   ce = penal * rho**(penal-1.d0)
+         !endif
+
+         ce = penal * rho_eff**(penal-1.d0) * heav
 
 c------ accumulate implicit sensitivity
          djdrho(i) = djdrho(i) - ce * dotlam

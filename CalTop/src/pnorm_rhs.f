@@ -105,7 +105,7 @@ c-------- epsilon-relaxed phi (same as in resultsmech)
          if (phi .le. 0.d0) cycle
 
 c-------- dJ/dsigma factor
-         fac = alpha * p * (phi**(p-1)) / (rho_p*sig0)
+         fac = alpha * 1 * (phi**(p-1)) / (rho_p*sig0)
 
 c-------- dvm/dsigma in 3D Voigt, then scale by fac
          g(1) = fac * ((2.d0*sx - sy - sz) * 0.5d0 * invvm)
@@ -164,16 +164,15 @@ c-------- ptv = D * g (use increments to avoid long lines)
          ptv(6)=ptv(6)+g(5)*xstiff(20,jj,i)
          ptv(6)=ptv(6)+g(6)*xstiff(21,jj,i)
 
-c-------- Voigt -> tensor for assembly
+c--------Voigt -> true (symmetric) strain tensor components
+! Voigt -> true (symmetric) strain tensor components
+! Voigt (stress) -> symmetric tensor (no 0.5 on shear)
          pt(1,1)=ptv(1)
          pt(2,2)=ptv(2)
          pt(3,3)=ptv(3)
-         pt(2,1)=ptv(4)
-         pt(3,1)=ptv(5)
-         pt(3,2)=ptv(6)
-         pt(1,2)=pt(2,1)
-         pt(1,3)=pt(3,1)
-         pt(2,3)=pt(3,2)
+         pt(1,2)=ptv(4)  ; pt(2,1)=ptv(4)
+         pt(1,3)=ptv(5)  ; pt(3,1)=ptv(5)
+         pt(2,3)=ptv(6)  ; pt(3,2)=ptv(6)
 
 c-------- assemble RHS: r += ∫ B^T P dV
          do m1=1,nope

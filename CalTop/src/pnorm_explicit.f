@@ -117,7 +117,7 @@ c-------- dphi/drho (explicit)
      &                   eps_relax/(rho_eff*rho_eff) )
 
 c-------- accumulate explicit term for element i
-         djdrho(i) = djdrho(i) + alpha * 1* (phi**(pexp-1)) * dphi *
+         djdrho(i) = djdrho(i) + alpha * (phi**(pexp-1)) * dphi *
      &               xsj * weight
 
       enddo

@@ -344,7 +344,7 @@ int main(int argc,char *argv[])
 
   double sigma0 = 1.0;
   double eps_relax = 1e-03;
-  double rhomin = 1e-04;
+  double rhomin = 1e-06;
   double pexp = 1.0;
 
   ITG itertop= 1; /**<iteration counter in topology optimization */
