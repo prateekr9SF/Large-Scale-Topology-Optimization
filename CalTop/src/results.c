@@ -447,7 +447,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     /*********************************************P-NORM CALCULATION ENDS*******************************/
 
     /************ Finite-difference (FD) validation of EXPLICIT part (all elems) ************/
-if (get_adjoint == 1)
+if (get_adjoint == 3)
 {
     const double h = 1.0e-6;        /* absolute bump in rho_e */
     ITG   nea_loc = 1, neb_loc = *ne, list_loc = 0;

@@ -645,6 +645,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					dPnorm_drho[i] = djdrho_expl[i] + djdrho_impl[i];
 				}
 
+				
+
 
 				// All linear system calculations are complete, free terms
 				SFREE(lam);

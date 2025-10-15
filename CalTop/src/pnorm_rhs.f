@@ -5,7 +5,7 @@
 
 c  Adjoint RHS for epsilon-relaxed stress p-norm, C3D4 only
 c  J = ( sum w * phi^p )^(1/p),  phi = vm/(rho^p*sig0) + eps - eps/rho_eff
-c  dJ/dsigma = alpha * p * phi^(p-1) * (1/(rho^p*sig0)) * dvm/dsigma
+c  dJ/dsigma = alpha  * phi^(p-1) * (1/(rho^p*sig0)) * dvm/dsigma
 c  RHS = ∫ B^T [ D * (dJ/dsigma) ] dV
 
       implicit none
