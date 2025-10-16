@@ -581,7 +581,7 @@ c     Bernhardi end
                   vkl(m2,m3)=0.d0
                enddo
             enddo
-!
+!           shp(m3,m1) consists of the shape functiuon
             do m1=1,nope
                do m2=1,3
                   do m3=1,3
@@ -876,7 +876,7 @@ c     Bernhardi end
 !                 matrix
 !
             istiff=0
-!     
+!            material_me(..) fills elas(1:21) with uper triangular of Hooke's matrix C   
             call materialdata_me(elcon,nelcon,rhcon,nrhcon,alcon,
      &           nalcon,imat,amat,iorien,pgauss,orab,ntmat_,
      &           elas,rho,i,ithermal,alzero,mattyp,t0l,t1l,ihyper,
@@ -931,7 +931,7 @@ c     Bernhardi end
             if(((nmethod.ne.4).or.(iperturb(1).ne.0)).and.
      &         (nmethod.ne.5).and.(icmd.ne.3)) then
                do m1=1,21
-                  xstiff(m1,jj,i)=elas(m1)
+                  xstiff(m1,jj,i)=elas(m1) ! xstiff holds the matrix C in sigma = C strain
                enddo
             endif
 !
@@ -952,20 +952,25 @@ c     Bernhardi end
                eloc(4)=exy-(vokl(1,2)+vokl(2,1))
                eloc(5)=exz-(vokl(1,3)+vokl(3,1))
                eloc(6)=eyz-(vokl(2,3)+vokl(3,2))
-!
+
+!              material type is isotropic
                if(mattyp.eq.1) then
-                  e=elas(1)
-                  un=elas(2)
-                  um=e/(1.d0+un)
-                  al=un*um/(1.d0-2.d0*un)
+                  e=elas(1)  ! Elastic modulus
+                  un=elas(2) ! Poisson's ratio 
+                  um=e/(1.d0+un) ! mu (Lame's constant)
+                  al=un*um/(1.d0-2.d0*un) ! Lambda (Lame's constant)
                   um=um/2.d0
-                  am1=al*(eloc(1)+eloc(2)+eloc(3))
-                  stre(1)=am1+2.d0*um*eloc(1)
-                  stre(2)=am1+2.d0*um*eloc(2)
-                  stre(3)=am1+2.d0*um*eloc(3)
-                  stre(4)=um*eloc(4)
-                  stre(5)=um*eloc(5)
-                  stre(6)=um*eloc(6)
+!              begin with the constitutive law  -> stre() is the tensorial (pyhsical) stress                   
+                  am1=al*(eloc(1)+eloc(2)+eloc(3))  
+                  stre(1)=am1+2.d0*um*eloc(1) ! Sigma_11
+                  stre(2)=am1+2.d0*um*eloc(2) ! Sigma_22
+                  stre(3)=am1+2.d0*um*eloc(3) ! Sigma_33
+                  stre(4)=um*eloc(4)          ! Tau 12 (no multiplication by 2 since eloc already in tensorial form)
+                  stre(5)=um*eloc(5)          ! Tau 13
+                  stre(6)=um*eloc(6)          ! Tau 23
+!              end with the constitutive law
+
+!              material type is orthotropic (not relevant for CalTop for now)
                elseif(mattyp.eq.2) then
                   stre(1)=eloc(1)*elas(1)+eloc(2)*elas(2)
      &                 +eloc(3)*elas(4)

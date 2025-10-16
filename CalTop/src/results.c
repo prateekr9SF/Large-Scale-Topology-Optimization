@@ -59,6 +59,304 @@ static double *rhs1=NULL;  /* per-thread RHS blocks*/
 static double alpha1 = 0.0; /* scalar used in adjoint RHS */
 //static double *djdrho1 = NULL;   /* per element sensiticvity dJ/drho_e (size = *ne) */
 
+/* Enforce MPCs on an incremental nodal vector du_nodal (size mt*nk)
+   using CalculiX MPC tables (ipompc/nodempc/coefmpc, nmpc).
+   Convention: each MPC is  Σ_i a_i * u_i = 0  (incremental form).
+   We choose one dependent term (a_dep != 0 and nactdof==0) and set:
+     du_dep = -(Σ_{others} a_i du_i) / a_dep
+*/
+static void propagate_mpcs_increment(
+    double *du_nodal, const ITG mt, const ITG nk,
+    const ITG *ipompc, const ITG *nodempc, const double *coefmpc,
+    const ITG nmpc, const ITG *nactdof)
+{
+    for (ITG k = 0; k < nmpc; ++k) {
+        ITG ist = ipompc[k] - 1;                 /* Fortran->C */
+        if (ist < 0) continue;
+
+        /* Gather the MPC terms: (node, dof, coef) via linked list in nodempc */
+        ITG idx = ist;
+        /* store up to a small number on stack; MPCs are usually short;
+           if you expect long MPCs, switch to a small temporary vector */
+        ITG nodes[64], dofs[64]; double coefs[64];
+        int nterm = 0;
+        while (idx >= 0 && nterm < 64) {
+            ITG node = nodempc[3*idx    ];
+            ITG dof  = nodempc[3*idx + 1];
+            ITG nxt  = nodempc[3*idx + 2] - 1;   /* Fortran->C (-1 means end) */
+            nodes[nterm] = node;
+            dofs[nterm]  = dof;
+            coefs[nterm] = coefmpc[idx];
+            ++nterm;
+            idx = nxt;
+        }
+        if (nterm == 0) continue;
+
+        /* Pick a dependent term: prefer one with nactdof==0 (eliminated DOF) */
+        int idep = -1;
+        for (int t = 0; t < nterm; ++t) {
+            ITG node = nodes[t], dof = dofs[t];
+            size_t pos = (size_t)(node - 1) * mt + (dof - 1);
+            if (nactdof[pos] == 0) { idep = t; break; }
+        }
+        if (idep < 0) continue; /* couldn't find a dependent term; skip */
+
+        /* Compute Σ a_i du_i over all *other* terms */
+        double sum_other = 0.0;
+        for (int t = 0; t < nterm; ++t) if (t != idep) {
+            ITG node = nodes[t], dof = dofs[t];
+            size_t pos = (size_t)(node - 1) * mt + (dof - 1);
+            sum_other += coefs[t] * du_nodal[pos];
+        }
+
+        /* Set dependent increment */
+        double a_dep = coefs[idep];
+        if (fabs(a_dep) > 0.0) {
+            ITG node_dep = nodes[idep], dof_dep = dofs[idep];
+            size_t pos_dep = (size_t)(node_dep - 1) * mt + (dof_dep - 1);
+            du_nodal[pos_dep] = -sum_other / a_dep;
+        }
+    }
+}
+
+static void build_du_nodal_from_active(const ITG *nactdof, const ITG mt,
+                                       const ITG nk, const ITG neq,
+                                       const double *du_act,
+                                       double *du_nodal)
+{
+    for (ITG n = 0; n < nk; ++n) {
+        ITG base = mt * n;
+        for (ITG d = 0; d < mt; ++d) {
+            ITG a = nactdof[base + d];
+            du_nodal[base + d] = (a > 0 ? du_act[a-1] : 0.0);
+        }
+    }
+}
+
+
+
+static double compute_J_pnorm_with_v(
+    const ITG num_cpus,            /* threads already bounded by *ne */
+    double *v,                     /* nodal field (read-only here)   */
+    /* thread partitions (already filled by elementcpuload) */
+    ITG *neapar, ITG *nebpar,
+    /* globals already wired in results() */
+    double *co1, ITG *kon1, ITG *ipkon1, char *lakon1,
+    ITG *ne1, double *stx1, double *elcon1, ITG *nelcon1,
+    double *rhcon1, ITG *nrhcon1, double *alcon1, ITG *nalcon1,
+    double *alzero1, ITG *ielmat1, ITG *ielorien1, ITG *norien1,
+    double *orab1, ITG *ntmat1_, double *t01, double *t11,
+    ITG *ithermal1, double *prestr1, ITG *iprestr1, double *eme1,
+    ITG *iperturb1, ITG *iout1, double *vold1, ITG *nmethod1,
+    double *veold1, double *dtime1, double *time1, double *ttime1,
+    double *plicon1, ITG *nplicon1, double *plkcon1, ITG *nplkcon1,
+    double *xstateini1, double *xstiff1, double *xstate1,
+    ITG *npmat1_, char *matname1, ITG *mi1, ITG *ielas1,
+    ITG *icmd1, ITG *ncmat1_, ITG *nstate1_, double *stiini1,
+    double *vini1, double *ener1, double *eei1, double *enerini1,
+    ITG *istep1, ITG *iinc1, double *springarea1, double *reltime1,
+    ITG *calcul_fn1, ITG *calcul_qa1, ITG *calcul_cauchy1,
+    ITG *nener1, ITG *ikin1, ITG *mt1, ITG *nk1, ITG *ne01,
+    double *thicke1, double *emeini1, double *pslavsurf1,
+    double *clearini1, double *pmastsurf1, ITG *mortar1,
+    ITG *ielprop1, double *prop1, ITG *kscale1,
+    /* p-norm extras (already set globally before threading) */
+    double *design1, double *penal1,
+    double *sigma01, double *eps1, double *rhomin1,
+    double *pexp1)
+{
+    /* cap threads by element count */
+    ITG np = num_cpus; if (*ne1 < np) np = *ne1;
+
+    /* fresh per-thread workspaces (match stresspnormmt expectations) */
+    double *qa1_dt = NULL; NNEW(qa1_dt, double, (size_t)np * 4);
+    double *fn1_dt = NULL; NNEW(fn1_dt, double, (size_t)np * (*mt1) * (*nk1));
+    ITG    *nal_dt = NULL; NNEW(nal_dt, ITG, np);
+
+    /* push globals used by stresspnormmt */
+    double *qa1_save = qa1, *fn1_save = fn1, *v1_save = v1;
+    ITG    *nal_save = nal;
+    ITG     calcul_fn1_save = *calcul_fn1;
+    ITG    *iout1_save = iout1;
+    ITG     iout_quiet = 0;
+
+    qa1 = qa1_dt; fn1 = fn1_dt; nal = nal_dt; v1 = v;
+    *calcul_fn1 = 0;            /* no internal-force assembly */
+    iout1 = &iout_quiet;        /* suppress side work / prints */
+
+    /* zero thread windows and launch */
+    pthread_t tidloc[np];
+    ITG idx[np];
+    for (ITG t = 0; t < np; ++t){
+        qa1_dt[4*t+0] = 0.0; qa1_dt[4*t+1] = 0.0;
+        qa1_dt[4*t+2] = 0.0; qa1_dt[4*t+3] = 0.0;
+        nal_dt[t]     = 0;
+        idx[t]        = t;
+        pthread_create(&tidloc[t], NULL, (void*)stresspnormmt, (void*)&idx[t]);
+    }
+    for (ITG t = 0; t < np; ++t) pthread_join(tidloc[t], NULL);
+
+    /* reduce ∑ w·phi^p from qa1(:,3) */
+    double sump = 0.0;
+    for (ITG t = 0; t < np; ++t) sump += qa1_dt[4*t + 2];
+
+    /* J = (∑ w·phi^p)^(1/p) */
+    const double p = *pexp1;
+    double J = (sump > 0.0) ? pow(sump, 1.0/p) : 0.0;
+
+    /* pop globals */
+    iout1 = iout1_save;
+    *calcul_fn1 = calcul_fn1_save;
+    qa1 = qa1_save; fn1 = fn1_save; nal = nal_save; v1 = v1_save;
+
+    /* free temporaries */
+    SFREE(nal_dt); SFREE(fn1_dt); SFREE(qa1_dt);
+
+    return J;
+}
+
+
+
+static void forward_diff_compare_after_brhs(
+    /* basics */
+    ITG *mi, ITG *nk, ITG *neq, ITG *nactdof,
+    /* MPC tables (NEW) */
+    ITG *ipompc, ITG *nodempc, double *coefmpc, ITG *nmpc,
+    /* assembled nodal adjoint RHS (size mt*nk) */
+    double *brhs,
+    /* nodal state vector (size mt*nk) */
+    double *v,
+    /* threading + globals reused by compute_J_pnorm_with_v */
+    const ITG num_cpus,
+    ITG *neapar, ITG *nebpar,
+    double *co1, ITG *kon1, ITG *ipkon1, char *lakon1,
+    ITG *ne1, double *stx1, double *elcon1, ITG *nelcon1,
+    double *rhcon1, ITG *nrhcon1, double *alcon1, ITG *nalcon1,
+    double *alzero1, ITG *ielmat1, ITG *ielorien1, ITG *norien1,
+    double *orab1, ITG *ntmat1_, double *t01, double *t11,
+    ITG *ithermal1, double *prestr1, ITG *iprestr1, double *eme1,
+    ITG *iperturb1, ITG *iout1, double *vold1, ITG *nmethod1,
+    double *veold1, double *dtime1, double *time1, double *ttime1,
+    double *plicon1, ITG *nplicon1, double *plkcon1, ITG *nplkcon1,
+    double *xstateini1, double *xstiff1, double *xstate1,
+    ITG *npmat1_, char *matname1, ITG *mi1, ITG *ielas1,
+    ITG *icmd1, ITG *ncmat1_, ITG *nstate1_, double *stiini1,
+    double *vini1, double *ener1, double *eei1, double *enerini1,
+    ITG *istep1, ITG *iinc1, double *springarea1, double *reltime1,
+    ITG *calcul_fn1, ITG *calcul_qa1, ITG *calcul_cauchy1,
+    ITG *nener1, ITG *ikin1, ITG *mt1, ITG *nk1, ITG *ne01,
+    double *thicke1, double *emeini1, double *pslavsurf1,
+    double *clearini1, double *pmastsurf1, ITG *mortar1,
+    ITG *ielprop1, double *prop1, ITG *kscale1,
+    /* p-norm extras */
+    double *design1, double *penal1,
+    double *sigma01, double *eps1, double *rhomin1,
+    double *pexp1,
+    ITG max_check /* e.g. 50–200 */
+){
+    const ITG mt   = mi[1] + 1;
+    const size_t N = (size_t)mt * (*nk);
+    const ITG neqL = *neq;
+
+    /* Baseline J */
+    double J0 = compute_J_pnorm_with_v(num_cpus, v, neapar, nebpar,
+                    co1,kon1,ipkon1,lakon1,ne1,stx1,elcon1,nelcon1,rhcon1,nrhcon1,
+                    alcon1,nalcon1,alzero1,ielmat1,ielorien1,norien1,orab1,ntmat1_,
+                    t01,t11,ithermal1,prestr1,iprestr1,eme1,iperturb1,iout1,vold1,
+                    nmethod1,veold1,dtime1,time1,ttime1,plicon1,nplicon1,plkcon1,
+                    nplkcon1,xstateini1,xstiff1,xstate1,npmat1_,matname1,mi1,
+                    ielas1,icmd1,ncmat1_,nstate1_,stiini1,vini1,ener1,eei1,enerini1,
+                    istep1,iinc1,springarea1,reltime1,calcul_fn1,calcul_qa1,
+                    calcul_cauchy1,nener1,ikin1,mt1,nk1,ne01,thicke1,emeini1,
+                    pslavsurf1,clearini1,pmastsurf1,mortar1,ielprop1,prop1,kscale1,
+                    design1,penal1,sigma01,eps1,rhomin1,pexp1);
+
+    /* Build a list of active equation numbers (1..neq) that exist */
+    ITG *act_list = NULL; NNEW(act_list, ITG, neqL);
+    ITG n_act = 0;
+    {
+        /* Each active equation appears exactly once in nactdof */
+        /* Scan nodal dofs and collect active IDs */
+        /* Build a boolean hit array to avoid duplicates */
+        char *hit = NULL; NNEW(hit, char, (size_t)neqL);
+        for (size_t i = 0; i < N; ++i) {
+            ITG a = nactdof[i];
+            if (a > 0 && !hit[a-1]) { hit[a-1] = 1; act_list[n_act++] = a-1; }
+        }
+        SFREE(hit);
+    }
+    /* Downsample if needed */
+    ITG stride = 1;
+    if (max_check > 0 && n_act > max_check) stride = (n_act + max_check - 1) / max_check;
+
+    printf("\n--- p-norm forward-diff gradient check (ACTIVE space → nodal) ---\n");
+    printf("  Baseline J(v) = %.15e\n", J0);
+    printf("  Checking %ld of %ld active DOFs (stride=%ld)\n",
+           (long)((n_act + stride - 1)/stride), (long)n_act, (long)stride);
+    printf("    aID     h            FD dir.deriv       -(brhs·du)         ratio\n");
+
+    /* Scratch buffers */
+    double *du_act   = NULL; NNEW(du_act,   double, neqL);
+    double *du_nodal = NULL; NNEW(du_nodal, double, N);
+    double *v_save   = NULL; NNEW(v_save,   double, N);
+    for (size_t i=0;i<N;++i) v_save[i] = v[i];
+
+    for (ITG t = 0; t < n_act; t += stride) {
+        ITG a = act_list[t];                /* 0-based active equation index */
+
+        /* Unit direction in active space */
+        for (ITG i=0;i<neqL;++i) du_act[i] = 0.0;
+        du_act[a] = 1.0;
+
+        /* Expand to nodal */
+        build_du_nodal_from_active(nactdof, mt, *nk, *neq, du_act, du_nodal);
+
+        /* Enforce MPCs on du_nodal (NEW) */
+        propagate_mpcs_increment(du_nodal, mt, *nk, ipompc, nodempc, coefmpc, *nmpc, nactdof);
+
+        /* Step size: relative to the “representative” nodal component of this active dof */
+        /* Find the nodal index that carries this active dof to scale h */
+        double ref = 0.0;
+        {
+            for (size_t i=0;i<N;++i) if (nactdof[i] == a+1) { ref = v[i]; break; }
+        }
+        double h = 1.0e-6 * (1.0 + fabs(ref));
+
+        /* One-sided FD along du_nodal: J(v + h du) */
+        for (size_t i=0;i<N;++i) v[i] = v_save[i] + h * du_nodal[i];
+        double Jp = compute_J_pnorm_with_v(num_cpus, v, neapar, nebpar,
+                        co1,kon1,ipkon1,lakon1,ne1,stx1,elcon1,nelcon1,rhcon1,nrhcon1,
+                        alcon1,nalcon1,alzero1,ielmat1,ielorien1,norien1,orab1,ntmat1_,
+                        t01,t11,ithermal1,prestr1,iprestr1,eme1,iperturb1,iout1,vold1,
+                        nmethod1,veold1,dtime1,time1,ttime1,plicon1,nplicon1,plkcon1,
+                        nplkcon1,xstateini1,xstiff1,xstate1,npmat1_,matname1,mi1,
+                        ielas1,icmd1,ncmat1_,nstate1_,stiini1,vini1,ener1,eei1,enerini1,
+                        istep1,iinc1,springarea1,reltime1,calcul_fn1,calcul_qa1,
+                        calcul_cauchy1,nener1,ikin1,mt1,nk1,ne01,thicke1,emeini1,
+                        pslavsurf1,clearini1,pmastsurf1,mortar1,ielprop1,prop1,kscale1,
+                        design1,penal1,sigma01,eps1,rhomin1,pexp1);
+
+        /* Restore */
+        for (size_t i=0;i<N;++i) v[i] = v_save[i];
+
+        /* FD directional derivative */
+        double dJ_fd = (Jp - J0) / h;
+
+        /* Compare against -brhs·du in nodal space */
+        double minus_rhs_dot_du = 0.0;
+        for (size_t i=0;i<N;++i) minus_rhs_dot_du += (-brhs[i]) * du_nodal[i];
+
+        printf("  %6ld  %+.3e  %+.6e  %+.6e  % .3e\n",
+               (long)(a+1), h, dJ_fd, minus_rhs_dot_du,
+               (fabs(minus_rhs_dot_du)>0.0? dJ_fd/minus_rhs_dot_du : 0.0));
+    }
+
+    SFREE(v_save); SFREE(du_nodal); SFREE(du_act); SFREE(act_list);
+}
+
+
+
+
 void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
        double *rhcon,ITG *nrhcon,double *alcon,ITG *nalcon,double *alzero,
@@ -407,10 +705,31 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             }
             brhs[i] = acc;
         }
-
         /* Done with per-thread storage*/
 	    SFREE(rhs1);
         printf("done!");
+
+forward_diff_compare_after_brhs(mi, nk, neq, nactdof,
+    /* + MPC tables (NEW) */
+    ipompc, nodempc, coefmpc, nmpc,
+    /* existing args… */
+    brhs, v,
+    num_cpus, neapar, nebpar,
+    co1,kon1,ipkon1,lakon1,ne1,stx1,elcon1,nelcon1,
+    rhcon1,nrhcon1,alcon1,nalcon1,alzero1,ielmat1,ielorien1,
+    norien1,orab1,ntmat1_,t01,t11,ithermal1,prestr1,iprestr1,
+    eme1,iperturb1,iout1,vold1,nmethod1,veold1,dtime1,time1,ttime1,
+    plicon1,nplicon1,plkcon1,nplkcon1,xstateini1,xstiff1,xstate1,
+    npmat1_,matname1,mi1,ielas1,icmd1,ncmat1_,nstate1_,stiini1,
+    vini1,ener1,eei1,enerini1,istep1,iinc1,springarea1,reltime1,
+    &calcul_fn1,&calcul_qa1,&calcul_cauchy1,nener1,ikin1,&mt1,nk1,ne01,
+    thicke1,emeini1,pslavsurf1,clearini1,pmastsurf1,mortar1,
+    ielprop1,prop1,kscale1,
+    design1,penal1,sigma01,eps1,rhomin1,pexp1,
+    /* limit how many active DOFs to test */
+    200);
+
+
 
         /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
 
@@ -447,7 +766,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     /*********************************************P-NORM CALCULATION ENDS*******************************/
 
     /************ Finite-difference (FD) validation of EXPLICIT part (all elems) ************/
-if (get_adjoint == 3)
+if (get_adjoint == 4)
 {
     const double h = 1.0e-6;        /* absolute bump in rho_e */
     ITG   nea_loc = 1, neb_loc = *ne, list_loc = 0;
