@@ -965,7 +965,6 @@ c     Bernhardi end
 !           Constitutive law
             nlgeom_undo=0
 
-
             call mechmodel_simp(elconloc,elas,emec,kode,emec0,ithermal,
      &           icmd,beta,stre,xkl,ckl,vj,xikl,vij,
      &           plconloc,xstate,xstateini,ielas,
@@ -976,7 +975,8 @@ c     Bernhardi end
             if(((nmethod.ne.4).or.(iperturb(1).ne.0)).and.
      &         (nmethod.ne.5).and.(icmd.ne.3)) then
                do m1=1,21
-                  xstiff(m1,jj,i)=elas(m1)
+                  write(*,*), 'Scale C matrix-> xstiff'
+                  xstiff(m1,jj,i)=rho_p * elas(m1)
                enddo
             endif
 !
