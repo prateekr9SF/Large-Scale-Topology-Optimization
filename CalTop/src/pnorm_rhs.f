@@ -974,8 +974,14 @@ c     Bernhardi end
 !
             if(((nmethod.ne.4).or.(iperturb(1).ne.0)).and.
      &         (nmethod.ne.5).and.(icmd.ne.3)) then
+
+               rho_e   = design(i)
+               if (rho_e .lt. 0.d0) rho_e = 0.d0
+               if (rho_e .gt. 1.d0) rho_e = 1.d0
+               rho_eff = max(rho_e, rho_min)
+               rho_p   = rho_eff**penal
                do m1=1,21
-                  write(*,*), 'Scale C matrix-> xstiff'
+!                  write(*,*), 'Scale C matrix-> xstiff'
                   xstiff(m1,jj,i)=rho_p * elas(m1)
                enddo
             endif

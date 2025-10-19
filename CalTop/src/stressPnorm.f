@@ -944,7 +944,7 @@ c     Bernhardi end
 
 ! --- SIMP penalization for linear isotropic (mattyp == 1) ---
             if (mattyp .eq. 1) then
-              write(*,*) 'Scaling the C matrix!'
+!              write(*,*) 'Scaling the C matrix!'
               rho_e   = design(i)
               if (rho_e .lt. 0.d0) rho_e = 0.d0
               if (rho_e .gt. 1.d0) rho_e = 1.d0
@@ -953,7 +953,7 @@ c     Bernhardi end
               ! Pass rho_p to linel.f through mechmodel.f
 
               
-              write(*,*) 'Done!'
+!              write(*,*) 'Done!'
             endif
 !
 !           calculating the local stiffness and stress
@@ -1231,7 +1231,7 @@ c     Bernhardi end
 ! --- p-mean over the PHYSICAL volume (no desnity weighting)
             wgt = xsj * weight
             g_sump = g_sump + (phi**pexp) * wgt
-            write(*,*), "Current gsump:", g_sump 
+!            write(*,*), "Current gsump:", g_sump 
             !g_vol  = g_vol  + wgt  <-- valid only for p-mean
 
 !
