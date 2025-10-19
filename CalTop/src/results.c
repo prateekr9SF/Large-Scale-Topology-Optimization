@@ -408,8 +408,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             {
                 acc += rhs1[i + j * mt * *nk];
             }
-            brhs[i] = acc;
+            brhs[i] = acc * alpha1;
         }
+
+
         /* Done with per-thread storage*/
 	    SFREE(rhs1);
         printf("done!");
