@@ -949,10 +949,16 @@ c     Bernhardi end
               if (rho_e .lt. 0.d0) rho_e = 0.d0
               if (rho_e .gt. 1.d0) rho_e = 1.d0
               rho_eff = max(rho_e, rho_min)
-              rho_p   = rho_eff**penal
+!              Based on the definition of effective von Misses 
+!              stress in Duysinx and Sigmnd, the penalized
+!              rho cancels out in the stress term with
+!              relaxation. Pass rho_p = 1 below
+!              rho_p   = rho_eff**penal
+               rho_p = 1.d0
+!              Note: Since we are not penalizing the stress here
+!              von Misses must be penalized in ccx_2.15.c 
+!              when writing to .vtu file
               ! Pass rho_p to linel.f through mechmodel.f
-!              Note; No penalization of xstiff here
-              
 !              write(*,*) 'Done!'
             endif
 !
@@ -968,7 +974,9 @@ c     Bernhardi end
 !
             if(((nmethod.ne.4).or.(iperturb(1).ne.0)).and.
      &         (nmethod.ne.5).and.(icmd.ne.3)) then
-               do m1=1,21
+!              No scaling of stress matrix since effective von Misses
+!              with relaxation only depends on xstiff for rhp_p = 1
+              do m1=1,21
                   xstiff(m1,jj,i)=elas(m1)
                enddo
             endif
@@ -1210,7 +1218,7 @@ c     Bernhardi end
             !print *, 'sx = ', sx
             !print *, 'sy = ', sy
 
-!  --- von Mises 
+!  --- von Mises (without penalization)
             vm2 = (sx-sy)*(sx-sy) + (sy-sz)*(sy-sz) + (sz-sx)*(sz-sx)
             vm2 = 0.5d0*vm2 + 3.d0*(txy*txy + txz*txz + tyz*tyz)
             vm  = dsqrt(vm2)
@@ -1224,16 +1232,15 @@ c     Bernhardi end
             rho_eff = max(rho_e, rho_min)
             rho_p = rho_eff**penal
 
-! --- Duysinx-Sigmund relaxed local measure
-            phi = vm/ (rho_p*sig0) + eps_relax - eps_relax/rho_eff
+! --- Duysinx-Sigmund effective von Misses stress measure for an element
+            phi = vm/ (sig0) + eps_relax - eps_relax/rho_eff
+! --- Consider effective von Misses stress (phi) > 0 only
             if (phi .lt. 0.d0) phi = 0.d0
 
-! --- p-mean over the PHYSICAL volume (no desnity weighting)
-            wgt = xsj * weight
-            g_sump = g_sump + (phi**pexp) * wgt
-!            write(*,*), "Current gsump:", g_sump 
-            !g_vol  = g_vol  + wgt  <-- valid only for p-mean
-
+! --- With effective von Misses stress calculated, raise to pexp
+! --- and sum over all elements
+! --- P-norm aggregation for this element
+            g_sump = g_sump + (phi**pexp)
 !
          enddo  ! <--- end of jj=1, mint3d
 !

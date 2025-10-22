@@ -61,6 +61,46 @@ static double alpha1 = 0.0; /* scalar used in adjoint RHS */
 //static double *djdrho1 = NULL;   /* per element sensiticvity dJ/drho_e (size = *ne) */
 
 
+/* Evaluate P-norm J from the current global displacement vector v1
+   using your threaded stresspnormmt() routine. */
+static double eval_pnorm_J_fd(void)
+{
+    /* Clear per-thread accumulators */
+    for (ITG t = 0; t < num_cpus; ++t) {
+        size_t base = (size_t)t * 4;
+        qa1[base + 0] = 0.0;
+        qa1[base + 1] = 0.0;
+        qa1[base + 2] = 0.0;  /* ∑ w·vm^p */
+        qa1[base + 3] = 0.0;  /* ∑ w     */
+    }
+
+    /* Launch stresspnormmt across threads */
+    pthread_t *tida = (pthread_t*)malloc(sizeof(pthread_t) * (size_t)num_cpus);
+    ITG *ith = NULL;
+    NNEW(ith, ITG, num_cpus);
+
+    for (ITG i = 0; i < num_cpus; ++i) {
+        ith[i] = i;
+        pthread_create(&tida[i], NULL, (void*)stresspnormmt, (void*)&ith[i]);
+    }
+    for (ITG i = 0; i < num_cpus; ++i)
+        pthread_join(tida[i], NULL);
+
+    SFREE(ith);
+    free(tida);
+
+    /* Reduce to get J */
+    double sump = 0.0;
+    for (ITG t = 0; t < num_cpus; ++t)
+        sump += qa1[(size_t)t * 4 + 2];
+
+    const double p = *pexp1;
+    return (sump > 0.0) ? pow(sump, 1.0 / p) : 0.0;
+}
+
+
+
+
 void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
        double *rhcon,ITG *nrhcon,double *alcon,ITG *nalcon,double *alzero,
@@ -323,13 +363,9 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     }
 
     if (get_adjoint == 1)
-    {   
-        printf("    Aggregating stress norm\n");
-
-        //printf(" Results.c Pexp: %f, \n", *pexp1);
-       // printf(" Results.c Sigma0: %f, \n", *sigma0);
-       // printf(" Results.c rhomin: %f, \n", *rhomin1);
-       // printf(" Results.c Eps-relax: %f, \n", *eps1);
+    {
+        // Compute effective von Mises stress, aggregate, compute adjoint RHS   
+        printf("    Evaluating effective von Misses stress for the structure\n");
 
 	    for(i=0; i<num_cpus; i++)  
         {
@@ -403,17 +439,17 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
     if (get_adjoint == 1)
     {
+        /*
+        printf("    Assembling RHS for stress adjoint using analytical solution");
 
-        printf("    Assembling RHS for stress adjoint...");
-
-        /* Allocate per-thread RHS blocks and the reduced RHS */
+        //Allocate per-thread RHS blocks and the reduced RHS
         NNEW(rhs1, double, num_cpus * mt * *nk);
 
-        /* Zero them (CalculiX NNEW doesn't zero by default) */
+        // Zero them (CalculiX NNEW doesn't zero by default)
         for (size_t zz = 0; zz < (size_t)num_cpus * mt * *nk; ++zz) rhs1[zz] = 0.0;
 
 
-        /* Spawn RHS threads */
+        // Spawn RHS threads
         NNEW(ithread, ITG, num_cpus);
 
         for (i = 0; i < num_cpus; ++i) 
@@ -425,7 +461,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         for (i = 0; i < num_cpus; ++i) pthread_join(tid[i], NULL);
         SFREE(ithread);
 
-        /* Reduce per-thread blocks into brhs */
+        // Reduce per-thread blocks into brhs 
         for (i = 0; i < mt * *nk; ++i) 
         {
             double acc = rhs1[i];
@@ -438,102 +474,53 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
 
 
-        /* Done with per-thread storage*/
+         //Done with per-thread storage
 	    SFREE(rhs1);
         printf("done!\n");
 
-        /**************************************P-NORM RHS FD VERIFICATION***************************************/
-        /* First DOF = global node 3837, uX (1=uX,2=uY,3=uZ) */
-        ITG mtloc = mi[1] + 1;
-        ITG node  = 3905;                  /* global node id (1-based) */
-        ITG dof   = 2;                     /* 1=uX, 2=uY, 3=uZ */
-        ITG idx   = mtloc * (node - 1) + dof; /* this is the 0-based slot for u(node,dof) */
+        */
 
-        if (nactdof && nactdof[idx] == 0) 
-        {
-            printf("  [warn] node %" ITGFORMAT " dof %d is constrained (nactdof=0)\n", node, dof);  
-        }
+        
 
-        /* Step size: relative to magnitude, fallback to absolute */
-        double u0 = v1[idx];
-        double h  = 1e-6;
-    
-        /* We need a temporary fn1 & ithread for calling stresspnormmt twice (baseline and perturbed) */
-        NNEW(fn1, double, num_cpus * mt * *nk);
-        NNEW(ithread, ITG, num_cpus);
+        /**************************************P-NORM RHS FD EVALUATION***************************************/
 
-        /* We will not use fn1 in stresspnorm, but zero it defensively */
-        for (size_t zz = 0; zz < (size_t)num_cpus * mt * *nk; ++zz) fn1[zz] = 0.0;
+        printf("    Assembling RHS via forward finite differences (ALL DOFs)...\n");
 
+        /* Baseline J0 at current v1 */
+        const double J0 = eval_pnorm_J_fd();
 
-        /* Helper: compute J (aggregated Pnorm) using current vsan1=v
-       (clears qa1 per-thread, launches stresspnormmt, reduces sumP -> J) */
-        double J0, Jp;
-        {
-            /* baseline J0 */
-            /* clear per-thread accumulators */
-            int t;
-            for (t = 0; t < num_cpus; ++t) 
-            {
-                size_t base = (size_t)t * 4;
-                qa1[base + 0] = 0.0;
-                qa1[base + 1] = 0.0;
-                qa1[base + 2] = 0.0;
-                qa1[base + 3] = 0.0;
-            }
-            /* run threads */
-            for (i = 0; i < num_cpus; ++i) { ithread[i] = i; pthread_create(&tid[i], NULL, (void*)stresspnormmt, (void*)&ithread[i]); }
-            for (i = 0; i < num_cpus; ++i) { pthread_join(tid[i], NULL); }
-            /* reduce */
-            double sumP0 = 0.0;
-            for (t = 0; t < num_cpus; ++t) sumP0 += qa1[(size_t)t * 4 + 2];
-            J0 = (sumP0 > 0.0) ? pow(sumP0, 1.0 / *pexp1) : 0.0;
-        }
+        /* Full-space size and zero RHS */
+        const ITG mtloc = mi[1] + 1;
+        const ITG ndof  = mtloc * (*nk);
+        for (ITG k = 0; k < ndof; ++k) brhs[k] = 0.0;
 
-        /* Forward perturb */
-        v1[idx] = u0 + h;
-        {
-            /* J(u + h e_k) */
-            int t;
-            for (t = 0; t < num_cpus; ++t) {
-                size_t base = (size_t)t * 4;
-                qa1[base + 0] = 0.0;
-                qa1[base + 1] = 0.0;
-                qa1[base + 2] = 0.0;
-                qa1[base + 3] = 0.0;
-            }
-            for (i = 0; i < num_cpus; ++i) { ithread[i] = i; pthread_create(&tid[i], NULL, (void*)stresspnormmt, (void*)&ithread[i]); }
-            for (i = 0; i < num_cpus; ++i) { pthread_join(tid[i], NULL); }
-            double sumPp = 0.0;
-            for (t = 0; t < num_cpus; ++t) sumPp += qa1[(size_t)t * 4 + 2];
-            Jp = (sumPp > 0.0) ? pow(sumPp, 1.0 / *pexp1) : 0.0;
-        }
+        /* Progress reporting */
+        const ITG report_stride = (ndof > 20 ? ndof/20 : 1);
 
+    /* FD loop over ALL DOFs (constrained included) */
+for (ITG k = 0; k < ndof; ++k) 
+{
 
-        /* Restore */
-        v1[idx] = u0;
+    const double u0 = v1[k];
+    const double h  = fmax(1.0e-8, 1.0e-6 * (1.0 + fabs(u0)));
 
-        /* First-order forward finite difference */
-        double dJdu_fd = (Jp - J0) / h;
+    v1[k] = u0 + h;              /* bump */
+    const double Jp = eval_pnorm_J_fd();
+    v1[k] = u0;                   /* restore */
 
-        /* Adjoint “RHS” value for the same DOF (already scaled by alpha1 above) */
-        double dJdu_adj = brhs[idx];
+    brhs[k] = (Jp - J0) / h;      /* forward FD */
 
+    if ((k % report_stride) == 0) {
+        printf("      FD RHS progress: %lld / %lld\r",
+               (long long)k, (long long)ndof);
+        fflush(stdout);
+    }
+}
+printf("      FD RHS progress: %lld / %lld\n",
+       (long long)ndof, (long long)ndof);
+printf("    done!\n");
 
-        /* Relative error (guard for zero) */
-        double denom = fmax(fabs(dJdu_fd), fabs(dJdu_adj));
-        double relerr = (denom > 1.0e-30) ? fabs(dJdu_fd - dJdu_adj) / denom : 0.0;
-
-        printf("\n[FD vs Adjoint] dJ/du at node=%lld, dof=%lld  (h=%.3e)\n",
-           (long long)node, (long long)dof, h);
-        printf("  J0=%.12e  J+=%.12e\n", J0, Jp);
-        printf("  dJ/du (FD forward) = %.12e\n", dJdu_fd);
-        printf("  dJ/du (adjoint)    = %.12e\n", dJdu_adj);
-        printf("  relative error     = %.6e\n", relerr);
-
-        SFREE(ithread);
-        SFREE(fn1);
-
+       
 
         /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
 

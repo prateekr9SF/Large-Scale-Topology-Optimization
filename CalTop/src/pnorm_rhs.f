@@ -87,6 +87,7 @@
       real*8 g(6), ptv(6), invvm, fac
       real*8 B(6,12), rhs_loc(12)
       real*8 rhs(0:mi(2),*)
+      real*8 C(6,6)
 
 ! 
 
@@ -975,16 +976,53 @@ c     Bernhardi end
             if(((nmethod.ne.4).or.(iperturb(1).ne.0)).and.
      &         (nmethod.ne.5).and.(icmd.ne.3)) then
 !              Scale xstiff based on element densities
+               write(*,*), 'Scaling element stiffness in pnorm_RHS.f'
                rho_e   = design(i)
                if (rho_e .lt. 0.d0) rho_e = 0.d0
                if (rho_e .gt. 1.d0) rho_e = 1.d0
                rho_eff = max(rho_e, rho_min)
                rho_p   = rho_eff**penal
-               do m1=1,21
-!                  write(*,*), 'Scale C matrix-> xstiff'
-                  xstiff(m1,jj,i)=rho_p * elas(m1)
-               enddo
+
+!               Build full 6X6 C (voigt, tensoral shear)
+                if (mattyp.eq.1) then
+!               Isotropic
+                  e  = elas(1)
+                  un = elas(2)
+
+                  um = e/(2.d0*(1.d0+un))                  ! G
+                  al = un*e/((1.d0+un)*(1.d0-2.d0*un))     ! lambda
+
+!                 Pack upper-triangular Voigt (1..21) with tensorial shear:
+!                 1:C11  2:C12  3:C22  4:C13  5:C23  6:C33
+!                 7:C14  8:C24  9:C34 10:C44 11:C15 12:C25
+!                 13:C35 14:C45 15:C55 16:C16 17:C26 18:C36
+!                 19:C46 20:C56 21:C66
+                  xstiff( 1,jj,i)=rho_p*(al+2.d0*um)  ! C11
+                  xstiff( 2,jj,i)=rho_p* al           ! C12
+                  xstiff( 3,jj,i)=rho_p*(al+2.d0*um)  ! C22
+                  xstiff( 4,jj,i)=rho_p* al           ! C13
+                  xstiff( 5,jj,i)=rho_p* al           ! C23
+                  xstiff( 6,jj,i)=rho_p*(al+2.d0*um)  ! C33
+
+                  xstiff( 7,jj,i)=0.d0                ! C14
+                  xstiff( 8,jj,i)=0.d0                ! C24
+                  xstiff( 9,jj,i)=0.d0                ! C34
+                  xstiff(10,jj,i)=rho_p* um           ! C44 (τ12/ε12_tensorial)
+                  xstiff(11,jj,i)=0.d0                ! C15
+                  xstiff(12,jj,i)=0.d0                ! C25
+                  xstiff(13,jj,i)=0.d0                ! C35
+                  xstiff(14,jj,i)=0.d0                ! C45
+                  xstiff(15,jj,i)=rho_p* um           ! C55 (τ13/ε13_tensorial)
+                  xstiff(16,jj,i)=0.d0                ! C16
+                  xstiff(17,jj,i)=0.d0                ! C26
+                  xstiff(18,jj,i)=0.d0                ! C36
+                  xstiff(19,jj,i)=0.d0                ! C46
+                  xstiff(20,jj,i)=0.d0                ! C56
+                  xstiff(21,jj,i)=rho_p* um           ! C66 (τ23/ε23_tensorial)
+               endif
             endif
+
+
 !
             if((iperturb(1).eq.-1).and.(nlgeom_undo.eq.0)) then
 !
@@ -1268,25 +1306,55 @@ c             dvm/dsigma in tensorial Voigt (σ12=τ12, etc.)
                 g(5) = fac * (3.d0*txz * invvm)
                 g(6) = fac * (3.d0*tyz * invvm)
 
-c             ptv = C * g  (C already stored in xstiff(:,jj,i))
-                ptv(1)= g(1)*xstiff( 1,jj,i) + g(2)*xstiff( 2,jj,i)
-     &                 + g(3)*xstiff( 4,jj,i) + g(4)*xstiff( 7,jj,i)
-     &                 + g(5)*xstiff(11,jj,i) + g(6)*xstiff(16,jj,i)
-                ptv(2)= g(1)*xstiff( 2,jj,i) + g(2)*xstiff( 3,jj,i)
-     &                 + g(3)*xstiff( 5,jj,i) + g(4)*xstiff( 8,jj,i)
-     &                 + g(5)*xstiff(12,jj,i) + g(6)*xstiff(17,jj,i)
-                ptv(3)= g(1)*xstiff( 4,jj,i) + g(2)*xstiff( 5,jj,i)
-     &                 + g(3)*xstiff( 6,jj,i) + g(4)*xstiff( 9,jj,i)
-     &                 + g(5)*xstiff(13,jj,i) + g(6)*xstiff(18,jj,i)
-                ptv(4)= g(1)*xstiff( 7,jj,i) + g(2)*xstiff( 8,jj,i)
-     &                 + g(3)*xstiff( 9,jj,i) + g(4)*xstiff(10,jj,i)
-     &                 + g(5)*xstiff(14,jj,i) + g(6)*xstiff(19,jj,i)
-                ptv(5)= g(1)*xstiff(11,jj,i) + g(2)*xstiff(12,jj,i)
-     &                 + g(3)*xstiff(13,jj,i) + g(4)*xstiff(14,jj,i)
-     &                 + g(5)*xstiff(15,jj,i) + g(6)*xstiff(20,jj,i)
-                ptv(6)= g(1)*xstiff(16,jj,i) + g(2)*xstiff(17,jj,i)
-     &                 + g(3)*xstiff(18,jj,i) + g(4)*xstiff(19,jj,i)
-     &                 + g(5)*xstiff(20,jj,i) + g(6)*xstiff(21,jj,i)
+! ---- unpack xstiff(:,jj,i) -> full symmetric C(6,6) in tensorial Voigt ----
+               
+               C = 0.d0
+               C(1,1)=xstiff( 1,jj,i);
+               C(2,1)=xstiff( 2,jj,i); 
+               C(2,2)=xstiff( 3,jj,i);
+               C(3,1)=xstiff( 4,jj,i); 
+               C(3,2)=xstiff( 5,jj,i); 
+               C(3,3)=xstiff( 6,jj,i);
+               C(4,1)=xstiff( 7,jj,i); 
+               C(4,2)=xstiff( 8,jj,i); 
+               C(4,3)=xstiff( 9,jj,i); 
+               C(4,4)=xstiff(10,jj,i);
+               C(5,1)=xstiff(11,jj,i);
+               C(5,2)=xstiff(12,jj,i); 
+               C(5,3)=xstiff(13,jj,i); 
+               C(5,4)=xstiff(14,jj,i); 
+               C(5,5)=xstiff(15,jj,i);
+               C(6,1)=xstiff(16,jj,i); 
+               C(6,2)=xstiff(17,jj,i); 
+               C(6,3)=xstiff(18,jj,i); 
+               C(6,4)=xstiff(19,jj,i); 
+               C(6,5)=xstiff(20,jj,i); 
+               C(6,6)=xstiff(21,jj,i);
+! mirror upper triangle
+               C(1,2)=C(2,1); 
+               C(1,3)=C(3,1); 
+               C(1,4)=C(4,1); 
+               C(1,5)=C(5,1); 
+               C(1,6)=C(6,1);
+               C(2,3)=C(3,2);
+               C(2,4)=C(4,2); 
+               C(2,5)=C(5,2); 
+               C(2,6)=C(6,2);
+               C(3,4)=C(4,3);
+               C(3,5)=C(5,3);
+               C(3,6)=C(6,3);
+               C(4,5)=C(5,4);
+               C(4,6)=C(6,4);
+               C(5,6)=C(6,5);
+
+! ---- ptv = C * g (tensorial) ----
+               do m1=1,6
+                  ptv(m1)=0.d0
+                  do m2=1,6
+                     ptv(m1)=ptv(m1)+C(m1,m2)*g(m2)
+                  enddo
+               enddo
+
 
 c             Build B for C3D4 (engineering shear), from shp(derivs)
 c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
@@ -1307,13 +1375,13 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                   B(6,m2+3) = shp(2,m1)
                 enddo
 
-c             rhs_loc = (xsj*weight) * B^T * ptv
+c             rhs_loc = -(xsj*weight) * B^T * ptv
                 do m1=1,12
                   rhs_loc(m1)=0.d0
                   do m2=1,6
                     rhs_loc(m1)=rhs_loc(m1) + B(m2,m1)*ptv(m2)
                   enddo
-                  rhs_loc(m1)=rhs_loc(m1)*(xsj*weight)
+                  rhs_loc(m1)=-rhs_loc(m1)*(xsj*weight)
                 enddo
 
 c             scatter to global rhs(1..3, node)
