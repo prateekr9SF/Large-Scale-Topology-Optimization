@@ -255,31 +255,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		//NNEW(stx,double,6*mi[0]**ne); No passing stx as an input argument to linstatic
   		NNEW(inum,ITG,*nk);
 
-
-		printf("\nInspecting nonzero entries in xstiff:\n");
-
-		for (int ielem = 0; ielem < *ne && ielem < max_elems_to_show; ielem++) 
-		{
-    		double *xe = xstiff + (long long)ielem * blk;
-    		int printed = 0;
-
-    		printf("\nElement %d:\n", ielem + 1);
-
-    		for (int k = 0; k < blk; k++) 
-			{
-        		if (fabs(xe[k]) > 1e-12) 
-				{   /* threshold for "nonzero" */
-            		printf("  xstiff[%d][%d] = % .6e\n", ielem + 1, k, xe[k]);
-            		printed++;
-            		if (printed >= max_vals_to_show) break;  /* limit output per element */
-        		}
-    		}
-
-    		if (printed == 0) 
-			{
-        		printf("  All entries are zero (within tolerance).\n\n");
-    		}
-		}
 	
   		results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	  	elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
@@ -302,30 +277,11 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 		// NOTE: At this point xstiff is not penalized
 		
-		printf("\nInspecting nonzero entries in xstiff @ first reslts() call:\n");
 
-		for (int ielem = 0; ielem < *ne && ielem < max_elems_to_show; ielem++) 
-		{
-    		double *xe = xstiff + (long long)ielem * blk;
-    		int printed = 0;
 
-    		printf("\nElement %d:\n", ielem + 1);
 
-    		for (int k = 0; k < blk; k++) 
-			{
-        		if (fabs(xe[k]) > 1e-12) 
-				{   /* threshold for "nonzero" */
-            		printf("  xstiff[%d][%d] = % .6e\n", ielem + 1, k, xe[k]);
-            		printed++;
-            		if (printed >= max_vals_to_show) break;  /* limit output per element */
-        		}
-    		}
+	
 
-    		if (printed == 0) 
-			{
-        		printf("  All entries are zero (within tolerance).\n\n");
-    		}
-		}
 
   		SFREE(v);
 		SFREE(fn);
@@ -591,20 +547,11 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	FORTRAN(stop,());
 				#endif
 
-				// Debugging: print compute the l2 norm for x in Ax = B
-
-				/*double l2_norm_disp = 0.0;
-
-						for (int i = 0; i < *neq; i++)
-						{
-							l2_norm_disp += b[i] * b[i];
-						}
-
-						l2_norm_disp = sqrt(l2_norm_disp);
-
-						printf("L2 norm of RHS: %f \n", l2_norm_disp);
-    				}*/
-
+				/* NOTE: 	At this point "b" holds the displacement in equation space. 
+							Allocate memory for full nodal displacement vector "v"
+							Pass both v and b to results()->resultsini.f to get full representation
+							
+				*/
 
 
     			/* calculating the displacements and the stresses and storing */
@@ -648,6 +595,9 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
             	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, 1);
+				
+
+				printf("Displacement tranformed to full nodal space!\n");
 					
 				//printf("done calling results.c for static calculation: line: 1112 @ linstatic.c \n");
 
@@ -778,6 +728,8 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 						SFREE(neigh);
 					}
     			}
+
+				
 
     			SFREE(v);
 				SFREE(stn);

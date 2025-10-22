@@ -38,7 +38,7 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
   char *env;
 /*  char env1[32]; */
   ITG i,j,k,l,maxfct=1,mnum=1,phase=12,nrhs=1,*perm=NULL,mtype,
-      msglvl=1,error=0,*irowpardiso=NULL,kflag,kstart,n,ifortran,
+      msglvl=0,error=0,*irowpardiso=NULL,kflag,kstart,n,ifortran,
       lfortran,index,id,k2;
   ITG ndim,nthread,nthread_v;
   double *b=NULL,*x=NULL;
@@ -331,7 +331,7 @@ void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs){
 void pardiso_cleanup(ITG *neq,ITG *symmetryflag){
 
   ITG maxfct=1,mnum=1,phase=-1,*perm=NULL,nrhs=1,mtype,
-      msglvl=1,error=0;
+      msglvl=0,error=0;
   double *b=NULL,*x=NULL;
 
   if(*symmetryflag==0){

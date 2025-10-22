@@ -60,87 +60,6 @@ static double *rhs1=NULL;  /* per-thread RHS blocks*/
 static double alpha1 = 0.0; /* scalar used in adjoint RHS */
 //static double *djdrho1 = NULL;   /* per element sensiticvity dJ/drho_e (size = *ne) */
 
-/* ---------- finite-difference d(Pnorm)/du (light, results.c-local) ---------- */
-
-#define VINDEX(i, nd, mt) ((ITG)(i) + (ITG)(mt) * ((ITG)(nd) - 1))
-
-/* Evaluate J = (sum_phi^p)^(1/p) at current v1 by calling Fortran stresspnorm. */
-static double eval_Pnorm_current(ITG list, ITG *ilist)
-{
-    /* local QA to avoid touching caller's qa1 */
-    double qa_loc[4]; qa_loc[0]=0.0; qa_loc[1]=0.0; qa_loc[2]=-1.0; qa_loc[3]=0.0;
-    ITG nal_local = 0;
-    ITG nea = 1, neb = *ne1;
-
-    FORTRAN(stresspnorm,(co1,kon1,ipkon1,lakon1,ne1,v1,
-        stx1,elcon1,nelcon1,rhcon1,nrhcon1,alcon1,nalcon1,alzero1,
-        ielmat1,ielorien1,norien1,orab1,ntmat1_,t01,t11,ithermal1,prestr1,
-        iprestr1,eme1,iperturb1,fn1,iout1,qa_loc,vold1,nmethod1,
-        veold1,dtime1,time1,ttime1,plicon1,nplicon1,plkcon1,nplkcon1,
-        xstateini1,xstiff1,xstate1,npmat1_,matname1,mi1,ielas1,icmd1,
-        ncmat1_,nstate1_,stiini1,vini1,ener1,eei1,enerini1,istep1,iinc1,
-        springarea1,reltime1,&calcul_fn1,&calcul_qa1,&calcul_cauchy1,nener1,
-        &ikin1,&nal_local,ne01,thicke1,emeini1,pslavsurf1,
-        pmastsurf1,mortar1,clearini1,&nea,&neb,ielprop1,prop1,kscale1,
-        &list,ilist,design1,penal1,sigma01,eps1,rhomin1,pexp1));
-
-    const double sumP = qa_loc[2];
-    if (sumP > 0.0) return pow(sumP, 1.0 / (*pexp1));
-    return 0.0;
-}
-
-/* Central/forward FD gradient; grad has size mt1 * (*nk1); layout = v1 layout. */
-static void fd_pnorm_du_light(
-    double *grad,          /* OUT: dJ/du in same layout as v1 */
-    ITG *nactdof,          /* may be NULL to not skip constrained DOFs */
-    double hrel,           /* e.g. 1e-7 */
-    int use_central,       /* 1 = central, 0 = forward */
-    ITG list, ITG *ilist   /* pass-through from results() scope */
-){
-    const ITG mt   = mt1;         /* mi1[1] + 1, already assigned earlier */
-    const ITG ndof = mt * (*nk1);
-
-    /* base value (for forward differencing and also nice to have) */
-    const double J0 = eval_Pnorm_current(list, ilist);
-
-    /* zero output */
-    memset(grad, 0, sizeof(double) * (size_t)ndof);
-
-    for (ITG a = 0; a < ndof; ++a) {
-
-        /* skip constrained dofs if provided */
-        if (nactdof && nactdof[a] == 0) continue;
-
-        /* decode (i, nd) */
-        ITG i = a % mt;          /* Fortran first index: 0..mi(2) */
-        ITG nd = a / mt + 1;     /* Fortran node index: 1..*nk   */
-
-        /* displacements only: i = 1..3 (skip temperature/extra slots) */
-        if (i == 0 || i > 3) continue;
-
-        double *vi = &v1[VINDEX(i, nd, mt)];
-        const double vsave = *vi;
-
-        /* step size */
-        double h = hrel * fmax(1.0, fabs(vsave));
-        if (h == 0.0) h = hrel;
-
-        if (use_central) {
-            *vi = vsave + h;
-            const double Jp = eval_Pnorm_current(list, ilist);
-            *vi = vsave - h;
-            const double Jm = eval_Pnorm_current(list, ilist);
-            *vi = vsave;
-            grad[a] = (Jp - Jm) / (2.0 * h);
-        } else {
-            *vi = vsave + h;
-            const double Jp = eval_Pnorm_current(list, ilist);
-            *vi = vsave;
-            grad[a] = (Jp - J0) / h;
-        }
-    }
-}
-/* --------------------------------------------------------------------------- */
 
 void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
@@ -378,10 +297,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     {   
         printf(" Evaluating stress adjoint terms \n");
 
-        printf(" Results.c Pexp: %f, \n", *pexp1);
-        printf(" Results.c Sigma0: %f, \n", *sigma0);
-        printf(" Results.c rhomin: %f, \n", *rhomin1);
-        printf(" Results.c Eps-relax: %f, \n", *eps1);
+        //printf(" Results.c Pexp: %f, \n", *pexp1);
+       // printf(" Results.c Sigma0: %f, \n", *sigma0);
+       // printf(" Results.c rhomin: %f, \n", *rhomin1);
+       // printf(" Results.c Eps-relax: %f, \n", *eps1);
 
 	    for(i=0; i<num_cpus; i++)  
         {
@@ -488,36 +407,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             brhs[i] = acc * alpha1;
         }
 
-        /* Optional: compute numerical dJ/du for verification/debug */
-        double *dJdu = NULL;
-        NNEW(dJdu, double, mt * *nk);
-        fd_pnorm_du_light(
-        dJdu,
-        NULL,     /* or NULL to include constrained dofs */
-        1e-7,        /* hrel */
-        0,           /* use_central */
-        0, NULL /* pass the same list/ilist in scope */
-        );
-
-        /* --- Compare first few values --- */
-        printf("\n%-8s %-18s %-18s %-18s\n", "Index", "RHS (adjoint)", "dJ/du (FD)", "Rel. diff");
-        printf("---------------------------------------------------------------\n");
-
-        int nprint = 20; /* print first 20 entries (adjust as needed) */
-        for (int k = 0; k < nprint && k < mt * *nk; ++k) 
-        {
-            double r1 = brhs[k];
-            double r2 = dJdu[k];
-            double denom = fmax(fabs(r1), fabs(r2));
-            double rel = (denom > 1e-16) ? fabs(r1 - r2) / denom : 0.0;
-
-            printf("%-8d %-18.8e %-18.8e %-18.8e\n", k + 1, r1, r2, rel);
-        }
 
 
         /* Done with per-thread storage*/
 	    SFREE(rhs1);
-        SFREE(dJdu);
         printf("done!");
 
         /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
