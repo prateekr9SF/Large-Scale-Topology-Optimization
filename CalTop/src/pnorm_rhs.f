@@ -89,6 +89,13 @@
       real*8 rhs(0:mi(2),*)
       real*8 C(6,6)
 
+!     work arrays for Me*u_e path (C3D4 block)
+      integer ia, ib
+      real*8 Bten(6,12)
+      real*8 Vec(6,6)
+      real*8 uel(12)
+      real*8 s(6), t(6)
+      real*8 coeff
 ! 
 
       intent(in) co,kon,ipkon,lakon,ne,v,
@@ -128,7 +135,8 @@
       !rho_min = 1.d-3      ! small stiffness floor
       !eps_relax = 1.d-3    ! stress relaxation paramter to avoid singularity
       !sig0 = 1.d0          ! set to thr allowable stress
-!
+!     
+! --- Begin loop over all elements starting from nea
       do m=nea,neb
 !
          if(list.eq.1) then
@@ -443,7 +451,7 @@ c         write(*,*) 'resultsmech ',i,lakonl,mint3d
                enddo
             enddo            
          endif
-!
+! --- Integration point loop inside element i
          do jj=1,mint3d
             if(lakonl(4:5).eq.'8R') then
                xi=gauss3d1(1,jj)
@@ -957,10 +965,11 @@ c     Bernhardi end
               if (rho_e .gt. 1.d0) rho_e = 1.d0
               rho_eff = max(rho_e, rho_min)
               rho_p   = rho_eff**penal
-              ! Scale the entire Constitutive matrix with element densities
-              !do m1 = 1, 21
-              !elas(m1) = rho_p * elas(m1)
-              !enddo
+
+! --- Do not scale using rho_p anywhere since the adjoint RHS 
+!     depends on the rho_p = 1 state
+!     TODO: Removve above conditional
+              rho_p = 1.d0
             endif
 !           calculating the local stiffness and stress
 !           Constitutive law
@@ -975,13 +984,13 @@ c     Bernhardi end
 !
             if(((nmethod.ne.4).or.(iperturb(1).ne.0)).and.
      &         (nmethod.ne.5).and.(icmd.ne.3)) then
-!              Scale xstiff based on element densities
-               write(*,*), 'Scaling element stiffness in pnorm_RHS.f'
-               rho_e   = design(i)
-               if (rho_e .lt. 0.d0) rho_e = 0.d0
-               if (rho_e .gt. 1.d0) rho_e = 1.d0
-               rho_eff = max(rho_e, rho_min)
-               rho_p   = rho_eff**penal
+! --- No scaling of Stress matrix here
+!               write(*,*), 'Scaling element stiffness in pnorm_RHS.f'
+!               rho_e   = design(i)
+!               if (rho_e .lt. 0.d0) rho_e = 0.d0
+!               if (rho_e .gt. 1.d0) rho_e = 1.d0
+!               rho_eff = max(rho_e, rho_min)
+!               rho_p   = rho_eff**penal
 
 !               Build full 6X6 C (voigt, tensoral shear)
                 if (mattyp.eq.1) then
@@ -997,28 +1006,28 @@ c     Bernhardi end
 !                 7:C14  8:C24  9:C34 10:C44 11:C15 12:C25
 !                 13:C35 14:C45 15:C55 16:C16 17:C26 18:C36
 !                 19:C46 20:C56 21:C66
-                  xstiff( 1,jj,i)=rho_p*(al+2.d0*um)  ! C11
-                  xstiff( 2,jj,i)=rho_p* al           ! C12
-                  xstiff( 3,jj,i)=rho_p*(al+2.d0*um)  ! C22
-                  xstiff( 4,jj,i)=rho_p* al           ! C13
-                  xstiff( 5,jj,i)=rho_p* al           ! C23
-                  xstiff( 6,jj,i)=rho_p*(al+2.d0*um)  ! C33
+                  xstiff( 1,jj,i)=(al+2.d0*um)  ! C11
+                  xstiff( 2,jj,i)= al           ! C12
+                  xstiff( 3,jj,i)= (al+2.d0*um)  ! C22
+                  xstiff( 4,jj,i)= al           ! C13
+                  xstiff( 5,jj,i)= al           ! C23
+                  xstiff( 6,jj,i)= (al+2.d0*um)  ! C33
 
                   xstiff( 7,jj,i)=0.d0                ! C14
                   xstiff( 8,jj,i)=0.d0                ! C24
                   xstiff( 9,jj,i)=0.d0                ! C34
-                  xstiff(10,jj,i)=rho_p* um           ! C44 (τ12/ε12_tensorial)
+                  xstiff(10,jj,i)= um           ! C44 (τ12/ε12_tensorial)
                   xstiff(11,jj,i)=0.d0                ! C15
                   xstiff(12,jj,i)=0.d0                ! C25
                   xstiff(13,jj,i)=0.d0                ! C35
                   xstiff(14,jj,i)=0.d0                ! C45
-                  xstiff(15,jj,i)=rho_p* um           ! C55 (τ13/ε13_tensorial)
+                  xstiff(15,jj,i)= um           ! C55 (τ13/ε13_tensorial)
                   xstiff(16,jj,i)=0.d0                ! C16
                   xstiff(17,jj,i)=0.d0                ! C26
                   xstiff(18,jj,i)=0.d0                ! C36
                   xstiff(19,jj,i)=0.d0                ! C46
                   xstiff(20,jj,i)=0.d0                ! C56
-                  xstiff(21,jj,i)=rho_p* um           ! C66 (τ23/ε23_tensorial)
+                  xstiff(21,jj,i)= um           ! C66 (τ23/ε23_tensorial)
                endif
             endif
 
@@ -1280,31 +1289,25 @@ c     Bernhardi end
             rho_eff = max(rho_e, rho_min)
             rho_p = rho_eff**penal
 
-! --- Duysinx-Sigmund relaxed local measure
-            phi = vm/ (rho_p*sig0) + eps_relax - eps_relax/rho_eff
+! --- Duysinx-Sigmund effective von Misses stress measure for this element
+            phi = vm/ (sig0) + eps_relax - eps_relax/rho_eff
             if (phi .lt. 0.d0) phi = 0.d0
 
-! --- p-mean over the PHYSICAL volume (no desnity weighting)
-            wgt = xsj * weight
-            g_sump = g_sump + (phi**pexp) * wgt
+! --- With effective von Misses stress calculated, raise to pexp
+! --- and sum over all elements
+!            g_sump = g_sump + (phi**pexp)
             !g_vol  = g_vol  + wgt  <-- valid only for p-mean
+
+
 c----- RHS accumulation (minimal: C3D4 only) --------------------------
             if (nope.eq.4) then
 
 c           skip if vm or phi yields zero gradient
-              if (vm.gt.0.d0 .and. phi.gt.0.d0) then
+              if (vm.gt.0.d0) then
 
-c             chain-rule factor: alpha = J^(1-p) is expected from caller
-                invvm = 1.d0/vm
-                fac   = (phi**(pexp-1)) / (rho_p*sig0)
-
-c             dvm/dsigma in tensorial Voigt (σ12=τ12, etc.)
-                g(1) = fac * ((2.d0*sx - sy - sz) * 0.5d0 * invvm)
-                g(2) = fac * ((2.d0*sy - sx - sz) * 0.5d0 * invvm)
-                g(3) = fac * ((2.d0*sz - sx - sy) * 0.5d0 * invvm)
-                g(4) = fac * (3.d0*txy * invvm)
-                g(5) = fac * (3.d0*txz * invvm)
-                g(6) = fac * (3.d0*tyz * invvm)
+!  ---        evaluate 
+                invvm = 1.d0/(sig0 * vm)
+                fac   = (phi**(pexp-1)) * invvm
 
 ! ---- unpack xstiff(:,jj,i) -> full symmetric C(6,6) in tensorial Voigt ----
                
@@ -1347,22 +1350,14 @@ c             dvm/dsigma in tensorial Voigt (σ12=τ12, etc.)
                C(4,6)=C(6,4);
                C(5,6)=C(6,5);
 
-! ---- ptv = C * g (tensorial) ----
-               do m1=1,6
-                  ptv(m1)=0.d0
-                  do m2=1,6
-                     ptv(m1)=ptv(m1)+C(m1,m2)*g(m2)
-                  enddo
-               enddo
-
 
 c             Build B for C3D4 (engineering shear), from shp(derivs)
 c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
-                do m1=1,12
+               do m1=1,12
                   B(1,m1)=0.d0; B(2,m1)=0.d0; B(3,m1)=0.d0
                   B(4,m1)=0.d0; B(5,m1)=0.d0; B(6,m1)=0.d0
-                enddo
-                do m1=1,4
+               enddo
+               do m1=1,4
                   m2 = 3*(m1-1)
                   B(1,m2+1) = shp(1,m1)
                   B(2,m2+2) = shp(2,m1)
@@ -1373,19 +1368,81 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                   B(5,m2+3) = shp(1,m1)
                   B(6,m2+2) = shp(3,m1)   ! eyz engineering
                   B(6,m2+3) = shp(2,m1)
-                enddo
+               enddo
+! ---          Convert to tensorial shear: Bten = R * Beng, R=diag(1,1,1,1/2,1/2,1/2)
+               do m1=1,12
+                  Bten(1,m1)=B(1,m1)
+                  Bten(2,m1)=B(2,m1)
+                  Bten(3,m1)=B(3,m1)
+                  Bten(4,m1)=0.5d0*B(4,m1)
+                  Bten(5,m1)=0.5d0*B(5,m1)
+                  Bten(6,m1)=0.5d0*B(6,m1)
+               enddo
+!  ---         von-Misses selecter Vec in tensorial Voigt (3D)
+               Vec = 0.d0
+               Vec(1,1)=1.d0
+               Vec(1,2)=-0.5d0
+               Vec(1,3)=-0.5d0
+               Vec(2,1)=-0.5d0
+               Vec(2,2)=1.d0
+               Vec(2,3)=-0.5d0
+               Vec(3,1)=-0.5d0
+               Vec(3,2)=-0.5d0
+               Vec(3,3)=1.d0
+               Vec(4,4)=3.d0
+               Vec(5,5)=3.d0
+               Vec(6,6)=3.d0
 
-c             rhs_loc = -(xsj*weight) * B^T * ptv
-                do m1=1,12
-                  rhs_loc(m1)=0.d0
-                  do m2=1,6
-                    rhs_loc(m1)=rhs_loc(m1) + B(m2,m1)*ptv(m2)
+! ---          Gather u_e (12 X1) from vl(:,:)
+               do m1=1,4
+                  uel(3*(m1-1)+1) = vl(1,m1)
+                  uel(3*(m1-1)+2) = vl(2,m1)
+                  uel(3*(m1-1)+3) = vl(3,m1)
+               enddo
+! ---         s = C * (Bten * u_e) (tensorial stress)
+               do ia=1,6
+                  s(ia)=0.d0
+                  do ib=1,12
+                     s(ia)=s(ia)+C(ia,1)*Bten(1,ib)*uel(ib)
+     &               +C(ia,2)*Bten(2,ib)*uel(ib)
+     &               +C(ia,3)*Bten(3,ib)*uel(ib)
+     &               +C(ia,4)*Bten(4,ib)*uel(ib)
+     &               +C(ia,5)*Bten(5,ib)*uel(ib)
+     &               +C(ia,6)*Bten(6,ib)*uel(ib)
                   enddo
-                  rhs_loc(m1)=-rhs_loc(m1)*(xsj*weight)
-                enddo
+               enddo
 
-c             scatter to global rhs(1..3, node)
-                do m1=1,4
+! ---          t = V * s
+               do ia=1,6
+                  t(ia)=0.d0
+                  do ib=1,6
+                     t(ia)=t(ia)+Vec(ia,ib)*s(ib)
+                  enddo
+               enddo
+
+!  ---         p  = C * t 
+               do ia=1,6
+                  ptv(ia)=0.d0
+                  do ib=1,6
+                     ptv(ia)=ptv(ia)+C(ia,ib)*t(ib)
+                  enddo
+               enddo
+
+! ---          Build Me0 u_e
+               do m1=1,12
+                  rhs_loc(m1)=0.d0
+                  do ia = 1,6
+                     rhs_loc(m1)=rhs_loc(m1) + Bten(ia,m1)*ptv(ia)
+                  enddo
+               enddo
+
+! ---          Multiply with scalar factor
+               do m1=1,12
+                  rhs_loc(m1) = fac * rhs_loc(m1)
+               enddo
+
+! ---          Scatter to global rhs(1..3, node)
+                do m1=1,4   ! Loop over all DOFs.
                   rhs(1,konl(m1)) = rhs(1,konl(m1))
      &                             + rhs_loc(3*(m1-1)+1)
                   rhs(2,konl(m1)) = rhs(2,konl(m1)) 
@@ -1394,11 +1451,11 @@ c             scatter to global rhs(1..3, node)
      &                             + rhs_loc(3*(m1-1)+3)
                 enddo
               endif
-            endif
+            endif ! End if nope .eq. 4 condition
 c----------------------------------------------------------------------
 
 !
-         enddo  ! <--- end of jj=1, mint3d
+         enddo  ! <--- end of jj=1, mint3d (End of Gauss point integration)
 !
 !        q contains the contributions to the nodal force in the nodes
 !        belonging to the element at stake from other elements (elements
@@ -1414,7 +1471,7 @@ c----------------------------------------------------------------------
             enddo
             nal=nal+3*nope
          endif
-      enddo
+      enddo ! End of loop over all elements
 !
 
 !

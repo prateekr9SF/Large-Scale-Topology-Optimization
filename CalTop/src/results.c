@@ -401,7 +401,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         {
             // Compute P-norm based on Duysinx and Sigmund 2012
             *Pnorm = pow(sumP, 1.0 / p);
-            alpha1 = pow(*Pnorm, (1.0 - p));
+            alpha1 = pow(*Pnorm, (1.0 - p)); // A scalar term used in sensitivity eval
         }
         else
         {
@@ -409,12 +409,12 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             alpha1 = 0.0;
         }
         
-        printf("sumP (unnormalized): %.12e\n", sumP);
+        printf("    Aggregated stress P-norm: %.12e\n", *Pnorm);
         //printf("J (p-norm)        : %.12e\n", *Pnorm);
         //printf("alpha1 = J^(1-p2)  : %.12e\n", alpha1);
 
         
-    }  // end adjoint condition
+    }  // end stress P-norm calculation
 
 
 
@@ -439,7 +439,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
     if (get_adjoint == 1)
     {
-        /*
+        
         printf("    Assembling RHS for stress adjoint using analytical solution");
 
         //Allocate per-thread RHS blocks and the reduced RHS
@@ -478,49 +478,50 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 	    SFREE(rhs1);
         printf("done!\n");
 
-        */
+        
 
         
 
         /**************************************P-NORM RHS FD EVALUATION***************************************/
-
+        /*
         printf("    Assembling RHS via forward finite differences (ALL DOFs)...\n");
 
-        /* Baseline J0 at current v1 */
+        // Baseline J0 at current v1 /
         const double J0 = eval_pnorm_J_fd();
 
-        /* Full-space size and zero RHS */
+        // Full-space size and zero RHS /
         const ITG mtloc = mi[1] + 1;
         const ITG ndof  = mtloc * (*nk);
         for (ITG k = 0; k < ndof; ++k) brhs[k] = 0.0;
 
-        /* Progress reporting */
+        // Progress reporting /
         const ITG report_stride = (ndof > 20 ? ndof/20 : 1);
 
-    /* FD loop over ALL DOFs (constrained included) */
-for (ITG k = 0; k < ndof; ++k) 
-{
+        // FD loop over ALL DOFs (constrained included) /
+        for (ITG k = 0; k < ndof; ++k) 
+        {
 
-    const double u0 = v1[k];
-    const double h  = fmax(1.0e-8, 1.0e-6 * (1.0 + fabs(u0)));
+            const double u0 = v1[k];
+            const double h  = fmax(1.0e-8, 1.0e-6 * (1.0 + fabs(u0)));
 
-    v1[k] = u0 + h;              /* bump */
-    const double Jp = eval_pnorm_J_fd();
-    v1[k] = u0;                   /* restore */
+            v1[k] = u0 + h;              // bump //
+            const double Jp = eval_pnorm_J_fd();
+            v1[k] = u0;                   // restore //
 
-    brhs[k] = (Jp - J0) / h;      /* forward FD */
+            brhs[k] = (Jp - J0) / h;      // forward FD //
 
-    if ((k % report_stride) == 0) {
-        printf("      FD RHS progress: %lld / %lld\r",
-               (long long)k, (long long)ndof);
-        fflush(stdout);
-    }
-}
-printf("      FD RHS progress: %lld / %lld\n",
-       (long long)ndof, (long long)ndof);
-printf("    done!\n");
+            if ((k % report_stride) == 0) 
+            {
+                printf("      FD RHS progress: %lld / %lld\r",
+                (long long)k, (long long)ndof);
+                fflush(stdout);
+            }
+        }
+        printf("      FD RHS progress: %lld / %lld\n",
+        (long long)ndof, (long long)ndof);
+        printf("    done!\n");
 
-       
+        */
 
         /*************************************P-NORM EXPLICIT TERM CALCULATION******************************/
 

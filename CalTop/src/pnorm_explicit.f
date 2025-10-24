@@ -102,7 +102,7 @@ c-------- von Mises
          vm  = dsqrt(vm2)
 
 c-------- phi (same as in resultsmech)
-         phi = vm/(rho_p*sig0) + eps_relax - eps_relax/rho_eff
+         phi = vm/(sig0) + eps_relax - eps_relax/rho_eff
          if (phi .le. 0.d0) cycle
 
 c-------- piecewise derivative of rho_eff = max(rho, rho_min)
