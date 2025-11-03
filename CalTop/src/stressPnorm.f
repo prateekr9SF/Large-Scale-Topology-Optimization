@@ -116,11 +116,7 @@
 
 
 
-      ! SIMP constants (tweak as needed)
-      !rho_min = 1.d-3      ! small stiffness floor
-      !eps_relax = 1.d-3    ! stress relaxation paramter to avoid singularity
-      !sig0 = 1.d0          ! set to thr allowable stress
-!
+!     Loop over all elements starting from nea...neb
       do m=nea,neb
 !
          if(list.eq.1) then
@@ -129,42 +125,14 @@
             i=m
          endif
 !
-!        check for strainless reactivated elements
-!
-         if(ielmat(1,i).lt.0) then
-            istrainfree=1
-            ielmat(1,i)=-ielmat(1,i)
-         else
-            istrainfree=0
-         endif
 !
          lakonl=lakon(i)
 !
-!        only structural elements (no fluid elements)
 !
-         if((ipkon(i).lt.0).or.(lakonl(1:1).eq.'F')) cycle
-!
-         if(lakonl(1:7).eq.'DCOUP3D') cycle
-!
-!        user elements
 
-
-!
-         if(lakonl(1:1).eq.'U') then
-            call resultsmech_u(co,kon,ipkon,lakon,ne,v,
-     &        stx,elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
-     &        ielmat,ielorien,norien,orab,ntmat_,t0,t1,ithermal,prestr,
-     &        iprestr,eme,iperturb,fn,iout,qa,vold,nmethod,
-     &        veold,dtime,time,ttime,plicon,nplicon,plkcon,nplkcon,
-     &        xstateini,xstiff,xstate,npmat_,matname,mi,ielas,icmd,
-     &        ncmat_,nstate_,stiini,vini,ener,eei,enerini,istep,iinc,
-     &        reltime,calcul_fn,calcul_qa,calcul_cauchy,nener,
-     &        ikin,nal,ne0,thicke,emeini,i,ielprop,prop)
-            cycle
-         endif
 !
          if(lakonl(7:8).ne.'LC') then
-!
+
             imat=ielmat(1,i)
             amat=matname(imat)
             if(norien.gt.0) then
@@ -172,96 +140,12 @@
             else
                iorien=0
             endif
-!
+
             if(nelcon(1,imat).lt.0) then
                ihyper=1
             else
                ihyper=0
             endif
-         elseif(lakonl(4:5).eq.'20') then
-!     
-!           composite materials    
-!           S8R - composite element
-!
-            mint2d=4
-            nopes=8
-!
-!           determining the number of layers
-!     
-            nlayer=0
-            do k=1,mi(3)
-               if(ielmat(k,i).ne.0) then
-                  nlayer=nlayer+1
-               endif
-            enddo
-!     
-!     determining the layer thickness and global thickness
-!     at the shell integration points
-!     
-            iflag=1
-            indexe=ipkon(i)
-            do kk=1,mint2d
-               xi=gauss3d2(1,kk)
-               et=gauss3d2(2,kk)
-               call shape8q(xi,et,xl2,xsj2,xs2,shp2,iflag)
-               tlayer(kk)=0.d0
-               do k=1,nlayer
-                  thickness=0.d0
-                  do j=1,nopes
-                     thickness=thickness+thicke(k,indexe+j)*shp2(4,j)
-                  enddo
-                  tlayer(kk)=tlayer(kk)+thickness
-                  xlayer(k,kk)=thickness
-               enddo
-            enddo
-            iflag=3
-!     
-            ilayer=0
-            do k=1,4
-               dlayer(k)=0.d0
-            enddo
-!     
-!
-!     S6 - composite element
-!
-         elseif(lakonl(4:5).eq.'15') then
-            mint2d=3
-            nopes=6
-!     determining the number of layers
-!     
-            nlayer=0
-            do k=1,mi(3)
-               if(ielmat(k,i).ne.0) then
-                  nlayer=nlayer+1
-               endif
-            enddo
-!     
-!     determining the layer thickness and global thickness
-!     at the shell integration points
-!     
-            iflag=1
-            indexe=ipkon(i)
-            do kk=1,mint2d
-               xi=gauss3d10(1,kk)
-               et=gauss3d10(2,kk)
-               call shape6tri(xi,et,xl2,xsj2,xs2,shp2,iflag)
-               tlayer(kk)=0.d0
-               do k=1,nlayer
-                  thickness=0.d0
-                  do j=1,nopes
-                     thickness=thickness+thicke(k,indexe+j)*shp2(4,j)
-                  enddo
-                  tlayer(kk)=tlayer(kk)+thickness
-                  xlayer(k,kk)=thickness
-               enddo
-            enddo
-            iflag=3
-!    
-            ilayer=0
-            do k=1,3
-               dlayer(k)=0.d0
-            enddo
-!     
          endif
 !
          indexe=ipkon(i)
@@ -328,23 +212,11 @@ c     Bernhardi end
             else
                mint3d=8
             endif
-         elseif(lakonl(4:4).eq.'2') then
-            mint3d=27
-         elseif(lakonl(4:5).eq.'10') then
-            mint3d=4
          elseif(lakonl(4:4).eq.'4') then
             mint3d=1
-         elseif(lakonl(4:5).eq.'15') then
-            if(lakonl(7:8).eq.'LC') then
-               mint3d=6*nlayer
-            else
-               mint3d=9
-            endif
-         elseif(lakonl(4:4).eq.'6') then
-            mint3d=2
-         elseif(lakonl(1:1).eq.'E') then
-            mint3d=0
          endif
+
+
 !        Gather nodal displacements
          do j=1,nope
             konl(j)=kon(indexe+j)
@@ -366,76 +238,7 @@ c     Bernhardi end
             enddo
          endif
 !
-!        calculating the forces for the contact elements
-!
-c         write(*,*) 'resultsmech ',i,lakonl,mint3d
-         if(mint3d.eq.0) then
-!
-!           "normal" spring and dashpot elements
-!
-            kode=nelcon(1,imat)
-            if((lakonl(7:7).eq.'A').or.(lakonl(7:7).eq.'1').or.
-     &            (lakonl(7:7).eq.'2')) then
-               t0l=0.d0
-               t1l=0.d0
-               if(ithermal(1).eq.1) then
-                  t0l=(t0(konl(1))+t0(konl(2)))/2.d0
-                  t1l=(t1(konl(1))+t1(konl(2)))/2.d0
-               elseif(ithermal(1).ge.2) then
-                  t0l=(t0(konl(1))+t0(konl(2)))/2.d0
-                  t1l=(vold(0,konl(1))+vold(0,konl(2)))/2.d0
-               endif
-            endif
-!
-!           spring elements (including contact springs)
-!     
-            if(lakonl(2:2).eq.'S') then
-               if((lakonl(7:7).eq.'A').or.(lakonl(7:7).eq.'1').or.
-     &            (lakonl(7:7).eq.'2').or.((mortar.eq.0).and.
-     &          ((nmethod.ne.1).or.(iperturb(1).ge.2).or.(iout.ne.-1))))
-     &               then
-                  call springforc_n2f(xl,konl,vl,imat,elcon,nelcon,elas,
-     &              fnl,ncmat_,ntmat_,nope,lakonl,t1l,kode,elconloc,
-     &              plicon,nplicon,npmat_,ener(1,i),nener,
-     &              stx(1,1,i),mi,springarea(1,konl(nope+1)),nmethod,
-     &              ne0,nstate_,xstateini,xstate,reltime,
-     &              ielas,ener(1,i+ne),ielorien,orab,norien,i)
-               elseif((mortar.eq.1).and.
-     &           ((nmethod.ne.1).or.(iperturb(1).ge.2).or.(iout.ne.-1)))
-     &               then
-                  jfaces=kon(indexe+nope+2)
-                  igauss=kon(indexe+nope+1)
-                  call springforc_f2f(xl,vl,imat,elcon,nelcon,elas,
-     &              fnl,ncmat_,ntmat_,nope,lakonl,t1l,kode,elconloc,
-     &              plicon,nplicon,npmat_,ener(1,i),nener,
-     &              stx(1,1,i),mi,springarea(1,igauss),nmethod,
-     &              ne0,nstate_,xstateini,xstate,reltime,
-     &              ielas,jfaces,igauss,pslavsurf,pmastsurf,
-     &              clearini,ener(1,i+ne),kscale,konl,iout,i)
-               endif
-!             
-!              next lines are not executed in linstatic.c before the
-!              setup of the stiffness matrix (i.e. nmethod=1 and
-!              iperturb(1)<1 and iout=-1).
-!
-               if((lakonl(7:7).eq.'A').or.
-     &           ((nmethod.ne.1).or.(iperturb(1).ge.2).or.(iout.ne.-1)))
-     &              then
-                  do j=1,nope
-                     do k=1,3
-                        fn(k,konl(j))=fn(k,konl(j))+fnl(k,j)
-                     enddo
-                  enddo
-               endif
-            endif
-         elseif(ikin.eq.1) then
-            do j=1,nope
-               do k=1,3
-                  veoldl(k,j)=veold(k,konl(j))
-               enddo
-            enddo            
-         endif
-!
+
          do jj=1,mint3d
             if(lakonl(4:5).eq.'8R') then
                xi=gauss3d1(1,jj)
@@ -500,16 +303,16 @@ c         write(*,*) 'resultsmech ',i,lakonl,mint3d
                      ihyper=0
                   endif
                endif
-            elseif(lakonl(4:4).eq.'2') then
-               xi=gauss3d3(1,jj)
-               et=gauss3d3(2,jj)
-               ze=gauss3d3(3,jj)
-               weight=weight3d3(jj)
-            elseif(lakonl(4:5).eq.'10') then
-               xi=gauss3d5(1,jj)
-               et=gauss3d5(2,jj)
-               ze=gauss3d5(3,jj)
-               weight=weight3d5(jj)
+!            elseif(lakonl(4:4).eq.'2') then
+!               xi=gauss3d3(1,jj)
+!               et=gauss3d3(2,jj)
+!               ze=gauss3d3(3,jj)
+!               weight=weight3d3(jj)
+!            elseif(lakonl(4:5).eq.'10') then
+!               xi=gauss3d5(1,jj)
+!               et=gauss3d5(2,jj)
+!               ze=gauss3d5(3,jj)
+!               weight=weight3d5(jj)
             elseif(lakonl(4:4).eq.'4') then
                xi=gauss3d4(1,jj)
                et=gauss3d4(2,jj)
