@@ -182,39 +182,18 @@
 
 !     Begin loop over all integrations points per element
          do jj=1,mint3d
+            ! Get integration weight for this element
             if(lakonl(4:4).eq.'4') then
                xi=gauss3d4(1,jj)
                et=gauss3d4(2,jj)
                ze=gauss3d4(3,jj)
                weight=weight3d4(jj)
             endif
-
-c     Bernhardi start
-            if(lakonl(1:5).eq.'C3D8R') then
-               call shape8hr(xl,xsj,shp,gs,a)
-            elseif(lakonl(1:5).eq.'C3D8I') then
-               call shape8hu(xi,et,ze,xl,xsj,shp,iflag)
-            elseif(nope.eq.20) then
-c     Bernhardi end
-               if(lakonl(7:7).eq.'A') then
-                  call shape20h_ax(xi,et,ze,xl,xsj,shp,iflag)
-               elseif((lakonl(7:7).eq.'E').or.
-     &                (lakonl(7:7).eq.'S')) then
-                  call shape20h_pl(xi,et,ze,xl,xsj,shp,iflag)
-               else
-                  call shape20h(xi,et,ze,xl,xsj,shp,iflag)
-               endif
-            elseif(nope.eq.8) then
-               call shape8h(xi,et,ze,xl,xsj,shp,iflag)
-            elseif(nope.eq.10) then
-               call shape10tet(xi,et,ze,xl,xsj,shp,iflag)
-            elseif(nope.eq.4) then
+            ! Compute shape func values
+            if(nope.eq.4) then
                call shape4tet(xi,et,ze,xl,xsj,shp,iflag)
-            elseif(nope.eq.15) then
-               call shape15w(xi,et,ze,xl,xsj,shp,iflag)
-            else
-               call shape6w(xi,et,ze,xl,xsj,shp,iflag)
             endif
+
 !
 !                 vkl(m2,m3) contains the derivative of the m2-
 !                 component of the displacement with respect to
@@ -228,7 +207,6 @@ c     Bernhardi end
 !
             do m1=1,nope
                do m2=1,3
-               
                   do m3=1,3
                      vkl(m2,m3)=vkl(m2,m3)+shp(m3,m1)*vl(m2,m1)
                   enddo
