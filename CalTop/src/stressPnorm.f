@@ -149,6 +149,7 @@
          endif
 !
          indexe=ipkon(i)
+
 !        Set number of nodes for C3D4 element
          if(lakonl(4:4).eq.'4') then
             nope=4
@@ -169,16 +170,6 @@
             enddo
          enddo
 !
-!        q contains the nodal forces per element; initialisation of q
-!
-         if((iperturb(1).ge.2).or.((iperturb(1).le.0).and.(iout.lt.1))) 
-     &      then
-            do m1=1,nope
-               do m2=0,mi(2)
-                  q(m2,m1)=fn(m2,konl(m1))
-               enddo
-            enddo
-         endif
 
 !     Begin loop over all integrations points per element
          do jj=1,mint3d
