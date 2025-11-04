@@ -241,57 +241,6 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
             endif
 !
 !
-!                 calculating the deformation gradient (needed to
-!                 convert the element stiffness matrix from spatial
-!                 coordinates to material coordinates
-!                 deformation plasticity)
-!
-            if((kode.eq.-50).or.(kode.le.-100)) then
-
-!
-!                    calculating the deformation gradient
-!
-c     Bernhardi start
-               xkl(1,1)=vkl(1,1)+1.0d0
-               xkl(2,2)=vkl(2,2)+1.0d0
-               xkl(3,3)=vkl(3,3)+1.0d0
-c     Bernhardi end
-               xkl(1,2)=vkl(1,2)
-               xkl(1,3)=vkl(1,3)
-               xkl(2,3)=vkl(2,3)
-               xkl(2,1)=vkl(2,1)
-               xkl(3,1)=vkl(3,1)
-               xkl(3,2)=vkl(3,2)
-!
-!                    calculating the Jacobian
-!
-               vj=xkl(1,1)*(xkl(2,2)*xkl(3,3)-xkl(2,3)*xkl(3,2))
-     &              -xkl(1,2)*(xkl(2,1)*xkl(3,3)-xkl(2,3)*xkl(3,1))
-     &              +xkl(1,3)*(xkl(2,1)*xkl(3,2)-xkl(2,2)*xkl(3,1))
-!
-!              inversion of the deformation gradient (only for
-!              deformation plasticity)
-!
-               if(kode.eq.-50) then
-!
-                  ckl(1,1)=(xkl(2,2)*xkl(3,3)-xkl(2,3)*xkl(3,2))/vj
-                  ckl(2,2)=(xkl(1,1)*xkl(3,3)-xkl(1,3)*xkl(3,1))/vj
-                  ckl(3,3)=(xkl(1,1)*xkl(2,2)-xkl(1,2)*xkl(2,1))/vj
-                  ckl(1,2)=(xkl(1,3)*xkl(3,2)-xkl(1,2)*xkl(3,3))/vj
-                  ckl(1,3)=(xkl(1,2)*xkl(2,3)-xkl(2,2)*xkl(1,3))/vj
-                  ckl(2,3)=(xkl(2,1)*xkl(1,3)-xkl(1,1)*xkl(2,3))/vj
-                  ckl(2,1)=(xkl(3,1)*xkl(2,3)-xkl(2,1)*xkl(3,3))/vj
-                  ckl(3,1)=(xkl(2,1)*xkl(3,2)-xkl(2,2)*xkl(3,1))/vj
-                  ckl(3,2)=(xkl(3,1)*xkl(1,2)-xkl(1,1)*xkl(3,2))/vj
-!
-!                 converting the Lagrangian strain into Eulerian
-!                 strain (only for deformation plasticity)
-!
-                  cauchy=0
-                  call str2mat(eloc,ckl,vj,cauchy)
-               endif
-!                        
-            endif
 !
 !                 calculating fields for incremental plasticity
 !
