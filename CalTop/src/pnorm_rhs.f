@@ -129,12 +129,6 @@
       !pexp = 4.d0     ! choose your global p
 
 
-
-
-      ! SIMP constants (tweak as needed)
-      !rho_min = 1.d-3      ! small stiffness floor
-      !eps_relax = 1.d-3    ! stress relaxation paramter to avoid singularity
-      !sig0 = 1.d0          ! set to thr allowable stress
 !     
 ! --- Begin loop over all elements starting from nea
       do m=nea,neb

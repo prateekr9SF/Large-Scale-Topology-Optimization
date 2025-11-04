@@ -334,11 +334,11 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
             skl(2,3)=skl(3,2)
 !
 !
-!           calculation of the Cauchy stresses (skip for liner CalTop)
+!           calculation of the Cauchy stresses (skip for linear CalTop)
             if((calcul_cauchy.eq.1).and.(nlgeom_undo.eq.0)) then
 
                write(*,*), "Skipping Cauchy stress eval"
-           endif
+            endif
 !--------------------------------------------------------------!
 !                       BEGIN P-NORM EVAL                          
 !--------------------------------------------------------------!
