@@ -358,7 +358,7 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
 !
 !
 !           calculation of the Cauchy stresses
-!
+!            write(*,*), 'CHECKING FOR CAUCHY EVAL'
             if((calcul_cauchy.eq.1).and.(nlgeom_undo.eq.0)) then
 
                write(*,*), "Checking for Bernhardi start..."
@@ -367,45 +367,12 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
 !              deformation gradients
 !
 c               if(kode.ne.-50) then
-               if((kode.ne.-50).and.(kode.gt.-100)) then
-                  write(*,*), "I am in kode.neq -50"
-c     Bernhardi start
-                  xkl(1,1)=vkl(1,1)+1.0d0
-                  xkl(2,2)=vkl(2,2)+1.0d0
-                  xkl(3,3)=vkl(3,3)+1.0d0
-c     Bernhardi end   
-                  xkl(1,2)=vkl(1,2)
-                  xkl(1,3)=vkl(1,3)
-                  xkl(2,3)=vkl(2,3)
-                  xkl(2,1)=vkl(2,1)
-                  xkl(3,1)=vkl(3,1)
-                  xkl(3,2)=vkl(3,2)
-!
-                  vj=xkl(1,1)*(xkl(2,2)*xkl(3,3)-xkl(2,3)*xkl(3,2))
-     &                 -xkl(1,2)*(xkl(2,1)*xkl(3,3)-xkl(2,3)*xkl(3,1))
-     &                 +xkl(1,3)*(xkl(2,1)*xkl(3,2)-xkl(2,2)*xkl(3,1))
-               endif
-!
-               do m1=1,3
-                  do m2=1,m1
-                     ckl(m1,m2)=0.d0
-                     do m3=1,3
-                        do m4=1,3
-                           ckl(m1,m2)=ckl(m1,m2)+
-     &                          skl(m3,m4)*xkl(m1,m3)*xkl(m2,m4)
-                        enddo
-                     enddo
-                     ckl(m1,m2)=ckl(m1,m2)/vj
-                  enddo
-               enddo
-!
-               stx(1,jj,i)=ckl(1,1) 
-               stx(2,jj,i)=ckl(2,2) 
-               stx(3,jj,i)=ckl(3,3)
-               stx(4,jj,i)=ckl(2,1)
-               stx(5,jj,i)=ckl(3,1)
-               stx(6,jj,i)=ckl(3,2)
-            endif
+!               if((kode.ne.-50).and.(kode.gt.-100)) then
+!                  write(*,*), "I am in kode.neq -50"
+
+!               endif
+           endif
+
 ! --- p-norm accumulation (AFTER the Cauchy block) ------
             sx  = stx(1,jj,i) 
             sy  = stx(2,jj,i)
