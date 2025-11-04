@@ -228,21 +228,6 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
             exz=vkl(1,3)+vkl(3,1)
             eyz=vkl(2,3)+vkl(3,2)
 !
-            if(iperturb(2).eq.1) then
-!     
-!                 Lagrangian strain
-!     
-               exx=exx+(vkl(1,1)**2+vkl(2,1)**2+vkl(3,1)**2)/2.d0
-               eyy=eyy+(vkl(1,2)**2+vkl(2,2)**2+vkl(3,2)**2)/2.d0
-               ezz=ezz+(vkl(1,3)**2+vkl(2,3)**2+vkl(3,3)**2)/2.d0
-               exy=exy+vkl(1,1)*vkl(1,2)+vkl(2,1)*vkl(2,2)+
-     &              vkl(3,1)*vkl(3,2)
-               exz=exz+vkl(1,1)*vkl(1,3)+vkl(2,1)*vkl(2,3)+
-     &              vkl(3,1)*vkl(3,3)
-               eyz=eyz+vkl(1,2)*vkl(1,3)+vkl(2,2)*vkl(2,3)+
-     &              vkl(3,2)*vkl(3,3)
-
-            endif
 !
 !              storing the local strains
 !              Store tenorial components
@@ -253,23 +238,8 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
                eloc(4)=exy/2.d0
                eloc(5)=exz/2.d0
                eloc(6)=eyz/2.d0
-            else
-!
-!              linear iteration within a nonlinear increment:
-!
-               eloc(1)=vokl(1,1)+
-     &           (vokl(1,1)**2+vokl(2,1)**2+vokl(3,1)**2)/2.d0
-               eloc(2)=vokl(2,2)+
-     &           (vokl(1,2)**2+vokl(2,2)**2+vokl(3,2)**2)/2.d0
-               eloc(3)=vokl(3,3)+
-     &           (vokl(1,3)**2+vokl(2,3)**2+vokl(3,3)**2)/2.d0
-               eloc(4)=(vokl(1,2)+vokl(2,1)+vokl(1,1)*vokl(1,2)+
-     &              vokl(2,1)*vokl(2,2)+vokl(3,1)*vokl(3,2))/2.d0
-               eloc(5)=(vokl(1,3)+vokl(3,1)+vokl(1,1)*vokl(1,3)+
-     &              vokl(2,1)*vokl(2,3)+vokl(3,1)*vokl(3,3))/2.d0
-               eloc(6)=(vokl(2,3)+vokl(3,2)+vokl(1,2)*vokl(1,3)+
-     &              vokl(2,2)*vokl(2,3)+vokl(3,2)*vokl(3,3))/2.d0
             endif
+!
 !
 !                 calculating the deformation gradient (needed to
 !                 convert the element stiffness matrix from spatial
@@ -277,6 +247,7 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
 !                 deformation plasticity)
 !
             if((kode.eq.-50).or.(kode.le.-100)) then
+
 !
 !                    calculating the deformation gradient
 !
