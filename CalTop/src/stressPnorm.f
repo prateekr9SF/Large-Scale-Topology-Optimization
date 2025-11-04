@@ -149,73 +149,15 @@
          endif
 !
          indexe=ipkon(i)
-c     Bernhardi start
-         if(lakonl(1:5).eq.'C3D8I') then
-            nope=11
-         elseif(lakonl(4:5).eq.'20') then
-c     Bernhardi end
-            nope=20
-         elseif(lakonl(4:4).eq.'8') then
-            nope=8
-         elseif(lakonl(4:5).eq.'10') then
-            nope=10
-         elseif(lakonl(4:4).eq.'4') then
+!        Set number of nodes for C3D4 element
+         if(lakonl(4:4).eq.'4') then
             nope=4
-         elseif(lakonl(4:5).eq.'15') then
-            nope=15
-         elseif(lakonl(4:4).eq.'6') then
-            nope=6
-         elseif((lakonl(1:1).eq.'E').and.(lakonl(7:7).ne.'F')) then
-!
-!           spring elements, contact spring elements and
-!           dashpot elements
-!
-            if(lakonl(7:7).eq.'C') then
-!
-!              contact spring elements
-!
-               if(mortar.eq.1) then
-!
-!                 face-to-face penalty
-!
-                  nope=kon(ipkon(i))
-               elseif(mortar.eq.0) then
-!
-!                 node-to-face penalty
-!
-                  nope=ichar(lakonl(8:8))-47
-                  konl(nope+1)=kon(indexe+nope+1)
-               endif
-            else
-!
-!              genuine spring elements and dashpot elements
-!
-               nope=ichar(lakonl(8:8))-47
-            endif
-         else
-            cycle
-         endif
-!
-         if(lakonl(4:5).eq.'8R') then
-            mint3d=1
-         elseif(lakonl(4:7).eq.'20RB') then
-            if((lakonl(8:8).eq.'R').or.(lakonl(8:8).eq.'C')) then
-               mint3d=50
-            else
-               call beamintscheme(lakonl,mint3d,ielprop(i),prop,
-     &              null,xi,et,ze,weight)
-            endif
-         elseif((lakonl(4:4).eq.'8').or.
-     &          (lakonl(4:6).eq.'20R')) then
-            if(lakonl(7:8).eq.'LC') then
-               mint3d=8*nlayer
-            else
-               mint3d=8
-            endif
-         elseif(lakonl(4:4).eq.'4') then
-            mint3d=1
          endif
 
+!        Set number integration points for C3D4
+         if(lakonl(4:4).eq.'4') then
+            mint3d=1  ! One integration point per each C3D4 element
+         endif
 
 !        Gather nodal displacements
          do j=1,nope
