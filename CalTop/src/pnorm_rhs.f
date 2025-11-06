@@ -470,10 +470,10 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                   B(3,m2+3) = shp(3,m1)
                   B(4,m2+1) = shp(2,m1)   ! exy engineering
                   B(4,m2+2) = shp(1,m1)
-                  B(5,m2+1) = shp(3,m1)   ! exz engineering
-                  B(5,m2+3) = shp(1,m1)
-                  B(6,m2+2) = shp(3,m1)   ! eyz engineering
-                  B(6,m2+3) = shp(2,m1)
+                  B(6,m2+1) = shp(3,m1)   ! exz engineering
+                  B(6,m2+3) = shp(1,m1)
+                  B(5,m2+2) = shp(3,m1)   ! eyz engineering
+                  B(5,m2+3) = shp(2,m1)
                enddo
 
 ! ---          Convert to tensorial shear: Bten = R * Beng, R=diag(1,1,1,1/2,1/2,1/2)
@@ -481,11 +481,11 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                   Bten(1,m1)=B(1,m1)
                   Bten(2,m1)=B(2,m1)
                   Bten(3,m1)=B(3,m1)
-                  Bten(4,m1)=0.5d0*B(4,m1)
-                  Bten(5,m1)=0.5d0*B(5,m1)
-                  Bten(6,m1)=0.5d0*B(6,m1)
+                  Bten(4,m1)=B(4,m1)
+                  Bten(5,m1)=B(5,m1)
+                  Bten(6,m1)=B(6,m1)
                enddo
-               
+               !0.5d0*
 !  ---         von-Misses selecter Vec in tensorial Voigt (3D)
                Vec = 0.d0
                Vec(1,1)=1.d0
