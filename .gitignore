@@ -9,3 +9,4 @@
 *.swp
 *.dat
 !density.dat
+*.bin

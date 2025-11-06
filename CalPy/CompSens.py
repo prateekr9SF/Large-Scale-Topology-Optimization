@@ -39,7 +39,7 @@ def CompSens(InputFileName, penalty, radius, delta=0.0001):
     fullname = InputFileName + '.inp'
     
     # 1. Read the density.dat and store it in an array called density
-    os.system(f"calTop.exe {InputFileName} -p {penalty} -r {radius}")  # Run the simulation
+    os.system(f"calTop.exe {InputFileName} -p {penalty} -r {radius} -f 1000 --pexp 4 --sigmin 0.1 --sigrelax 0.001")  # Run the simulation
     with open('density.dat', 'r') as file:
         density = [float(line.strip()) for line in file.readlines()]
 
@@ -59,7 +59,7 @@ def CompSens(InputFileName, penalty, radius, delta=0.0001):
     
     # 4. Read the first column of compliance_sens.csv and store it in an array called adjoint
     adjoint = []
-    with open('compliance_sens.csv', mode='r') as csvfile:
+    with open('stress_sens.csv', mode='r') as csvfile:
         reader = csv.reader(csvfile)
         next(reader)  # Skip the header row
         for row in reader:
@@ -69,7 +69,7 @@ def CompSens(InputFileName, penalty, radius, delta=0.0001):
     with open('objectives.csv', mode='r') as csvfile:
         reader = csv.reader(csvfile)
         rows = list(reader)
-        comp_old = float(rows[1][0])  # Store the first value of the second row as comp_old
+        comp_old = float(rows[1][9])  # Store the ninth value of the second row as comp_old
 
     # 6. Iterate through the density array, change values to 0.99, re-run the simulation, and compute FD
     FD = []

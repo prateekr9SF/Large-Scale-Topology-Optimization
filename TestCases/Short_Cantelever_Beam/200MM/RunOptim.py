@@ -65,7 +65,7 @@ driver = IpoptDriver()
 driver.addObjective("min", fun1, 1)
 driver.addUpperBound(con,volfrac)
 
-optIter = 150
+optIter = 100
 
 driver.setEvaluationMode(False,2.0)
 driver.setStorageMode(False, "DSN_")
