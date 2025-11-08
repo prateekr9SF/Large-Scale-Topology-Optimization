@@ -96,7 +96,11 @@
       real*8 uel(12)
       real*8 s(6), t(6)
       real*8 coeff
-! 
+      real*8 MeN (12,12)
+      real*8 MNtemp(6,12)
+      real*8 TN(6,12)
+      real*8 sige, sigeT
+!     
 
       intent(in) co,kon,ipkon,lakon,ne,v,
      &  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
@@ -108,10 +112,11 @@
      &  springarea,reltime,calcul_fn,calcul_qa,calcul_cauchy,nener,
      &  ikin,ne0,thicke,pslavsurf,
      &  pmastsurf,mortar,clearini,nea,neb,ielprop,prop,kscale,
-     &  list,ilist,design, penal, sig0, eps_relax, rho_min, pexp, alpha
+     &  list,ilist,design, penal, sig0, eps_relax, rho_min, pexp, alpha,
+     &  nal,qa,fn,ener,eme,eei,ielmat,prestr,
+     &  emeini
 !
-      intent(inout) nal,qa,fn,xstiff,ener,eme,eei,stx,ielmat,prestr,
-     &  emeini, rhs
+      intent(inout) xstiff,stx, rhs
 !
       include "gauss.f"
 !
@@ -119,9 +124,9 @@
       null=0
 !
       mt=mi(2)+1
-      nal=0
-      qa(3)=-1.d0
-      qa(4)=0.d0
+      !nal=0
+      !qa(3)=-1.d0
+      !qa(4)=0.d0
 
 !     
 ! --- Begin loop over all elements starting from nea
@@ -292,12 +297,12 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
 !           Constitutive law
             nlgeom_undo=0
 
-            call mechmodel(elconloc,elas,emec,kode,emec0,ithermal,
-     &           icmd,beta,stre,xkl,ckl,vj,xikl,vij,
-     &           plconloc,xstate,xstateini,ielas,
-     &           amat,t1l,dtime,time,ttime,i,jj,nstate_,mi(1),
-     &           iorien,pgauss,orab,eloc,mattyp,qa(3),istep,iinc,
-     &           ipkon,nmethod,iperturb,qa(4),nlgeom_undo)
+!            call mechmodel(elconloc,elas,emec,kode,emec0,ithermal,
+!     &           icmd,beta,stre,xkl,ckl,vj,xikl,vij,
+!     &           plconloc,xstate,xstateini,ielas,
+!     &           amat,t1l,dtime,time,ttime,i,jj,nstate_,mi(1),
+!     &           iorien,pgauss,orab,eloc,mattyp,qa(3),istep,iinc,
+!     &           ipkon,nmethod,iperturb,qa(4),nlgeom_undo)
 !
             if(((nmethod.ne.4).or.(iperturb(1).ne.0)).and.
      &         (nmethod.ne.5).and.(icmd.ne.3)) then
@@ -342,23 +347,23 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
             endif
 
 !           Write stress into stx (integration-point storage)
-            skl(1,1)=stre(1)
-            skl(2,2)=stre(2)
-            skl(3,3)=stre(3)
-            skl(2,1)=stre(4)
-            skl(3,1)=stre(5)
-            skl(3,2)=stre(6)
+!            skl(1,1)=stre(1)
+!            skl(2,2)=stre(2)
+!            skl(3,3)=stre(3)
+!            skl(2,1)=stre(4)
+!            skl(3,1)=stre(5)
+!            skl(3,2)=stre(6)
 !
-            stx(1,jj,i)=skl(1,1)
-            stx(2,jj,i)=skl(2,2)
-            stx(3,jj,i)=skl(3,3)
-            stx(4,jj,i)=skl(2,1)
-            stx(5,jj,i)=skl(3,1)
-            stx(6,jj,i)=skl(3,2)
+!            stx(1,jj,i)=skl(1,1)
+!            stx(2,jj,i)=skl(2,2)
+!            stx(3,jj,i)=skl(3,3)
+!            stx(4,jj,i)=skl(2,1)
+!            stx(5,jj,i)=skl(3,1)
+!            stx(6,jj,i)=skl(3,2)
 !
-            skl(1,2)=skl(2,1)
-            skl(1,3)=skl(3,1)
-            skl(2,3)=skl(3,2)
+!            skl(1,2)=skl(2,1)
+!            skl(1,3)=skl(3,1)
+!            skl(2,3)=skl(3,2)
 !
 
 !           calculation of the Cauchy stresses (skip for linear CalTop)
@@ -370,20 +375,20 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
 !                       BEGIN P-NORM RHS EVAL                          
 !--------------------------------------------------------------!
 ! --- Read element stress values
-            sx  = stx(1,jj,i)
-            sy  = stx(2,jj,i)
-            sz  = stx(3,jj,i)
-            txy = stx(4,jj,i)
-            txz = stx(5,jj,i)
-            tyz = stx(6,jj,i)
+!            sx  = stx(1,jj,i)
+!            sy  = stx(2,jj,i)
+!            sz  = stx(3,jj,i)
+!            txy = stx(4,jj,i)
+!            txz = stx(5,jj,i)
+!            tyz = stx(6,jj,i)
 
             !print *, 'sx = ', sx
             !print *, 'sy = ', sy
 
 !  --- von Mises 
-            vm2 = (sx-sy)*(sx-sy) + (sy-sz)*(sy-sz) + (sz-sx)*(sz-sx)
-            vm2 = 0.5d0*vm2 + 3.d0*(txy*txy + txz*txz + tyz*tyz)
-            vm  = dsqrt(vm2)
+!            vm2 = (sx-sy)*(sx-sy) + (sy-sz)*(sy-sz) + (sz-sx)*(sz-sx)
+!            vm2 = 0.5d0*vm2 + 3.d0*(txy*txy + txz*txz + tyz*tyz)
+!            vm  = dsqrt(vm2)
 
 !  --- filtered design alread in [0,1] (clamp defenseively)  ---
             rho_e = design(i)
@@ -395,12 +400,13 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
             rho_p = rho_eff**penal
 
 ! --- Duysinx-Sigmund effective von Misses stress measure for this element
-            phi = vm/ (sig0) + eps_relax - eps_relax/rho_eff
-            if (phi .lt. 0.d0) phi = 0.d0
+!            phi = vm/ (sig0) + eps_relax - eps_relax/rho_eff
+!            if (phi .lt. 0.d0) phi = 0.d0
 
 ! --- With effective von Misses stress calculated, raise to pexp
 ! --- and sum over all elements
 !            g_sump = g_sump + (phi**pexp)
+            
             !g_vol  = g_vol  + wgt  <-- valid only for p-mean
 
 
@@ -411,8 +417,8 @@ c           skip if vm or phi yields zero gradient
               if (vm.gt.0.d0) then
 
 !  ---        evaluate 
-                invvm = 1.d0/(sig0 * vm)
-                coeff   = (phi**(pexp-1)) * invvm
+!                invvm = 1.d0/(sig0 * vm)
+!                coeff   = (phi**(pexp-1)) 
 
 ! ---- unpack xstiff(:,jj,i) -> full symmetric C(6,6) in tensorial Voigt ----
                
@@ -507,44 +513,61 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                   uel(3*(m1-1)+2) = vl(2,m1)
                   uel(3*(m1-1)+3) = vl(3,m1)
                enddo
+
 ! ---         s = C * (Bten * u_e) (tensorial stress)
+! ---         TN=C*B (6x12)
                do ia=1,6
-                  s(ia)=0.d0
                   do ib=1,12
-                     s(ia)=s(ia)+C(ia,1)*Bten(1,ib)*uel(ib)
-     &               +C(ia,2)*Bten(2,ib)*uel(ib)
-     &               +C(ia,3)*Bten(3,ib)*uel(ib)
-     &               +C(ia,4)*Bten(4,ib)*uel(ib)
-     &               +C(ia,5)*Bten(5,ib)*uel(ib)
-     &               +C(ia,6)*Bten(6,ib)*uel(ib)
+                     TN(ia,ib)=C(ia,1)*Bten(1,ib)
+     &                        +C(ia,2)*Bten(2,ib)
+     &                        +C(ia,3)*Bten(3,ib)
+     &                        +C(ia,4)*Bten(4,ib)
+     &                        +C(ia,5)*Bten(5,ib)
+     &                        +C(ia,6)*Bten(6,ib)
                   enddo
                enddo
 
-! ---          t = V * s
+! ---          M0temp=V*TN
                do ia=1,6
-                  t(ia)=0.d0
-                  do ib=1,6
-                     t(ia)=t(ia)+Vec(ia,ib)*s(ib)
+                  do ib=1,12
+                     MNtemp(ia,ib)=Vec(ia,1)*TN(1,ib)
+     &                        +Vec(ia,2)*TN(2,ib)
+     &                        +Vec(ia,3)*TN(3,ib)
+     &                        +Vec(ia,4)*TN(4,ib)
+     &                        +Vec(ia,5)*TN(5,ib)
+     &                        +Vec(ia,6)*TN(6,ib)
+                  enddo
+               enddo
+!  ---         Me0=T^T*M0temp
+               do ia=1,12
+                  do ib=1,12
+                     MeN(ia,ib)=TN(1,ia)*MNtemp(1,ib)
+     &                         +TN(2,ia)*MNtemp(2,ib)
+     &                         +TN(3,ia)*MNtemp(3,ib)
+     &                         +TN(4,ia)*MNtemp(4,ib)
+     &                         +TN(5,ia)*MNtemp(5,ib)
+     &                         +TN(6,ia)*MNtemp(6,ib)               
                   enddo
                enddo
 
-!  ---         p  = C * t 
-               do ia=1,6
-                  ptv(ia)=0.d0
-                  do ib=1,6
-                     ptv(ia)=ptv(ia)+C(ia,ib)*t(ib)
-                  enddo
-               enddo
-
-! ---          Build Me0 u_e
+! ---          Build Me0*u_e
                do m1=1,12
                   rhs_loc(m1)=0.d0
-                  do ia = 1,6
-                     rhs_loc(m1)=rhs_loc(m1) + Bten(ia,m1)*ptv(ia)
+                  do ia = 1,12
+                     rhs_loc(m1)=rhs_loc(m1) + MeN(m1,ia)*uel(ia)
                   enddo
                enddo
-
-! ---          Multiply with scalar coefficient
+! ---          Build ||sigma_e||
+               sigeT=0.d0
+               do m1=1,12
+                  do ia=1,12
+                  sigeT = sigeT+uel(m1)*MeN(m1,ia)*uel(ia)
+                  enddo
+               enddo
+               sige = dsqrt(sigeT)/(sig0)+ eps_relax - eps_relax/rho_eff
+! ---          Construct the coeff
+               coeff = (sige**(pexp-1))/(sig0*dsqrt(sigeT))
+               
                do m1=1,12
                   rhs_loc(m1) = coeff * rhs_loc(m1)
 !                  rhs_loc(m1) = coeff 
@@ -566,7 +589,7 @@ c----------------------------------------------------------------------
 !
          enddo  ! <--- end of integration over element Gauss points
       enddo ! <--- end of loop over all elements
-
+      !write(*,*), 'Gsump:', g_sump
 ! ------------------------
       return
       end
