@@ -288,6 +288,9 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
 !           calculating the local stiffness and stress
 !           Constitutive law
             nlgeom_undo=0
+            do m1=1,6
+               beta(m1)=0.d0
+            enddo
             call mechmodel(elconloc,elas,emec,kode,emec0,ithermal,
      &           icmd,beta,stre,xkl,ckl,vj,xikl,vij,
      &           plconloc,xstate,xstateini,ielas,
@@ -303,7 +306,7 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
                   xstiff(m1,jj,i)=elas(m1)
                enddo
             endif
-            
+
 !           Write stress into stx (integration-point storage)
             skl(1,1)=stre(1)
             skl(2,2)=stre(2)
@@ -380,7 +383,7 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
 
       qa(3) = g_sump
 
-
+      write(*,*), "Sig_VM", qa(3)
 ! ------------------------
       return
       end

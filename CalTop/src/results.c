@@ -511,8 +511,6 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
          //Done with per-thread storage
 	    SFREE(rhs1);
-        SFREE(neapar);
-        SFREE(nebpar);
         printf("done!\n");
 
 
@@ -521,8 +519,6 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         if (eval_fd==1) 
         // ---------- FD check of dJ/du on first 12 displacement DOFs ---------- 
         {
-            NNEW(neapar,ITG,num_cpus);
-	        NNEW(nebpar,ITG,num_cpus);
             const ITG mtloc   = mi[1] + 1;   //stride per node 
             const ITG ndof    = mtloc * (*nk);
             const ITG ncheck  = 4;          // how many displacement DOFs to check 
@@ -536,17 +532,14 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 	
             /* p-norm variables reduced across threads */
             double sumP = 0.0;  // Accumulated numerator
-            double sumV = 0.0;  // Accumulated denominator
 
             for (int t = 0; t < num_cpus; ++t)
             {
                 size_t idx = (size_t)t *4;
                 sumP += qa1[idx + 2];   // thread's g_sump
-                sumV += qa1[idx + 3];   // thread's g_vol -> needed for p-mean
 
                 /* restore CCX defaults so downstream code doesnt misinterpret */
                 qa1[idx + 2] = -1.0;   /* qa(3) */
-                qa1[idx + 3] =  0.0;   /* qa(4) */     
             }
 
             /* must match the exponent used inside resultsmech() */
