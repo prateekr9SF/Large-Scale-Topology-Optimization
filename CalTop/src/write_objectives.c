@@ -71,6 +71,8 @@ void write_objectives(int ne,
         //fprintf(sens_file, "%.15f,%.15f,%.15f\n", eleVol[i], eleVol[i] * rhoPhys[i], eleVolFiltered[i]);
     }
 
+
+
      /* Compute volume fraction */
     double volume_fraction = designVol_sum / initialVol_sum;
 

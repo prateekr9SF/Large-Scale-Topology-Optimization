@@ -477,20 +477,16 @@ else
 
 }
 
-//printf("\n */*/*/* rmin= %f\n",rmin);
 
 /* Assign default value for penalty parameter */
 if (pSupplied==0.0) 
-  {
-    pstiff=1.0;
-  }
+{
+  pstiff=1.0;
+}
 else 
-  {
-    pstiff=pSupplied;
-  }
-
-//printf("\n*/*/*/*pstiff= %f\n",pstiff);
-
+{
+  pstiff=pSupplied;
+}
 
 //setenv("CCX_JOBNAME_GETJOBNAME",jobnamec,1);
 putenv("CCX_JOBNAME_GETJOBNAME=jobnamec");
@@ -500,8 +496,6 @@ ITG lop=0,lrestart=0,kstep=1,kinc=1;
 double time[2],dtime;
 FORTRAN(uexternaldb,(&lop,&lrestart,time,&dtime,&kstep,&kinc));
 #endif
-
-//FORTRAN(openfile,(jobnamef,output));
 
 printf("\n");
 
@@ -550,7 +544,6 @@ kode=0;
 NNEW(ipoinp,ITG,2*nentries);
 
 /* conservative estimate of the fields to be allocated */
-
 readinput(jobnamec,&inpc,&nline,&nset_,ipoinp,&inp,&ipoinpc,ithermal,&nuel_);
 
 NNEW(set,char,81*nset_);
@@ -596,7 +589,6 @@ nlabel=48;
 /* While the status variable istat is non-negative */
 while(istat>=0)
 {
-  //printf("iStep at begining of outer loop: %d ", istat);
   fflush(stdout);
 
   /* in order to reduce the number of variables to be transferred to
@@ -604,7 +596,6 @@ while(istat>=0)
      into the real sizes */
 
   nzs[1]=nzs_;
-  //  nprint=nprint_;
 
   if((istep==0)||(irstrt[0]<0)) 
   {
@@ -615,12 +606,10 @@ while(istat>=0)
     norien=norien_;
     ntrans=ntrans_;
     ntie=ntie_;
-  //    nobject=nobject_;
 
-    /* allocating space before the first step */
+    /* allocating memory before the first step */
 
     /* coordinates and topology */
-
     NNEW(co,double,3*nk_);
     NNEW(kon,ITG,nkon_);
     NNEW(ipkon,ITG,ne_);
@@ -641,7 +630,6 @@ while(istat>=0)
     }
 
     /* fields for 1-D and 2-D elements */
-
     if((ne1d!=0)||(ne2d!=0))
     {
 	    NNEW(iponor,ITG,2*nkon_);
@@ -659,7 +647,6 @@ while(istat>=0)
     }
 
     /* SPC's */
-
     NNEW(nodeboun,ITG,nboun_);
     NNEW(ndirboun,ITG,nboun_);
     NNEW(typeboun,char,nboun_+1);
@@ -671,7 +658,6 @@ while(istat>=0)
     NNEW(ilboun,ITG,nboun_);
 
     /* MPC's */
-
     NNEW(ipompc,ITG,nmpc_);
     NNEW(nodempc,ITG,3*memmpc_);
 
@@ -688,7 +674,6 @@ while(istat>=0)
     NNEW(fmpc,double,nmpc_);
 
     /* nodal loads */
-
     NNEW(nodeforc,ITG,2*nforc_);
     NNEW(ndirforc,ITG,nforc_);
 
@@ -700,7 +685,6 @@ while(istat>=0)
     NNEW(ilforc,ITG,nforc_);
 
     /* distributed facial loads */
-
     NNEW(nelemload,ITG,2*nload_);
 
     if((istep == 0)||((irstrt[0]<0)&&(nam_>0)))NNEW(iamload,ITG,2*nload_);
@@ -710,7 +694,6 @@ while(istat>=0)
     NNEW(xload,double,2*nload_);
 
     /* distributed volumetric loads */
-
     NNEW(cbody,char,81*nbody_);
     NNEW(idefbody,ITG,nbody_);
     NNEW(ibody,ITG,3*nbody_);
@@ -718,52 +701,43 @@ while(istat>=0)
     NNEW(xbodyold,double,7*nbody_);
 
     /* printing output */
-
     NNEW(prlab,char,6*nprint_);
     NNEW(prset,char,81*nprint_);
 
     /* set definitions */
-
     NNEW(set,char,81*nset);
     NNEW(istartset,ITG,nset);
     NNEW(iendset,ITG,nset);
     NNEW(ialset,ITG,nalset);
 
     /* (hyper)elastic constants */
-
     NNEW(elcon,double,(ncmat_+1)*ntmat_*nmat);
     NNEW(nelcon,ITG,2*nmat);
 
     /* density */
-
     NNEW(rhcon,double,2*ntmat_*nmat);
     NNEW(nrhcon,ITG,nmat);
 
     /* damping */
-
     if(ndamp>0)
     {
       NNEW(dacon,double,nmat);
     }
 
     /* specific heat */
-
     NNEW(shcon,double,4*ntmat_*nmat);
     NNEW(nshcon,ITG,nmat);
 
     /* thermal expansion coefficients */
-
     NNEW(alcon,double,7*ntmat_*nmat);
     NNEW(nalcon,ITG,2*nmat);
     NNEW(alzero,double,nmat);
 
     /* conductivity */
-
     NNEW(cocon,double,7*ntmat_*nmat);
     NNEW(ncocon,ITG,2*nmat);
 
     /* isotropic and kinematic hardening coefficients*/
-
     if(npmat_>0)
     {
 	    NNEW(plicon,double,(2*npmat_+1)*ntmat_*nmat);
@@ -773,13 +747,11 @@ while(istat>=0)
     }
 
     /* linear dynamic properties */
-
     NNEW(xmodal,double,11+nevdamp_);
     xmodal[10]=nevdamp_+0.5;
 
     /* internal state variables (nslavs is needed for restart
        calculations) */
-
     if(mortar!=1)
     {
 	    NNEW(xstate,double,nstate_*mi[0]*(ne+nslavs));
@@ -792,7 +764,6 @@ while(istat>=0)
     }
 
     /* material orientation */
-
     if((istep == 0)||((irstrt[0]<0)&&(norien>0))) 
     {
 	    NNEW(orname,char,80*norien);
@@ -801,7 +772,6 @@ while(istat>=0)
     }
 
     /* transformations */
-
     if((istep == 0)||((irstrt[0]<0)&&(ntrans>0))) 
     {
 	    NNEW(trab,double,7*ntrans);
@@ -809,7 +779,6 @@ while(istat>=0)
     }
 
     /* amplitude definitions */
-
     if((istep == 0)||((irstrt[0]<0)&&(nam_>0))) 
     {
 	    NNEW(amname,char,80*nam_);
@@ -853,7 +822,6 @@ while(istat>=0)
     NNEW(veold,double,mt*nk_);
 
     /* CFD-results */
-
     NNEW(vel,double,8*nef);
     NNEW(velo,double,8*nef);
     NNEW(veloo,double,8*nef);
@@ -865,7 +833,6 @@ while(istat>=0)
     NNEW(filab,char,87*nlabel);
 
     /* tied constraints */
-
     if(ntie_>0)
     {
       NNEW(tieset,char,243*ntie_);
@@ -1081,40 +1048,38 @@ while(istat>=0)
 
     if (stat("skinElementList.nam", &buffer) != 0) 
     {
-      printf("File 'skinElementList.nam' not found.\n");
+      printf("File 'skinElementList.nam' not found -> skin surface will not be defined \n");
     } 
     else
     /* Read the element indicies from skinElementList.nam */ 
     {
-      printf("File skinElementList.nam found. \n");
+      printf("File skinElementList.nam found -> Setting skin definition. \n");
       passiveIDs = passiveElements("skinElementList.nam", &numPassive);
-      printf("Read %d passive elements.\n", numPassive);
+      printf("  Read %d passive elements.\n", numPassive);
 
-      printf("First five skin element IDs => \n");
+      printf("  First five skin element IDs => \n");
       for (int i = 0; i < 5; i++) 
       {
-        printf("Passive Element ID: %d\n", passiveIDs[i]);
+        printf("  Passive Element ID: %d\n", passiveIDs[i]);
       }
 
-      printf(".\n");
-      printf(".\n");
-      printf(".\n");
+      printf("  .\n");
+      printf("  .\n");
+      printf("  .\n");
 
-      printf("Last five skin element IDs => \n");
+      printf("  Last five skin element IDs => \n");
       for (int i = numPassive - 5; i < numPassive; i++) 
       {
-        printf("Passive Element ID: %d\n", passiveIDs[i]);
+        printf("  Passive Element ID: %d\n", passiveIDs[i]);
       }
 
     }
-
     printf("\n");
-
 
   /* Read element desitiies from .dat file, if absent, initialize the design to one */    
   rho(design,ne);
 
-  /* Set thhe element density of passive elements to 1 */
+  /* Set the element density of passive elements to 1 */
   filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
 
   /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
@@ -1814,31 +1779,13 @@ while(istat>=0)
       if(pSupplied!=0)
       {
         printf("Checking if filter matrix needs to be built \n");
-
-
-        //NNEW(FilterMatrixs,double,fnnzassumed*ne_); //Sparse filter matrix stored as row,colum,value with fassumed nnzs per element assumed
-    
-        //NNEW(rowFilters,ITG,fnnzassumed*ne_);
-    
-        //NNEW(colFilters,ITG,fnnzassumed*ne_);
     
         NNEW(filternnzElems,ITG,ne_);
         NNEW(designFiltered,double,ne_);
 
-        /* Create or assemble the density filter */
-        //densityfilter(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
-        //          &rmin,&filternnz,
-        //          FilterMatrixs,rowFilters,colFilters,filternnzElems,itertop,&fnnzassumed);
-
-        //printf("Read within densityfilter:%d \n", filternnz);
-
         
         /* apply the filter matrix on rho to get rhoPhys */ 
-        //filterVector(&ipkon,design,designFiltered,FilterMatrixs,filternnzElems,rowFilters,colFilters,&ne,&ttime,timepar,&fnnzassumed, &qfilter, filternnz);
-
-        /* Try the multi-threaded */
         printf("Filtering element densities...\n");
-        //filterDensity_buffered_dat_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
         filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
         printf("Done!");
 
@@ -1857,8 +1804,7 @@ while(istat>=0)
         }
 
         */
-
-
+        /* Set physical element densities to */
         rhoPhys=designFiltered;
       }
       else
@@ -1884,9 +1830,7 @@ while(istat>=0)
 
       }
 
-      
-      //printf("\n For stiffness, penalty considered= %f \n",pstiff);
-
+    
       time_t startl, endl; 
 	    startl = time(NULL);
 
@@ -1917,7 +1861,7 @@ while(istat>=0)
 		  difftime(endl, startl)); 
       
 
-      // NOTE: FILTER, WRITE AND FREE STRESS SENS to reduce memory signature downstrewam
+      // NOTE: Filter, write and free stress array here to reduce memory signature
       /*--------------------------------------STRESS SENSITIVITY FILTERING AND I/O -----------------------------------*/
       printf(" Filter element stress (P-norm) gradient ");
       /* Allocate memory for P-norm stress sensitivities */
@@ -2087,7 +2031,7 @@ while(istat>=0)
     {
       printf("SENSITIVITY ANALYSIS-----------------------------------------|\n\n");
       
-      printf(" Allocating memory...");
+      printf(" Allocating memory for sensitivities...");
       /* allocate memory for compliance gradient and initialize to zero */
       NNEW(gradCompl,double,ne_);
 
@@ -2246,83 +2190,15 @@ while(istat>=0)
       SFREE(eleVolFiltered);
 
       ends = time(NULL);
-	    //printf("Time taken for sensitivity calculation: %.2f seconds \n", 
-		  //difftime(ends, starts)); 
-
-      /* write compliance gradient to file */
-     
-      //FILE *elC_file;
       
-
-
-      /* write compliance value */
-      //elC_file=fopen("objectives.dat","w");
-
-      /* set the filtered element densities of passive elements to 0 */
-      //filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
-
-      /* set the filtered compliance sens of passive elements to 0 */
-      //filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
-
-      /* initialize for compliance */
       
       printf("\n\nOUTPUT FILEDS--------------------------------------------------------------|\n\n");
      
-      /* set the filtered volume sens of passive elements to 0 */
-      //filterOutPassiveElems_sens(eleVolFiltered, ne, passiveIDs, numPassive);
-
-
- 
       
       printf(" Writing objectives...");
       write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz, &Pnorm);
       printf("done!\n");
-
-      /* initialize for total materal volume with rho = 1 */
-      //double initialVol_sum=0;
-
-      /* initialize for total material volume with optimized rho */
-      //double designVol_sum=0;
-
-      /* loop over all elements to compute summed values */
-      //for (int iii=0;iii<ne;iii++)
-      //{
-        /* compute initial volume */
-      //  initialVol_sum+=eleVol[iii];
-
-        /* compute current design volume */
-      //  designVol_sum+=(eleVol[iii]*rhoPhys[iii]);
-                
-      //}
-
-      /* write summed compliance and volume fraction values to file */
-      //fprintf(elC_file,"%.15f , %.15f , %.15f , %.15f \n",compliance_sum,designVol_sum-volfrac*initialVol_sum, initialVol_sum,designVol_sum);
-
-      /* ensure any buffered data is written to file */
-      //fflush(elC_file); 
-
-      /* close all files */
-      //fclose(elC_file);
-   
-      /* evaluate discreteness of the structure*/
-      /* discreteness is a metric often used in topology optimization problems to assess hpw close the design
-       is to a "0-1" or binary solution. */
-
-      //double mnd = 0.0;
         
-
-
-      /* loop over all element density values */
-      //for (int iii=0;iii<ne;iii++)
-      //{
-      //  mnd+=(rhoPhys[iii]*(1-rhoPhys[iii]));               
-     // }
-
-     // Evaluate the discretness of the design
-
-
-      /* Normalize and average */
-      //mnd=(4*mnd*100/ne);
   
      /* print output */
       
@@ -2350,6 +2226,13 @@ while(istat>=0)
 
     /* set the filtered element densities of passive elements to 0 */
     filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
+
+    /* NOTE: In the first iteration, the rhoPhys do not account for the skin.
+             However, all sensitivities at the end of the first iteration 
+             are filtered for passive elements.
+             At the end of the first iteration, the rhoPhys are 
+             filtered for skin definition.
+             Hence, second iteration onwards, the raw desnities remain as 1 since the densities are all zero.  */
 
     /* Write elastic fields to a vtu file */
     printf("\nWriting output fields...");
