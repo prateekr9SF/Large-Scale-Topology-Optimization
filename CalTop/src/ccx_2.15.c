@@ -320,6 +320,18 @@ int main(int argc,char *argv[])
   double *designFiltered=NULL; /**< filtered densitites */
   double *gradComplFiltered=NULL; /**< filtered compliance  sensitivities */ 
   double *eleVolFiltered=NULL; /**< filtered element volume sensitivities */
+
+  double *dCGx         = NULL;  /**< x-CG sensitivity array */
+  double *dCGy         = NULL;  /**< y-CG sensitivity array */
+  double *dCGz         = NULL;  /**< z-CG sensitivity array */
+  double *dCGxFiltered = NULL;  /**< x-CG sensitivity (filtered) array */
+  double *dCGyFiltered = NULL;  /**< y-CG sensitivity (filtered) array */
+  double *dCGzFiltered = NULL;  /**< z-CG sensitivity (filtered) array */
+
+
+  double *dPnorm_drho = NULL; /**< Stress P-norm sensitivity array */
+  double *dPnorm_drhoFiltered = NULL; /**< Stress P-norm sensitivity (filtered) array */
+
   int *passiveIDs = NULL;
   int numPassive = 0; /** < initialize number of passive elements to zero */
   int eval_CG = 0; /** < CG evaluation flag  */
@@ -1097,10 +1109,6 @@ while(istat>=0)
   /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
   NNEW(stx,double,6*mi[0]*ne);
 
-  /* Define sensitivity vector for Pnorm and pass to linstatic()*/
-  double *dPnorm_drho = NULL;
-  double *dPnorm_drhoFiltered = NULL;
-  NNEW(dPnorm_drho, double, ne);
 
 
   #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
@@ -1869,6 +1877,8 @@ while(istat>=0)
 	    startl = time(NULL);
 
       printf("\n\nSOLVING LINEAR SYSTEM----------------------------------------|\n\n");
+
+       NNEW(dPnorm_drho, double, ne);
       
   
 	    linstatic(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
@@ -1897,20 +1907,29 @@ while(istat>=0)
 
       // NOTE: Filter, write and free stress array here to reduce memory signature
       /*--------------------------------------STRESS SENSITIVITY FILTERING AND I/O -----------------------------------*/
-      printf(" Filter element stress (P-norm) gradient ");
-      /* Allocate memory for P-norm stress sensitivities */
-      // NOTE: P-norm sensitivity initialized and passed to linstatic() earlier
-      NNEW(dPnorm_drhoFiltered, double, ne_);
-      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
 
-      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
-      if (rs != 0) 
+      if (eval_PNORM == 1)
       {
-        printf(" Unable to write P-norm sensitivities to disk!\n");
+        printf(" Filter element stress (P-norm) gradient ");
+
+        /* Allocate memory for P-norm stress sensitivities */
+        // NOTE: P-norm sensitivity initialized and passed to linstatic() earlier
+        NNEW(dPnorm_drhoFiltered, double, ne_);
+        filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+        int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
+        if (rs != 0) 
+        {
+          printf(" Unable to write P-norm sensitivities to disk!\n");
+        }
+      
+        SFREE(dPnorm_drhoFiltered);
+        printf("done \n");
       }
+
+      // Free this sens outside for now
       SFREE(dPnorm_drho);
-      SFREE(dPnorm_drhoFiltered);
-      printf("done \n");
+
       printf("|------------------------------------------------------------|\n");
 
 	    for(i=0;i<3;i++)
@@ -2072,8 +2091,7 @@ while(istat>=0)
       /* allocate memory for element complaince and initialize to zero */
       NNEW(elCompl,double,ne_);
 
-      /* allocate memory for element C.G and initialize to zero */
-      NNEW(elCG,double,3*ne_);
+
 
       /* allocate memory for element volume and initialize to zero */
       NNEW(eleVol,double,ne_); 
@@ -2084,16 +2102,28 @@ while(istat>=0)
       /* allocate memory for filtered volume gradient and initialize to zero */
       NNEW(eleVolFiltered,double,ne_);
 
-      /* Allocate memory for CG sensitivities */
-      double *dCGx = (double*)calloc(ne, sizeof(double));
-      double *dCGy = (double*)calloc(ne, sizeof(double));
-      double *dCGz = (double*)calloc(ne, sizeof(double));
 
-      /* Allocate memory for filteredCG sensitivities */
-      double *dCGxFiltered = (double*)calloc(ne, sizeof(double));
-      double *dCGyFiltered = (double*)calloc(ne, sizeof(double));
-      double *dCGzFiltered = (double*)calloc(ne, sizeof(double));
 
+      if (eval_CG == 1)
+      {
+        /* allocate memory for element C.G and initialize to zero */
+        NNEW(elCG,double,3*ne_);
+
+        /* Allocate memory for CG sensitivities */
+        dCGx = (double*)calloc(ne, sizeof(double));
+        dCGy = (double*)calloc(ne, sizeof(double));
+        dCGz = (double*)calloc(ne, sizeof(double));
+
+        /* Allocate memory for filteredCG sensitivities */
+        dCGxFiltered = (double*)calloc(ne, sizeof(double));
+        dCGyFiltered = (double*)calloc(ne, sizeof(double));
+        dCGzFiltered = (double*)calloc(ne, sizeof(double));
+      }
+      else
+      {
+        // Only allocate memory for element CGs and skip sens eval
+        NNEW(elCG,double,3*ne_);
+      }
 
 
       printf("done! \n");
@@ -2129,57 +2159,72 @@ while(istat>=0)
       
       /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/
 
+      
+      if (eval_CG == 1)
+      {
+        printf("  Evaluate and filter CG sensitivities...");
 
-      printf("  Evaluate and filter CG sensitivities...");
-      compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             dCGx, dCGy, dCGz);
-
-      filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
-      printf("done \n");
       
-      if (numPassive > 0)
-      {
+        
 
-      
-        printf("  Setting CG sensitivites for skin elements to zero ...");
-        /* set the filtered CGx sens of passive elements to 0 */
-        filterOutPassiveElems_sens(dCGxFiltered, ne, passiveIDs, numPassive);
+        filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
 
-
-        /* set the filtered CGy sens of passive elements to 0 */
-        filterOutPassiveElems_sens(dCGyFiltered, ne, passiveIDs, numPassive);
-
-
-        /* set the filtered CGz sens of passive elements to 0 */
-        filterOutPassiveElems_sens(dCGzFiltered, ne, passiveIDs, numPassive);
         printf("done\n");
-      }
-
-      printf("  Writing CG sensitivities to disk...");
-      /* ... after you fill dCGx, dCGy, dCGz ... */
-      int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
-      if (rc != 0) 
-      {
-        printf("  Unable to write CG sensitivities to disk!\n");
-      }
-
-      printf("done!\n");
-
-      free(dCGx);
-      free(dCGy);
-      free(dCGz);
-      free(dCGxFiltered);
-      free(dCGyFiltered);
-      free(dCGzFiltered);
       
-      dCGx = NULL;
-      dCGy = NULL; 
-      dCGz = NULL; 
-      dCGxFiltered = NULL;
-      dCGyFiltered = NULL;
-      dCGzFiltered = NULL;
+        if (numPassive > 0)
+        {
 
+          printf("  Setting CG sensitivites for skin elements to zero ...");
+          /* set the filtered CGx sens of passive elements to 0 */
+          filterOutPassiveElems_sens(dCGxFiltered, ne, passiveIDs, numPassive);
+
+
+          /* set the filtered CGy sens of passive elements to 0 */
+          filterOutPassiveElems_sens(dCGyFiltered, ne, passiveIDs, numPassive);
+
+          /* set the filtered CGz sens of passive elements to 0 */
+          filterOutPassiveElems_sens(dCGzFiltered, ne, passiveIDs, numPassive);
+          printf("done\n");
+        }
+
+        printf("  Writing CG sensitivities to disk...");
+        /* ... after you fill dCGx, dCGy, dCGz ... */
+        int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
+        if (rc != 0) 
+        {
+          printf("  Unable to write CG sensitivities to disk!\n");
+        }
+
+        printf("done!\n");
+
+        free(dCGx);
+        free(dCGy);
+        free(dCGz);
+        free(dCGxFiltered);
+        free(dCGyFiltered);
+        free(dCGzFiltered);
+      
+        dCGx = NULL;
+        dCGy = NULL; 
+        dCGz = NULL; 
+        dCGxFiltered = NULL;
+        dCGyFiltered = NULL;
+        dCGzFiltered = NULL;
+      } // end eval_CG ==1
+
+      else
+      {
+        // Only compute the CG value for objectives.csv
+         printf("  Evaluate CG..");
+        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+                            &M, &cgx, &cgy, &cgz,
+                            NULL, NULL, NULL);
+      
+        printf("done \n");
+      }
       /*---------------------------------------------------------------------------------------------------------------*/      
 
 
