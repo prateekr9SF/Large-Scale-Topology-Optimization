@@ -2102,29 +2102,8 @@ while(istat>=0)
       /* allocate memory for filtered volume gradient and initialize to zero */
       NNEW(eleVolFiltered,double,ne_);
 
-
-
-      if (eval_CG == 1)
-      {
-        /* allocate memory for element C.G and initialize to zero */
-        NNEW(elCG,double,3*ne_);
-
-        /* Allocate memory for CG sensitivities */
-        dCGx = (double*)calloc(ne, sizeof(double));
-        dCGy = (double*)calloc(ne, sizeof(double));
-        dCGz = (double*)calloc(ne, sizeof(double));
-
-        /* Allocate memory for filteredCG sensitivities */
-        dCGxFiltered = (double*)calloc(ne, sizeof(double));
-        dCGyFiltered = (double*)calloc(ne, sizeof(double));
-        dCGzFiltered = (double*)calloc(ne, sizeof(double));
-      }
-      else
-      {
-        // Only allocate memory for element CGs and skip sens eval
-        NNEW(elCG,double,3*ne_);
-      }
-
+      /* allocate memory for center of gravity (x,y,z) of each element */
+      NNEW(elCG,double,3*ne_);
 
       printf("done! \n");
 
@@ -2153,6 +2132,8 @@ while(istat>=0)
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
              jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol);
 
+             printf("done\n");
+
       //printf("done!\n");
       // Mass and C.G properties
       double M, cgx, cgy, cgz;
@@ -2163,6 +2144,16 @@ while(istat>=0)
       if (eval_CG == 1)
       {
         printf("  Evaluate and filter CG sensitivities...");
+
+        /* Allocate memory for CG sensitivities */
+        dCGx = (double*)calloc(ne, sizeof(double));
+        dCGy = (double*)calloc(ne, sizeof(double));
+        dCGz = (double*)calloc(ne, sizeof(double));
+
+        /* Allocate memory for filteredCG sensitivities */
+        dCGxFiltered = (double*)calloc(ne, sizeof(double));
+        dCGyFiltered = (double*)calloc(ne, sizeof(double));
+        dCGzFiltered = (double*)calloc(ne, sizeof(double));
 
         compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,

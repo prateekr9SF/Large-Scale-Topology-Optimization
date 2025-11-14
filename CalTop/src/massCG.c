@@ -61,10 +61,16 @@ void compute_mass_cg_and_cg_sens(
     {
         *M   = 0.0;
         *cgx = 0.0; *cgy = 0.0; *cgz = 0.0;
-        for (size_t k = 0; k < ne; ++k) {
+
+        /* Only fill sensitivities if non-NULL*/
+        if (dCGx_dRho)
+        {
+          for (size_t k = 0; k < ne; ++k) 
+          {
             dCGx_dRho[k] = 0.0;
             dCGy_dRho[k] = 0.0;
             dCGz_dRho[k] = 0.0;
+          }
         }
         return;
     }
@@ -82,11 +88,15 @@ void compute_mass_cg_and_cg_sens(
 
     // ---------- 3) Sensitivities of CG wrt rho_k ----------
     // d(CG)/d(rho_k) = (V_k / M) * (r_k - CG)
-    for (size_t k = 0; k < ne; ++k) 
+    // Only fill if not NULL
+    if (dCGx_dRho)
     {
-        const double scale = eleVol[k] * invM;        // V_k / M
-        dCGx_dRho[k] = scale * (elCG[3*k + 0] - CGx); // x_k - CGx
-        dCGy_dRho[k] = scale * (elCG[3*k + 1] - CGy); // y_k - CGy
-        dCGz_dRho[k] = scale * (elCG[3*k + 2] - CGz); // z_k - CGz
+      for (size_t k = 0; k < ne; ++k) 
+      {
+          const double scale = eleVol[k] * invM;        // V_k / M
+          dCGx_dRho[k] = scale * (elCG[3*k + 0] - CGx); // x_k - CGx
+          dCGy_dRho[k] = scale * (elCG[3*k + 1] - CGy); // y_k - CGy
+          dCGz_dRho[k] = scale * (elCG[3*k + 2] - CGz); // z_k - CGz
+      }
     }
 }
