@@ -322,6 +322,8 @@ int main(int argc,char *argv[])
   double *eleVolFiltered=NULL; /**< filtered element volume sensitivities */
   int *passiveIDs = NULL;
   int numPassive = 0; /** < initialize number of passive elements to zero */
+  int eval_CG = 0; /** < CG evaluation flag  */
+  int eval_PNORM = 0; /** < PNORM evaluation flag */
 
 
   double ctrl[56]={4.5,8.5,9.5,16.5,10.5,4.5,0.,5.5,0.,0.,0.25,0.5,0.75,0.85,0.,0.,1.5,0.,0.005,0.01,0.,0.,0.02,1.e-5,1.e-3,1.e-8,1.e30,1.5,0.25,1.01,1.,1.,5.e-7,5.e-7,5.e-7,5.e-7,5.e-7,5.e-7,5.e-7,-1.,1.e20,1.e20,1.e20,1.e20,1.e20,1.e20,1.e20,1.5,0.5,20.5,1.5,1.5,0.001,0.1,100.5,60.5};
@@ -552,14 +554,20 @@ NNEW(rmeminset,ITG,nset_);
 NNEW(iuel,ITG,4*nuel_);
 
 
+printf("CG flag before allocation: %d\n", eval_CG);
+printf("PNROM flag before allocation %d\n", eval_PNORM);
+
 FORTRAN(allocation,(&nload_,&nforc_,&nboun_,&nk_,&ne_,&nmpc_,&nset_,&nalset_,
    &nmat_,&ntmat_,&npmat_,&norien_,&nam_,&nprint_,mi,&ntrans_,
    set,meminset,rmeminset,&ncs_,&namtot_,&ncmat_,&memmpc_,&ne1d,
    &ne2d,&nflow,jobnamec,irstrt,ithermal,&nener,&nstate_,&istep,
    inpc,ipoinp,inp,&ntie_,&nbody_,&nprop_,ipoinpc,&nevdamp_,&npt_,&nslavs,
    &nkon_,&mcs,&mortar,&ifacecount,&nintpoint,infree,&nheading_,&nobject_,
-   iuel,&iprestr,&nstam,&ndamp,&nef));
+   iuel,&iprestr,&nstam,&ndamp,&nef, &eval_CG, &eval_PNORM));
 
+
+printf("CG flag after allocation: %d\n", eval_CG);
+printf("PNROM flag ater allocation %d\n", eval_PNORM);
 
 SFREE(set);
 SFREE(meminset);
@@ -1765,12 +1773,31 @@ while(istat>=0)
       printf("  Non zeros in Filtermatrix         %d\n", fnnzassumed);
       printf("\n");
       printf("SKIN DEFINITION \n");
-      printf("  Number of skin elements           %.2f\n", numPassive);
+      printf("  Number of skin elements           %d\n", numPassive);
       printf("\n");
       printf("STRESS AGGREGATION \n");
       printf("  P-norm exponent                   %.2f\n", pexp);
       printf("  Stress relaxation                 %.2f\n", eps_relax);
       printf("  Stress threshold                  %.2f\n", sigma0);
+      printf("\n");
+      printf("SENSITIVITY FLAGS \n");
+      printf("  Compliance:                       YES\n");
+      printf("  Volume fraction:                  YES\n");
+      if (eval_CG == 1)
+      {
+      printf("  Center of mass                    YES\n");
+      }
+      else{
+      printf("  Center of mass                    NO\n");
+      }
+      if (eval_PNORM == 1)
+      {
+      printf("  PNORM                             YES\n");
+      }
+      else{
+      printf("  PNORM                             NO\n");
+      }
+      
     
       printf("|------------------------------------------------------------|\n");
      

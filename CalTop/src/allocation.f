@@ -23,7 +23,7 @@
      &  ithermal,nener,nstate,irestartstep,inpc,ipoinp,inp,
      &  ntie,nbody,nprop,ipoinpc,nevdamp,npt,nslavs,nkon,mcs,
      &  mortar,ifacecount,nintpoint,infree,nheading,nobject,
-     &  iuel,iprestr,nstam,ndamp,nef)
+     &  iuel,iprestr,nstam,ndamp,nef, eval_CG, eval_PNORM)
 !
 !     calculates a conservative estimate of the size of the 
 !     fields to be allocated
@@ -66,7 +66,7 @@
      &  ifacecount,nintpoint,mortar,infree(4),nheading,icfd,
      &  multslav,multmast,nobject,numnodes,iorientation,id,
      &  irotation,itranslation,nuel,iuel(4,*),number,four,
-     &  iprestr,nstam,ier,ndamp,nef
+     &  iprestr,nstam,ier,ndamp,nef, eval_CG, eval_PNORM
 !
       real*8 temperature,tempact,xfreq,tpinc,tpmin,tpmax
 !
@@ -2315,12 +2315,14 @@ c                     endif
      &           ipoinp,inp,ipoinpc)
 
          elseif(textpart(1)(1:3).eq.'*CG') then
-            write(*,*), 'CG flag set'
+!            write(*,*), 'CG flag set'
+             eval_CG = 1
             call getnewline(inpc,textpart,istat,n,key,iline,ipol,inl,
      &           ipoinp,inp,ipoinpc)
 
          elseif(textpart(1)(1:6).eq.'*PNORM') then
-            write(*,*), 'PNORM flag set'
+!            write(*,*), 'PNORM flag set'
+            eval_PNORM = 1
             call getnewline(inpc,textpart,istat,n,key,iline,ipol,inl,
      &           ipoinp,inp,ipoinpc)
 

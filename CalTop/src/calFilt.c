@@ -329,6 +329,9 @@ int main(int argc,char *argv[])
   double  volfrac=1.00; /**< volume fraction */
   double  qfilter = 3; /**< q-filter value */
 
+  int eval_CG = 0;
+  int eval_PNORM = 0;
+
   ITG itertop= 1; /**<iteration counter in topology optimization */
   ITG fnnzassumed = 500; /**< assume 500 non zeros in each row of filtermatrix */ 
   //filternnz=total number of nonzeros in filtermatrix,filternnzElem=no of nonzeros in each row of filtermatrix
@@ -500,7 +503,7 @@ int main(int argc,char *argv[])
         &ne2d,&nflow,jobnamec,irstrt,ithermal,&nener,&nstate_,&istep,
         inpc,ipoinp,inp,&ntie_,&nbody_,&nprop_,ipoinpc,&nevdamp_,&npt_,&nslavs,
         &nkon_,&mcs,&mortar,&ifacecount,&nintpoint,infree,&nheading_,&nobject_,
-        iuel,&iprestr,&nstam,&ndamp,&nef));
+        iuel,&iprestr,&nstam,&ndamp,&nef, &eval_CG, &eval_PNORM));
 
     SFREE(set);
     SFREE(meminset);

@@ -240,7 +240,7 @@ void FORTRAN(allocation,(ITG *nload_,ITG *nforc_,ITG *nboun_,
 	     ITG *nprop_,ITG *ipoinpc,ITG *nevdamp,ITG *npt_,
 	     ITG *nslavsm,ITG *nkon_,ITG *mcs,ITG *mortar,ITG *ifacecount,
 	     ITG *nintpoint,ITG *infree,ITG *nheading_,ITG *nobject_,
-	     ITG *iuel,ITG *iprestr,ITG *nstam,ITG *ndamp,ITG *nef));
+	     ITG *iuel,ITG *iprestr,ITG *nstam,ITG *ndamp,ITG *nef, ITG* eval_CG, ITG *eval_PNORM));
 
 void FORTRAN(allocont,(ITG *ncont,ITG *ntie,char *tieset,ITG *nset,
              char *set,ITG *istartset,ITG *iendset,ITG *ialset,
