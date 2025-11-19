@@ -1,144 +1,161 @@
 import numpy as np
 
-# ---------------------------
-# Step 0: Node coordinates
-# ---------------------------
+# ===========================
+# Tetrahedral element B-matrix and volume
+# ===========================
+def tet_B_matrix(nodes):
+    """
+    nodes: 4x3 array of node coordinates
+    Returns:
+        B: 6x12 strain-displacement matrix
+        V: volume of tetrahedron
+    """
+    x = nodes[:,0]
+    y = nodes[:,1]
+    z = nodes[:,2]
+
+    J = np.array([
+        [x[1]-x[0], x[2]-x[0], x[3]-x[0]],
+        [y[1]-y[0], y[2]-y[0], y[3]-y[0]],
+        [z[1]-z[0], z[2]-z[0], z[3]-z[0]]
+    ])
+    V = np.linalg.det(J)/6.0
+    if V <= 0:
+        raise ValueError("Negative tetrahedron volume!")
+
+    Jinv = np.linalg.inv(J)
+
+    # Gradients of shape functions in reference tetrahedron
+    dN_hat = np.array([
+        [-1,-1,-1],
+        [ 1, 0, 0],
+        [ 0, 1, 0],
+        [ 0, 0, 1]
+    ])
+    dN = dN_hat @ Jinv.T  # 4x3
+
+    # Build B-matrix 6x12
+    B = np.zeros((6,12))
+    for i in range(4):
+        B[0,3*i]     = dN[i,0]
+        B[1,3*i+1]   = dN[i,1]
+        B[2,3*i+2]   = dN[i,2]
+        B[3,3*i]     = dN[i,1]
+        B[3,3*i+1]   = dN[i,0]
+        B[4,3*i+1]   = dN[i,2]
+        B[4,3*i+2]   = dN[i,1]
+        B[5,3*i]     = dN[i,2]
+        B[5,3*i+2]   = dN[i,0]
+    return B, V
+
+# ===========================
+# Material matrix for isotropic linear elastic
+# ===========================
+def material_D(E, nu):
+    lam = E * nu / ((1+nu)*(1-2*nu))
+    mu  = E / (2*(1+nu))
+    D = np.zeros((6,6))
+    # normal terms
+    D[0:3,0:3] = lam
+    np.fill_diagonal(D[0:3,0:3], lam+2*mu)
+    # shear terms (engineering strain)
+    D[3:,3:] = mu*np.eye(3)
+    return D
+
+# ===========================
+# FEM solver
+# ===========================
+def fem_2tet(nodes, elements, E0, rho, nu, load, fixed_nodes):
+    n_nodes = nodes.shape[0]
+    ndof = n_nodes * 3
+    K = np.zeros((ndof, ndof))
+    F = np.zeros(ndof)
+    F += load
+
+    # Assembly
+    for elemI, elem in enumerate(elements):
+        E = E0 * rho[elemI]
+        coords = nodes[elem]
+        B, V = tet_B_matrix(coords)
+        D = material_D(E, nu)
+        Ke = B.T @ D @ B *V
+
+        # Map DOFs
+        dofs = np.zeros(12, dtype=int)
+        for i,n in enumerate(elem):
+            dofs[3*i:3*i+3] = [3*n, 3*n+1, 3*n+2]
+
+        # Assemble
+        for i in range(12):
+            for j in range(12):
+                K[dofs[i],dofs[j]] += Ke[i,j]
+
+    # Apply BCs
+    for n in fixed_nodes:
+        for d in range(3):
+            fd = 3*n + d
+            K[fd,:] = 0
+            K[:,fd] = 0
+            K[fd,fd] = 1
+            F[fd] = 0
+
+    # Solve
+    u = np.linalg.solve(K,F)
+
+    # Postprocess von Mises per element
+    vm = np.zeros(len(elements))
+    for elemI, elem in enumerate(elements):
+        E = E0 * rho[elemI]
+        coords = nodes[elements[elemI]]
+        B, V = tet_B_matrix(coords)
+        D = material_D(E, nu)
+
+        # DOFs
+        dofs = np.zeros(12, dtype=int)
+        for i,n in enumerate(elements[elemI]):
+            dofs[3*i:3*i+3] = [3*n, 3*n+1, 3*n+2]
+        u_e = u[dofs]
+
+        strain = B @ u_e
+        stress = D @ strain
+        sxx, syy, szz, sxy, syz, sxz = stress
+
+        vm[elemI] = np.sqrt(
+            0.5*((sxx - syy)**2 + (syy - szz)**2 + (szz - sxx)**2)
+            + 3*(sxy**2 + syz**2 + sxz**2)
+        )
+
+    return u, vm
+
+# ===========================
+# Example input
+# ===========================
 nodes = np.array([
-    [0.0, 0.0, 0.0],  # Node 1
-    [1.0, 0.0, 0.0],  # Node 2
-    [0.0, 1.0, 0.0],  # Node 3
-    [0.0, 0.0, 1.0]   # Node 4
+    [0,0,0],   # 0 fixed
+    [1,0,0],   # 1
+    [0,1,0],   # 2
+    [0,0,1],   # 3
+    [0.6666666666,0.6666666666,0.6666666666],   # 4 loaded
 ])
 
-# ---------------------------
-# Step 1: Compute tetrahedron volume
-# ---------------------------
-v = np.linalg.det(np.array([
-    nodes[1] - nodes[0],
-    nodes[2] - nodes[0],
-    nodes[3] - nodes[0]
-])) / 6.0
-print("Tetrahedron volume V =", v)
-
-# ---------------------------
-# Step 2: Compute B matrix
-# ---------------------------
-# Coefficients for linear tetrahedron
-x = nodes[:, 0]
-y = nodes[:, 1]
-z = nodes[:, 2]
-
-# Bi, Ci, Di for shape function derivatives
-b = np.array([
-    y[1]*(z[2]-z[3]) + y[2]*(z[3]-z[1]) + y[3]*(z[1]-z[2]),
-    y[1]*(z[3]-z[0]) + y[2]*(z[0]-z[1]) + y[0]*(z[1]-z[3]),
-    y[2]*(z[3]-z[0]) + y[3]*(z[0]-z[2]) + y[0]*(z[2]-z[3]),
-    y[3]*(z[1]-z[0]) + y[1]*(z[0]-z[3]) + y[0]*(z[3]-z[1])
+elements = np.array([
+    [0,1,2,3],
+    [1,2,3,4]
 ])
 
-c = np.array([
-    z[1]*(x[2]-x[3]) + z[2]*(x[3]-x[1]) + z[3]*(x[1]-x[2]),
-    z[1]*(x[3]-x[0]) + z[2]*(x[0]-x[1]) + z[0]*(x[1]-x[3]),
-    z[2]*(x[3]-x[0]) + z[3]*(x[0]-x[2]) + z[0]*(x[2]-x[3]),
-    z[3]*(x[1]-x[0]) + z[1]*(x[0]-x[3]) + z[0]*(x[3]-x[1])
-])
+E0 = 4.0e6
+rho = [1,1]
+nu  = 0.33
 
-d = np.array([
-    x[1]*(y[2]-y[3]) + x[2]*(y[3]-y[1]) + x[3]*(y[1]-y[2]),
-    x[1]*(y[3]-y[0]) + x[2]*(y[0]-y[1]) + x[0]*(y[1]-y[3]),
-    x[2]*(y[3]-y[0]) + x[3]*(y[0]-y[2]) + x[0]*(y[2]-y[3]),
-    x[3]*(y[1]-y[0]) + x[1]*(y[0]-y[3]) + x[0]*(y[3]-y[1])
-])
+# Unit load at node 4
+load = np.zeros(3*len(nodes))
+load[3*4:3*4+3] = [-0.57735,-0.57735,-0.57735]  # normal to face of nodes 2,3,4
 
-B = np.zeros((6, 12))
-for i in range(4):
-    B[0, i*3+0] = b[i]
-    B[1, i*3+1] = c[i]
-    B[2, i*3+2] = d[i]
-    B[3, i*3+0] = c[i]
-    B[3, i*3+1] = b[i]
-    B[4, i*3+1] = d[i]
-    B[4, i*3+2] = c[i]
-    B[5, i*3+0] = d[i]
-    B[5, i*3+2] = b[i]
+# Node 0 fixed
+fixed_nodes = [0]
 
-B /= (6 * v)  # Correct 1/(6V) factor
+# Solve
+u, vm = fem_2tet(nodes, elements, E0, rho, nu, load, fixed_nodes)
 
-# ---------------------------
-# Step 3: Material D matrix (isotropic)
-# ---------------------------
-E = 4e6
-nu = 0.3
-factor = E / ((1+nu)*(1-2*nu))
-D = factor * np.array([
-    [1-nu, nu, nu, 0, 0, 0],
-    [nu, 1-nu, nu, 0, 0, 0],
-    [nu, nu, 1-nu, 0, 0, 0],
-    [0, 0, 0, (1-2*nu)/2, 0, 0],
-    [0, 0, 0, 0, (1-2*nu)/2, 0],
-    [0, 0, 0, 0, 0, (1-2*nu)/2]
-])
-
-# ---------------------------
-# Step 4: Element stiffness matrix
-# ---------------------------
-K = B.T @ D @ B * v  # 12x12
-
-# ---------------------------
-# Step 5: Apply BCs and load
-# ---------------------------
-# Fixed nodes 2,3,4 => DOFs 3:12
-free_dofs = np.array([0,1,2])  # Node 1 DOFs
-F = np.array([-0.57735, -0.57735, -0.57735])  # N
-
-K_reduced = K[np.ix_(free_dofs, free_dofs)]
-u = np.linalg.solve(K_reduced, F)
-
-# Build full displacement vector
-U = np.zeros(12)
-U[free_dofs] = u
-
-# ---------------------------
-# Step 6: Compute stress
-# ---------------------------
-epsilon = B @ U  # strain vector
-sigma = D @ epsilon  # stress vector: [xx,yy,zz,xy,yz,xz]
-
-# ---------------------------
-# Step 7: Von Mises stress
-# ---------------------------
-sigma_xx, sigma_yy, sigma_zz, sigma_xy, sigma_yz, sigma_xz = sigma
-sigma_vm = np.sqrt(
-    0.5*((sigma_xx - sigma_yy)**2 + (sigma_yy - sigma_zz)**2 + (sigma_zz - sigma_xx)**2)
-    + 3*(sigma_xy**2 + sigma_yz**2 + sigma_xz**2)
-)
-
-# ---------------------------
-# Output results
-# ---------------------------
-print("Nodal displacements U1 =", U[0:3])
-print("Stress [xx,yy,zz,xy,yz,xz] =", sigma)
-print("Von Mises stress =", sigma_vm)
-
-V = np.array([
-    [2/3, -1/3, -1/3, 0, 0, 0],
-    [-1/3, 2/3, -1/3, 0, 0, 0],
-    [-1/3, -1/3, 2/3, 0, 0, 0],
-    [0, 0, 0, 3, 0, 0],
-    [0, 0, 0, 0, 3, 0],
-    [0, 0, 0, 0, 0, 3]
-])
-
-# T = D * B
-T = D @ B
-
-# Energy-based matrix M
-M = T.T @ V @ T  # multiply by volume
-
-# Extract only the free DOFs (Node 1)
-M_reduced = M[np.ix_(free_dofs, free_dofs)]
-
-# Von Mises from u^T M u
-sigma_vm_energy = np.sqrt(u.T @ M_reduced @ u)
-
-print("Von Mises stress (energy-based) =", sigma_vm_energy)
+print("Nodal displacements (u,v,w):\n", u.reshape(-1,3))
+print("Von Mises stress per element:\n", vm)
