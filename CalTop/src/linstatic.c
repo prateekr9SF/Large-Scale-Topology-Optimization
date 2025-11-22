@@ -588,17 +588,19 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 				/* Resuse the same assembly used for the internal force vector:
 					it maps nodal vectors -> active DOF vector */
-				/*
+				
 				ITG calc_fn = 1, calc_f = 1;
 				FORTRAN(resultsforc,(nk,b_adj,brhs,nactdof,ipompc,nodempc,
                        		coefmpc,labmpc,nmpc,mi,fmpc,&calc_fn,&calc_f));
-				*/
+				
 				FORTRAN(adjrhs_scatter_linstatic_nompc,(nk, neq, mi, nactdof,brhs,b_adj,nboun, nodeboun, ndirboun));
-					
+				for (int i = 0; i < 20; ++i) {
+    				printf("b_RHS[%d] = %g\n", i, b_adj[i]);
+					}
 
-				printf(" SKIPPING PARSIDO: adjoint solve \n");
-      			//pardiso_solve(b_adj, neq, &symmetryflag, &nrhs);
-	
+				printf(" PARSIDO: adjoint solve \n");
+      			pardiso_solve(b_adj, neq, &symmetryflag, &nrhs);    
+				printf(" PARSIDO: DONE! \n");
 				// At this point we have the explicit and adjoint variables.
 
 				double *lam = NULL, *stn=NULL, *inum=NULL;
@@ -607,11 +609,12 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				NNEW(stn, double, 6**nk);
 				NNEW(inum, ITG, *nk);
 				int iout = -1;
+				for (int i = 0; i < *neq; ++i) {
+    				printf("b_adj[%d] = %g\n", i, b_adj[i]);
+					}
 				// NOTE: B_adj is the adjoint solution in equation space
 				/* Call results with adjoint flag = 2 to expand active DOF vector to nodal field*/
-				/*results(co,nk,kon,ipkon,lakon,ne,
-        		lam,
-        		stn,inum,stx,
+				results(co,nk,kon,ipkon,lakon,ne,lam,stn,inum,stx,
         		elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
         		ielorien,norien,orab,ntmat_,
         		t0,t1act,ithermal,prestr,iprestr,filab,eme,emn,een,iperturb, NULL,NULL,nactdof,&iout,qa,vold, b_adj, 
@@ -627,10 +630,11 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         		islavnode,nslavnode,ntie,clearini,islavsurf,ielprop,prop,
         		energyini,energy,&kscale,iponoel,inoel,nener,orname,&network,
         		ipobody,xbodyact,ibody,typeboun,design,penal, sigma0, eps, rhomin, pexp, NULL,NULL,Pnorm, 2);
-				*/
-
+				
 				adjoint_eq_2_node(nk, nactdof, nboun, nodeboun,ndirboun,mi,lam, b_adj);
-
+				for (int i = 0; i < 20; ++i) {
+    				printf("LAM[%d] = %g\n", i, lam[i]);
+					}
 
 				/* Allocate memory for implicit derivative*/
 				NNEW(djdrho_impl, double, *ne);

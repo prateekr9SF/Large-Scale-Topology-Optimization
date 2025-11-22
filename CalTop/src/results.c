@@ -515,7 +515,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
 
         /***************************************P-NORM RHS FD VERIFICATION***********************************/
-        int eval_fd=1;
+        int eval_fd=2;
         if (eval_fd==1) 
         // ---------- FD check of dJ/du on first 12 displacement DOFs ---------- 
         {

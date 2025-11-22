@@ -532,11 +532,11 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
 ! ---          Scatter to global rhs(1..3, node)
                 do m1=1,4   ! Loop over all DOFs.
                   rhs(1,konl(m1)) = rhs(1,konl(m1))
-     &                             + rhs_loc(3*(m1-1)+1)
+     &            + ((-1)**(konl(m1)))*rhs_loc(3*(m1-1)+1)
                   rhs(2,konl(m1)) = rhs(2,konl(m1)) 
-     &                             + rhs_loc(3*(m1-1)+2)
+     &            + ((-1)**(konl(m1)))*rhs_loc(3*(m1-1)+2)
                   rhs(3,konl(m1)) = rhs(3,konl(m1)) 
-     &                             + rhs_loc(3*(m1-1)+3)
+     &            + ((-1)**(konl(m1)))*rhs_loc(3*(m1-1)+3)
                 enddo
               !endif
             endif ! End if nope .eq. 4 condition
