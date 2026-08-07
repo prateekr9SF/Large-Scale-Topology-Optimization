@@ -2517,11 +2517,11 @@ while(istat>=0)
 
     } // end adjoint calculation
 
-    printf("\n Writing rhos.dat...");
+    printf("\n Writing rhosPhys.dat...");
     fflush(stdout);
 
     FILE *rho_file;
-    rho_file=fopen("rhos.dat","w"); //open in write mode
+    rho_file=fopen("rhosPhys.dat","w"); //open in write mode
 
     if (numPassive > 0)
     {
@@ -2533,7 +2533,7 @@ while(istat>=0)
     /* loop over all elements and write element densities to file */
     for (int iii=0;iii<ne;iii++)
     {
-      fprintf(rho_file,"%.15f  ,  %.15f \n",design[iii],rhoPhys[iii]);            
+      fprintf(rho_file,"%.15f",rhoPhys[iii]);            
     }
 
 
