@@ -340,8 +340,8 @@ c           ndof=ichar(lakon(i)(6:6))-48
    !  &           lambda, nactdof, neq)
 
                if(lakon(i)(4:4).eq.'4') then
-                  write(*,*) 'Calling C3D4 compliance'
-                  call flush(6)
+   !               write(*,*) 'Calling C3D4 compliance'
+   !               call flush(6)
                   call linearCompliance_C3D4(co,kon,lakon(i),p1,p2,om,
      &     bodyf,nbody,s,sm,ff,i,nmethod,elcon,nelcon,
      &     rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
