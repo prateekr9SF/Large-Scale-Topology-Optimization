@@ -2477,6 +2477,7 @@ c      memmpc=memmpc+15*ne1d+24*ne2d
       write(*,'(A, T30, I20)') 'Print requests:', nprint
       write(*,'(A, T30, I20)') 'Transformations:', ntrans
       write(*,'(A, T30, I20)') 'Property cards:', nprop
+      call flush(6)
    !   write(*,*)
 !
       if(ier.eq.1) then

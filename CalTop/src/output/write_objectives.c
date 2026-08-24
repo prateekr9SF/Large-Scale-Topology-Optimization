@@ -87,8 +87,8 @@ void write_objectives(int ne,
 
     int nthreads = omp_get_max_threads();
 
-    printf("Using %d CPU(s) for volume and discreteness evaluation\n", nthreads);
-    fflush(stdout);
+    //printf("Using %d CPU(s) for volume and discreteness evaluation\n", nthreads);
+    //fflush(stdout);
 
 
     /* Write file header */

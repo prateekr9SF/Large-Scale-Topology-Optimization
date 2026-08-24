@@ -2285,69 +2285,55 @@ while(istat>=0)
     write_deformed_su2(nk, vold);
     fflush(stdout);
 
-    /* The P-flag needs to go since CalFSI should compute the objectives */
     
-    /* adjoint sensitivity calculation */
+    /* Evaluate objectives */
     
-    
-      printf("SENSITIVITY ANALYSIS-----------------------------------------|\n\n");
-      
-      printf("  Allocating memory for sensitivities...");
-      /* allocate memory for compliance gradient and initialize to zero */
-      NNEW(gradCompl,double,ne_);
+    /* allocate memory for compliance gradient and initialize to zero */
+    NNEW(gradCompl,double,ne_);
 
-      /* allocate memory for element complaince and initialize to zero */
-      NNEW(elCompl,double,ne_);
+    /* allocate memory for element complaince and initialize to zero */
+    NNEW(elCompl,double,ne_);
 
-      /* allocate memory for element volume and initialize to zero */
-      NNEW(eleVol,double,ne_); 
+    /* allocate memory for element volume and initialize to zero */
+    NNEW(eleVol,double,ne_); 
 
-      /* allocate memory for filtered compliance gradient and initialize to zero */
-      //NNEW(gradComplFiltered,double,ne_);  //allocate memory to gradcompliance, initialize to 0
+    /* allocate memory for center of gravity (x,y,z) of each element */
+    NNEW(elCG,double,3*ne_);
 
-      /* allocate memory for filtered volume gradient and initialize to zero */
-      //NNEW(eleVolFiltered,double,ne_);
+    printf("done! \n");
 
-      /* allocate memory for center of gravity (x,y,z) of each element */
-      NNEW(elCG,double,3*ne_);
+    time_t starts, ends; 
+	  starts = time(NULL);
 
-      printf("done! \n");
-
-      time_t starts, ends; 
-	    starts = time(NULL);
-
-
-      /* Evaluate sensitivities */
-      printf("  Evaluating structrual properties...");
-      sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
+    /* Evaluate sensitivities -> this step is redundat but needs to be done to compute
+       structre volume and compliance  */
+    printf("Evaluating compliance...");
+    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
-             ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
+       ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
 	     nactdof,icol,jq,&irow,neq,&nzl,&nmethod,ikmpc,
 	     ilmpc,ikboun,ilboun,elcon,nelcon,rhcon,nrhcon,
 	     alcon,nalcon,alzero,&ielmat,&ielorien,&norien,orab,&ntmat_,
-             t0,t1,t1old,ithermal,prestr,&iprestr, vold,iperturb,sti,nzs,
+       t0,t1,t1old,ithermal,prestr,&iprestr, vold,iperturb,sti,nzs,
 	     &kode,filab,eme,&iexpl,plicon,
-             nplicon,plkcon,nplkcon,&xstate,&npmat_,matname,
+       nplicon,plkcon,nplkcon,&xstate,&npmat_,matname,
 	     &isolver,mi,&ncmat_,&nstate_,cs,&mcs,&nkon,&ener,
-             xbounold,xforcold,xloadold,amname,amta,namta,
-             &nam,iamforc,iamload,iamt1,iamboun,&ttime,
-             output,set,&nset,istartset,iendset,ialset,&nprint,prlab,
-             prset,&nener,trab,inotr,&ntrans,fmpc,cbody,ibody,xbody,&nbody,
+       xbounold,xforcold,xloadold,amname,amta,namta,
+       &nam,iamforc,iamload,iamt1,iamboun,&ttime,
+       output,set,&nset,istartset,iendset,ialset,&nprint,prlab,
+       prset,&nener,trab,inotr,&ntrans,fmpc,cbody,ibody,xbody,&nbody,
 	     xbodyold,timepar,thicke,jobnamec,tieset,&ntie,&istep,&nmat,
 	     ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
-             jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
+       jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
 
-      printf("done\n");
+       /* Free compliance gradient */
+       SFREE(gradCompl);
 
-      //printf("done!\n");
       // Mass and C.G properties
       double M, cgx, cgy, cgz;
     
-
-    
-      
-      // Only compute the CG value for objectives.csv
+      /* Only compute the CG value for objectives.csv  */
       printf("Evaluate mass properties...\n");
       compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
@@ -2356,16 +2342,14 @@ while(istat>=0)
       /*---------------------------------------------------------------------------------------------------------------*/      
 
 
-      /*---------------------------------------------------------------------------------------------------------------*/
-
-
-      /*-------------------------------------COMPLIANCE SENSITIVITY FILTERING AND I/O----------------------------------*/
+      /*-----------------------------------------------TOTAL COMPLIANCE------------------------------------------------*/
       double compliance_sum=0;
 
+      printf("Evaluate total compliance...\n");
       getCompliance(ne,elCompl,&compliance_sum);
-
-      SFREE(gradCompl);
-      SFREE(elCompl);      
+      fflush(stdout);
+      SFREE(elCompl);
+      printf("Done evaluating total compliance \n");   
       /*---------------------------------------------------------------------------------------------------------------*/
 
       ends = time(NULL);
@@ -2374,7 +2358,7 @@ while(istat>=0)
       printf("\n\nOUTPUT FILEDS--------------------------------------------------------------|\n\n");
      
       
-      printf("  Writing objectives...");
+      printf("Writing objectives...");
       write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz, passiveIDs, numPassive, &Pnorm);
       printf("done!\n");
       
@@ -2386,7 +2370,7 @@ while(istat>=0)
 
       printf("\n");
       printf("====================================================\n");
-      printf("                 Optimization Summary               \n"); 
+      printf("                 Summary                            \n"); 
       printf("====================================================\n");
 
       printf("  Compliance                 : %12.6e\n", compliance_sum);
@@ -2398,13 +2382,13 @@ while(istat>=0)
 
      // end adjoint calculation
 
-    if (numPassive > 0)
-    {
+    //if (numPassive > 0)
+   // {
       /* set the filtered element densities of passive elements to 1 */
-      printf("  Setting physical element densities to 1 ...");
-      filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
-      printf("done! \n");
-    }
+   //   printf("  Setting physical element densities to 1 ...");
+  //    filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
+ //     printf("done! \n");
+ //   }
 
     /* NOTE: In the first iteration, the rhoPhys do not account for the skin.
              However, all sensitivities at the end of the first iteration 
