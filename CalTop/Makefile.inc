@@ -1072,6 +1072,7 @@ $(SRC_DIR)/filter/filterSens_mt.c \
 $(SRC_DIR)/filter/filterSens_dat_mt_s.c \
 $(SRC_DIR)/filter/filterSens_bin_mt_s.c \
 $(SRC_DIR)/objectives/massCG.c \
+$(SRC_DIR)/objectives/compliance.c \
 $(SRC_DIR)/output/write_CGSens.c \
 $(SRC_DIR)/filter/filterSens_bin_mt_s_group.c \
 $(SRC_DIR)/output/write_StressSens.c \
@@ -1082,7 +1083,8 @@ $(SRC_DIR)/Coupling/calFSI.c \
 $(SRC_DIR)/Coupling/CCXHelpers.c \
 $(SRC_DIR)/Coupling/PreciceInterface.c \
 $(SRC_DIR)/Coupling/nonlingeo_MDO.c \
-$(SRC_DIR)/Coupling/calFSI_ADJ.c 
+$(SRC_DIR)/Coupling/calFSI_ADJ.c \
+
 
 
 SCCXCXX = \

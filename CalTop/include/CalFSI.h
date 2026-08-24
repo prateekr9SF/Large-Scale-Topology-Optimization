@@ -101,6 +101,8 @@ void write_compliance_sensitivities(int ne,
 	const double *elComp,
 	double *compliance_sum);
 
+void getCompliance(int ne,const double *elComp,double *compliance_sum);
+
 void write_volume_sensitivities(int ne,
 		const double *eleVol,
 		const double *rhoPhys,

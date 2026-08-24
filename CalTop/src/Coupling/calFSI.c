@@ -2279,16 +2279,17 @@ while(istat>=0)
       SFREE(gradCompl);
     }
 
-    printf("Updaing solud .su2 file with aeroelastic nodal coordinates...");
+    /* Write deformed SU2 solid mesh file */
+    printf("Updaing solid .su2 file with aeroelastic nodal coordinates...\n");
     fflush(stdout);
     write_deformed_su2(nk, vold);
-    printf("done\n");
     fflush(stdout);
 
-  
+    /* The P-flag needs to go since CalFSI should compute the objectives */
+    
     /* adjoint sensitivity calculation */
-    if(pSupplied!=0)
-    {
+    
+    
       printf("SENSITIVITY ANALYSIS-----------------------------------------|\n\n");
       
       printf("  Allocating memory for sensitivities...");
@@ -2298,16 +2299,14 @@ while(istat>=0)
       /* allocate memory for element complaince and initialize to zero */
       NNEW(elCompl,double,ne_);
 
-
-
       /* allocate memory for element volume and initialize to zero */
       NNEW(eleVol,double,ne_); 
 
       /* allocate memory for filtered compliance gradient and initialize to zero */
-      NNEW(gradComplFiltered,double,ne_);  //allocate memory to gradcompliance, initialize to 0
+      //NNEW(gradComplFiltered,double,ne_);  //allocate memory to gradcompliance, initialize to 0
 
       /* allocate memory for filtered volume gradient and initialize to zero */
-      NNEW(eleVolFiltered,double,ne_);
+      //NNEW(eleVolFiltered,double,ne_);
 
       /* allocate memory for center of gravity (x,y,z) of each element */
       NNEW(elCG,double,3*ne_);
@@ -2319,7 +2318,7 @@ while(istat>=0)
 
 
       /* Evaluate sensitivities */
-      printf("  Evaluating compliance sensitivities...");
+      printf("  Evaluating structrual properties...");
       sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
              ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2344,86 +2343,16 @@ while(istat>=0)
       //printf("done!\n");
       // Mass and C.G properties
       double M, cgx, cgy, cgz;
+    
+
+    
       
-      /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/
-
-      
-      if (eval_CG == 1)
-      {
-        printf("  Evaluate and filter CG sensitivities...");
-
-        /* Allocate memory for CG sensitivities */
-        dCGx = (double*)calloc(ne, sizeof(double));
-        dCGy = (double*)calloc(ne, sizeof(double));
-        dCGz = (double*)calloc(ne, sizeof(double));
-
-        /* Allocate memory for filteredCG sensitivities */
-        dCGxFiltered = (double*)calloc(ne, sizeof(double));
-        dCGyFiltered = (double*)calloc(ne, sizeof(double));
-        dCGzFiltered = (double*)calloc(ne, sizeof(double));
-
-        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
-                            &M, &cgx, &cgy, &cgz,
-                            dCGx, dCGy, dCGz, mat_dens, passiveIDs, numPassive);
-      
-        
-
-        filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
-
-        printf("done\n");
-      
-        if (numPassive > 0)
-        {
-
-          printf("  Setting CG sensitivites for skin elements to zero ...");
-          /* set the filtered CGx sens of passive elements to 0 */
-          filterOutPassiveElems_sens(dCGxFiltered, ne, passiveIDs, numPassive);
-
-
-          /* set the filtered CGy sens of passive elements to 0 */
-          filterOutPassiveElems_sens(dCGyFiltered, ne, passiveIDs, numPassive);
-
-          /* set the filtered CGz sens of passive elements to 0 */
-          filterOutPassiveElems_sens(dCGzFiltered, ne, passiveIDs, numPassive);
-          printf("done\n");
-        }
-
-        printf("  Writing CG sensitivities to disk...");
-        /* ... after you fill dCGx, dCGy, dCGz ... */
-        int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
-        if (rc != 0) 
-        {
-          printf("  Unable to write CG sensitivities to disk!\n");
-        }
-
-        printf("done!\n");
-
-        free(dCGx);
-        free(dCGy);
-        free(dCGz);
-        free(dCGxFiltered);
-        free(dCGyFiltered);
-        free(dCGzFiltered);
-      
-        dCGx = NULL;
-        dCGy = NULL; 
-        dCGz = NULL; 
-        dCGxFiltered = NULL;
-        dCGyFiltered = NULL;
-        dCGzFiltered = NULL;
-      } // end eval_CG ==1
-
-      else
-      {
-        // Only compute the CG value for objectives.csv
-         printf("  Evaluate CG..");
-        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+      // Only compute the CG value for objectives.csv
+      printf("Evaluate mass properties...\n");
+      compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
-      
-        printf("done \n");
-        SFREE(elCG);
-      }
+      SFREE(elCG);
       /*---------------------------------------------------------------------------------------------------------------*/      
 
 
@@ -2433,51 +2362,11 @@ while(istat>=0)
       /*-------------------------------------COMPLIANCE SENSITIVITY FILTERING AND I/O----------------------------------*/
       double compliance_sum=0;
 
-      printf("  Filter compliance gradient ");
-      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
-      printf("done! \n");
-
-      
-      if (numPassive > 0)
-      {
-        /* set the filtered compliance sens of passive elements to 0 */
-        printf("  Setting compliance sensitivities for skin elements to 0 ...");
-        filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
-        printf("done\n");
-      }
-
-      FILE *gradC;
-      printf("  Writing compliance sensitivities...");
-      write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
-      printf("done!\n");
+      getCompliance(ne,elCompl,&compliance_sum);
 
       SFREE(gradCompl);
-      SFREE(elCompl);
-      SFREE(gradComplFiltered);
-      
+      SFREE(elCompl);      
       /*---------------------------------------------------------------------------------------------------------------*/
-
-      /*-------------------------------------VOLUME SENSITIVITY FILTERING AND I/O----------------------------------*/
-
-      FILE *elV_file;
-      printf("  Filter element volume gradient ");
-      filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
-      printf("done! \n");
-
-      if (numPassive > 0)
-      {
-        /* set the filtered volumefraction sens of passive elements to 0 */
-        printf("  Setting volume fraction sensitivities for skin elements to 0 ...");
-        filterOutPassiveElems_sens(eleVolFiltered, ne, passiveIDs, numPassive);
-        printf("done! \n");
-      }
-
-      printf("  Writing volume sensitivities...");
-      write_volume_sensitivities(ne, eleVol, rhoPhys, eleVolFiltered);
-      printf("done!\n");
-
-      
-      SFREE(eleVolFiltered);
 
       ends = time(NULL);
       
@@ -2504,24 +2393,10 @@ while(istat>=0)
       printf("  Mass                       : %12.6e\n", M);
       printf("  Aggregated stress (P-norm) : %12.6e\n", Pnorm);
 
-      /* Optional outputs */
-      //printf("  Initial volume             : %12.6e\n", initialVol_sum);
-     // printf("  Current volume             : %12.6e\n", designVol_sum);
-     // printf("  Volume constraint          : %12.6e\n",
-     //  designVol_sum - volfrac * initialVol_sum);
-
-      //printf("  Discreteness metric        : %12.6e\n", mnd);
-
       printf("====================================================\n");
       printf("\n");
 
-    } // end adjoint calculation
-
-    printf("\n Writing rhosPhys.dat...");
-    fflush(stdout);
-
-    FILE *rho_file;
-    rho_file=fopen("rhosPhys.dat","w"); //open in write mode
+     // end adjoint calculation
 
     if (numPassive > 0)
     {
@@ -2530,13 +2405,6 @@ while(istat>=0)
       filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
       printf("done! \n");
     }
-    /* loop over all elements and write element densities to file */
-    for (int iii=0;iii<ne;iii++)
-    {
-      fprintf(rho_file,"%.15f",rhoPhys[iii]);            
-    }
-
-
 
     /* NOTE: In the first iteration, the rhoPhys do not account for the skin.
              However, all sensitivities at the end of the first iteration 
@@ -2560,15 +2428,6 @@ while(istat>=0)
       tecplot_vtu(nk, ne, co, kon, ipkon, lakon, mi[0], vold, stx, rhoPhys);
       printf("done!\n\n");
     }
-
-    /* ensure any buffered data is written to file */
-    fflush(rho_file); 
-
-    /* all operations done, close file */
-    fclose(rho_file);
-
-    printf("done!\n");
-
 
     SFREE(nactdof);
     SFREE(icol);
