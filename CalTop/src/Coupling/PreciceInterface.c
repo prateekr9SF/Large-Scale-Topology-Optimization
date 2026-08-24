@@ -266,28 +266,40 @@ void Precice_ReadCouplingData( SimulationData * sim )
           			int Number_nodes = interfaces[i]->numNodes;
           			printf( "Number of Interface nodes '%d'. \n", Number_nodes);
 
-          			FILE *f = fopen("Forces_precice.csv","w");
-					fprintf(f, "nodeID,Fx,Fy,Fz\n");
-					for (int a = 0; a < Number_nodes; ++a) 
-					{
-    					int nid = interfaces[i]->nodeIDs[a];            // your solver node labels
-    					double Fx = interfaces[i]->nodeVectorData[3*a + 0];
-    					double Fy = interfaces[i]->nodeVectorData[3*a + 1];
-    					double Fz = interfaces[i]->nodeVectorData[3*a + 2];
-    					fprintf(f, "%d,%.16e,%.16e,%.16e\n", nid, Fx, Fy, Fz);
-					}
-					fclose(f);
+      				//  NEW -> Write CalculiX-compatible concentrated load file
 
-					double Fx_tot = 0.0;
-					double Fy_tot = 0.0;
-					double Fz_tot = 0.0;
+    				FILE *f = fopen("surfaceNodesopt.nam", "w");
 
-					for (int a = 0; a < Number_nodes; ++a) 
-					{
-    					Fx_tot += interfaces[i]->nodeVectorData[3*a + 0];
-    					Fy_tot += interfaces[i]->nodeVectorData[3*a + 1];
-    					Fz_tot += interfaces[i]->nodeVectorData[3*a + 2];
-					}
+    				if (f == NULL)
+    				{
+        				perror("ERROR: Could not open surfaceNodesopt.nam");
+        				break;
+    				}
+
+    				double Fx_tot = 0.0;
+    				double Fy_tot = 0.0;
+    				double Fz_tot = 0.0;
+
+    				for (int a = 0; a < Number_nodes; ++a)
+    				{
+        				int nid = interfaces[i]->nodeIDs[a];
+
+        				double Fx = interfaces[i]->nodeVectorData[3*a + 0];
+        				double Fy = interfaces[i]->nodeVectorData[3*a + 1];
+        				double Fz = interfaces[i]->nodeVectorData[3*a + 2];
+
+        				/* CalculiX *CLOAD format: nodeID, DOF, force */
+
+       					fprintf(f, "%d, 1, %.16e\n", nid, Fx);
+        				fprintf(f, "%d, 2, %.16e\n", nid, Fy);
+        				fprintf(f, "%d, 3, %.16e\n", nid, Fz);
+
+        				/* Compute resultant force */
+        				Fx_tot += Fx;
+        				Fy_tot += Fy;
+        				Fz_tot += Fz;
+    				}
+    				fclose(f);
 
 					printf("\n--------------------------------------------------\n");
 					printf("Total interface force X: % .12e N\n", Fx_tot);
