@@ -18,34 +18,32 @@ void Precice_Setup( char * configFilename, char * participantName, SimulationDat
 	assert(sim != NULL);
 	assert(configFilename != NULL);
 	assert(participantName != NULL);
-
-	fflush( stdout );
-
-	// Read the YAML config file
-	printf("Reading configuration file...\n");
+	/* Read the YAML config file */
+	printf("Reading configuration file...");
+	fflush(stdout);
   	AdapterConfig adapterConfig;
 	ConfigReader_Read( configFilename, participantName, &adapterConfig);
 	printf("done!\n");
+	fflush(stdout);
 
 	
   	assert(adapterConfig.interfaces != NULL);
   	assert(adapterConfig.preciceConfigFilename != NULL);
   	assert(adapterConfig.numInterfaces > 0);
 
-	printf("Determining required number of interfaces...\n");
+	printf("Determining number of interfaces...");
+	fflush(stdout);
   	sim->numPreciceInterfaces = adapterConfig.numInterfaces;
 	printf("done!\n");
+	fflush(stdout);
 
 	printf("Building solver interface...");
-	// Create the solver interface and configure it - Alex: Calculix is always a serial participant (MPI size 1, rank 0)
+	fflush(stdout);
+	/* Create the solver interface and configure it - Alex: Calculix is always a serial participant (MPI size 1, rank 0) */
 	precicec_createSolverInterface( participantName, adapterConfig.preciceConfigFilename, 0, 1 );
 
-	
-
-	// Create interfaces as specified in the config file
+	/* Create interfaces as specified in the config file */
 	sim->preciceInterfaces = (struct PreciceInterface**) calloc( adapterConfig.numInterfaces, sizeof( PreciceInterface* ) );
-
-	
 
 	for(int i = 0 ; i < adapterConfig.numInterfaces; i++ )
 	{
@@ -55,36 +53,36 @@ void Precice_Setup( char * configFilename, char * participantName, SimulationDat
 		
 		PreciceInterface_Create( sim->preciceInterfaces[i], sim, config );		
 	}
-
 	printf("done!\n");
+	fflush(stdout);
 
-
-	printf("Interface setup complete! \n");
-  	// At this point we are done with the configuration
+  	/* At this point we are done with the configuration */
   	AdapterConfig_Free(&adapterConfig);
 
-  
 	printf("Initializing coupling-specific variables...");
-	// Initialize variables needed for the coupling
+	fflush(stdout);
+	/* Initialize variables needed for the coupling */
 	NNEW( sim->coupling_init_v, double, sim->mt * sim->nk );
 	printf("done\n");
+	fflush(stdout);
 
-	printf("Initialize preCICE...");
-	// Initialize preCICE
+	printf("Setting dt...");
+	fflush(stdout);
+	/* Initialize preCICE */
 	sim->precice_dt = precicec_initialize();
-	printf("Done setting precice dt\n");
-
-	printf("Initializing coupling data\n");
-	// Initialize coupling data
-	Precice_InitializeData( sim );
 	printf("done!\n");
+	fflush(stdout);
+
+	printf("Initializing coupling data ...\n");
+	fflush(stdout);
+	/* Initialize coupling data */
+	Precice_InitializeData( sim );
+	printf("Finished initializing data\n");
+	fflush(stdout);
 }
 
 void Precice_InitializeData( SimulationData * sim )
 {
-	printf( "Initializing coupling data\n" );
-	fflush( stdout );
-
 	Precice_WriteCouplingData( sim );
 	precicec_initialize_data();
 	Precice_ReadCouplingData( sim );
@@ -97,20 +95,19 @@ void Precice_AdjustSolverTimestep( SimulationData * sim )
 		printf("Adjusting time step for static analysis \n" );
 		fflush( stdout );
 
-		// For steady-state simulations, we will always compute the converged steady-state solution in one coupling step
+		/* For steady-state simulations, we will always compute the converged steady-state solution in one coupling step
+			*sim->theta = 0;
+			*sim->tper = 1;
+			*sim->dtheta = 1;
+		*/
 		
-		//*sim->theta = 0;
-		//*sim->tper = 1;
-		//	*sim->dtheta = 1;
-		
-		// Set the solver time step to be the same as the coupling time step
+		/* Set the solver time step to be the same as the coupling time step */
 		printf("Setting solver_dt (syncronization interval) to %f \n", sim->precice_dt);
 		sim->solver_dt = sim->precice_dt;
 	}
 	else
 	{
 		/*---Uncomment below for a pure dynamic solution---*/
-		
 		printf( "Adjusting time step for transient step\n" );
 		printf( "precice_dt dtheta = %f, dtheta = %f, solver_dt = %f\n", sim->precice_dt / *sim->tper, *sim->dtheta, fmin( sim->precice_dt, *sim->dtheta * *sim->tper ) );
 		fflush( stdout );
@@ -127,13 +124,12 @@ void Precice_AdjustSolverTimestep( SimulationData * sim )
 
 void Precice_Advance( SimulationData * sim )
 {
-	printf( "Adapter calling advance()...\n" );
-	fflush( stdout );
+	printf("Adapter calling advance()...\n" );
+	fflush(stdout);
     
 	printf("Advancing with solver dt: %f \n", sim->solver_dt);
-	//sim->precice_dt = precicec_advance(1);
+	fflush(stdout);
 	sim->precice_dt = precicec_advance( sim->solver_dt );
-
 }
 
 bool Precice_IsCouplingOngoing()
@@ -143,85 +139,72 @@ bool Precice_IsCouplingOngoing()
 
 bool Precice_IsReadCheckpointRequired()
 {
-	return precicec_isActionRequired( "read-iteration-checkpoint" );
+	return precicec_isActionRequired("read-iteration-checkpoint");
 }
 
 bool Precice_IsWriteCheckpointRequired()
 {
-	return precicec_isActionRequired( "write-iteration-checkpoint" );
+	return precicec_isActionRequired("write-iteration-checkpoint");
 }
 
 void Precice_FulfilledReadCheckpoint()
 {
-	precicec_markActionFulfilled( "read-iteration-checkpoint" );
+	precicec_markActionFulfilled("read-iteration-checkpoint");
 }
 
 void Precice_FulfilledWriteCheckpoint()
 {
-	precicec_markActionFulfilled( "write-iteration-checkpoint" );
+	precicec_markActionFulfilled("write-iteration-checkpoint");
 }
 
 void Precice_ReadIterationCheckpoint( SimulationData * sim, double * v )
 {
+	printf("Adapter reading checkpoint...\n" );
+	fflush(stdout);
 
-	printf( "Adapter reading checkpoint...\n" );
-	fflush( stdout );
-
-	// Reload time
+	/* Reload time */
   	*( sim->theta ) = sim->coupling_init_theta;
 
-	// Reload step size
+	/* Reload step size */
 	*( sim->dtheta ) = sim->coupling_init_dtheta;
 
-	// Reload solution vector v
+	/* Reload elastic state */
 	memcpy( v, sim->coupling_init_v, sizeof( double ) * sim->mt * sim->nk );
 }
 
 void Precice_WriteIterationCheckpoint( SimulationData * sim, double * v )
 {
+	printf("Adapter writing checkpoint...\n" );
+	fflush(stdout);
 
-	printf( "Adapter writing checkpoint...\n" );
-	fflush( stdout );
-
-	// Save time
+	/* Save time */
      sim->coupling_init_theta = *( sim->theta );
 
-	// Save step size
+	/* Save step size */
 	sim->coupling_init_dtheta = *( sim->dtheta );
 
-	// Save solution vector v (memcpy(dest, source, size))
+	/* Save solution vector v (memcpy(dest, source, size)) */
 	memcpy( sim->coupling_init_v, v, sizeof( double ) * sim->mt * sim->nk );
 }
 
 void Precice_ReadCouplingData( SimulationData * sim )
 {
-
-	printf( "Reading aerodynamic tractions ...\n" );
-	
+	printf("Reading aerodynamic tractions ...\n");
 	fflush( stdout );
-
-
     
 	PreciceInterface ** interfaces = sim->preciceInterfaces;
-
-	
-	
+		
 	int numInterfaces = sim->numPreciceInterfaces;
 	int i, j;
 	
-  // Extract force Data
-
-
-
+  	/* Read force Data */
 	if( precicec_isReadDataAvailable() )
 	{
 		for( i = 0 ; i < numInterfaces ; i++ )
 		{
-
 			for( j = 0 ; j < interfaces[i]->numReadData ; j++ )
 			{
-
-				switch( interfaces[i]->readData[j] )
+				switch( interfaces[i]->readData[j])
 				{
 				case TEMPERATURE:
 					// Read and set temperature BC
@@ -248,13 +231,13 @@ void Precice_ReadCouplingData( SimulationData * sim )
 					printf( "Reading HEAT_TRANSFER_COEFF coupling data with ID '%d'. \n",interfaces[i]->kDeltaReadDataID );
 					break;
         		case FORCES:
-					// Read and set forces as concentrated loads (Neumann BC)
+					/* Read and set forces as concentrated loads (Neumann BC) */
 					precicec_readBlockVectorData( interfaces[i]->forcesDataID,
 						 						  interfaces[i]->numNodes,
 												  interfaces[i]->preciceNodeIDs,
 												  interfaces[i]->nodeVectorData );
 
-				    //Set forces or CalTop using xforc
+				    /* Set forces or CalTop using xforc */
 					setNodeForces( interfaces[i]->preciceNodeIDs,
 								   interfaces[i]->nodeVectorData,
 								   interfaces[i]->numNodes,
@@ -262,14 +245,15 @@ void Precice_ReadCouplingData( SimulationData * sim )
 								   interfaces[i]->xforcIndices,
 								   sim->xforc);
 
-					printf( "Reading FORCES coupling data with ID '%d'. \n",interfaces[i]->forcesDataID );
+					printf("Reading FORCES coupling data with ID '%d'. \n",interfaces[i]->forcesDataID);
+					fflush(stdout);
           			int Number_nodes = interfaces[i]->numNodes;
-          			printf( "Number of Interface nodes '%d'. \n", Number_nodes);
+          			printf("Number of nodes at aeroelastic interface '%d'. \n", Number_nodes);
+					fflush(stdout);
 
-      				//  NEW -> Write CalculiX-compatible concentrated load file
-
+      				/* Write CalculiX-compatible concentrated load file
+						This is used in CalAdj  */
     				FILE *f = fopen("surfaceNodesopt.nam", "w");
-
     				if (f == NULL)
     				{
         				perror("ERROR: Could not open surfaceNodesopt.nam");
@@ -283,13 +267,11 @@ void Precice_ReadCouplingData( SimulationData * sim )
     				for (int a = 0; a < Number_nodes; ++a)
     				{
         				int nid = interfaces[i]->nodeIDs[a];
-
         				double Fx = interfaces[i]->nodeVectorData[3*a + 0];
         				double Fy = interfaces[i]->nodeVectorData[3*a + 1];
         				double Fz = interfaces[i]->nodeVectorData[3*a + 2];
 
         				/* CalculiX *CLOAD format: nodeID, DOF, force */
-
        					fprintf(f, "%d, 1, %.16e\n", nid, Fx);
         				fprintf(f, "%d, 2, %.16e\n", nid, Fy);
         				fprintf(f, "%d, 3, %.16e\n", nid, Fz);
@@ -306,18 +288,16 @@ void Precice_ReadCouplingData( SimulationData * sim )
 					printf("Total interface force Y: % .12e N\n", Fy_tot);
 					printf("Total interface force Z: % .12e N\n", Fz_tot);
 					printf("--------------------------------------------------\n\n");
-
-
 				break;
 
 				case DISPLACEMENTS:
-					// Read and set displacements as single point constraints (Dirichlet BC)
+					/* Read and set displacements as single point constraints (Dirichlet BC) */
 					precicec_readBlockVectorData( interfaces[i]->displacementsDataID, interfaces[i]->numNodes, interfaces[i]->preciceNodeIDs, interfaces[i]->nodeVectorData );
 					setNodeDisplacements( interfaces[i]->nodeVectorData, interfaces[i]->numNodes, interfaces[i]->dim, interfaces[i]->xbounIndices, sim->xboun );
-					printf( "Reading DISPLACEMENTS coupling data with ID '%d'. \n",interfaces[i]->displacementsDataID );
+					printf("Reading DISPLACEMENTS coupling data with ID '%d'. \n",interfaces[i]->displacementsDataID );
 					break;
 				case DISPLACEMENTDELTAS:
-					printf( "DisplacementDeltas cannot be used as read data\n" );
+					printf("DisplacementDeltas cannot be used as read data\n");
 					fflush( stdout );
 					exit( EXIT_FAILURE );
 					break;
@@ -344,7 +324,7 @@ void Precice_ReadCouplingData( SimulationData * sim )
 void Precice_WriteCouplingData( SimulationData * sim )
 {
 
-	printf( "Adapter writing coupling data...\n" );
+	printf("Adapter writing coupling data...");
 	fflush( stdout );
 
 	PreciceInterface ** interfaces = sim->preciceInterfaces;
@@ -356,10 +336,8 @@ void Precice_WriteCouplingData( SimulationData * sim )
 	{
 		for( i = 0 ; i < numInterfaces ; i++ )
 		{
-
 			for( j = 0 ; j < interfaces[i]->numWriteData ; j++ )
 			{
-
 				switch( interfaces[i]->writeData[j] )
 				{
 
@@ -467,25 +445,6 @@ void Precice_WriteCouplingData( SimulationData * sim )
 				case DISPLACEMENTDELTAS:
 					getNodeDisplacementDeltas( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->vold, sim->coupling_init_v, sim->mt, interfaces[i]->nodeVectorData );
 					
-					//double sumx = 0;
-					//double sumy = 0;
-					//double sumz = 0;
-					//for(int k = 0 ; k < interfaces[i]->numNodes ; k++ )
-				//	{
-				//		int nodeIdx = interfaces[i]->nodeIDs[k] - 1; //The node Id starts with 1, not with 0, therefore, decrement is necessary
-	  			//		//printf("DispX %lf, DispY %lf, DispZ %lf \n", sim->vold[nodeIdx * sim->mt + 0 + 1], sim->vold[nodeIdx * sim->mt + 1 + 1], sim->vold[nodeIdx * sim->mt + 2 + 1]);
-				//		sumx = sumx + sim->vold[nodeIdx * sim->mt + 0 + 1];
-				//		sumy = sumy + sim->vold[nodeIdx * sim->mt + 1 + 1];
-					//	sumz = sumz + sim->vold[nodeIdx * sim->mt + 2 + 1];
-					//}
-
-				///	double Sum = sumx + sumy + sumz;
-
-					/*---Print the total displacements along each direction---*/
-			//		printf("Net displacement X: %15.9f\n", sumx );
-			//		printf("Net displacement Y: %15.9f\n", sumy );
-			//		printf("Net displacement Z: %15.9f\n", sumz );
-
 					double sumx=0.0, sumy=0.0, sumz=0.0;
 					double maxAbsUx=0.0, maxAbsUy=0.0, maxAbsUz=0.0;
 					double maxMag=0.0;
@@ -506,8 +465,8 @@ void Precice_WriteCouplingData( SimulationData * sim )
     					if (mag > maxMag) maxMag = mag;
 					}
 
-					printf("Delta disp sums:  X=% .6e  Y=% .6e  Z=% .6e\n", sumx, sumy, sumz);
-					printf("Max |delta|:      X=% .6e  Y=% .6e  Z=% .6e  max|dU|=% .6e\n",
+					//printf("Delta disp sums:  X=% .6e  Y=% .6e  Z=% .6e\n", sumx, sumy, sumz);
+					printf("\nMax |delta|:      X=% .6e  Y=% .6e  Z=% .6e  max|dU|=% .6e\n",
        				maxAbsUx, maxAbsUy, maxAbsUz, maxMag);
 					
 
@@ -516,16 +475,19 @@ void Precice_WriteCouplingData( SimulationData * sim )
 
 					printf( "Writing DISPLACEMENTDELTAS coupling data with ID '%d'. \n",interfaces[i]->displacementDeltasDataID );
 					break;
+
 				case VELOCITIES:
 					getNodeVelocities( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->veold, sim->mt, interfaces[i]->nodeVectorData );
 					precicec_writeBlockVectorData( interfaces[i]->velocitiesDataID, interfaces[i]->numNodes, interfaces[i]->preciceNodeIDs, interfaces[i]->nodeVectorData );
 					printf( "Writing VELOCITIES coupling data with ID '%d'. \n",interfaces[i]->velocitiesDataID );
 					break;
+
 				case POSITIONS:
 					getNodeCoordinates( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->co, sim->vold, sim->mt, interfaces[i]->nodeVectorData );
 					precicec_writeBlockVectorData( interfaces[i]->positionsDataID, interfaces[i]->numNodes, interfaces[i]->preciceNodeIDs, interfaces[i]->nodeVectorData );
 					printf( "Writing POSITIONS coupling data with ID '%d'. \n",interfaces[i]->positionsDataID );
 					break;
+					
 				case FORCES:
 					getNodeForces( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->fn, sim->mt, interfaces[i]->nodeVectorData );
 					precicec_writeBlockVectorData( interfaces[i]->forcesDataID, interfaces[i]->numNodes, interfaces[i]->preciceNodeIDs, interfaces[i]->nodeVectorData );
