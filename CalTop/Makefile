@@ -1,4 +1,20 @@
-.PHONY: all clean install uninstall
+.PHONY: all clean install uninstall compiler-info
+
+.DEFAULT_GOAL := all
+
+compiler-info:
+	@echo "========================================"
+	@echo "CalTop compiler configuration"
+	@echo "========================================"
+	@echo "CC  = $(CC)"
+	@$(CC) --version | head -n 1
+	@echo
+	@echo "CXX = $(CXX)"
+	@$(CXX) --version | head -n 1
+	@echo
+	@echo "FC  = $(FC)"
+	@$(FC) --version | head -n 1
+	@echo "========================================"
 
 # ============================================================
 # Paths for external dependencies
@@ -51,8 +67,12 @@ endif
 # ============================================================
 # Compiler and flags
 # ============================================================
-CC = cc
-FC = gfortran
+#CC = cc
+#FC = gfortran
+
+CC  = gcc-12
+CXX = g++-12
+FC  = gfortran-12
 
 # Base CFLAGS (no preCICE yet)
 CFLAGS = -Wall $(OPT) -fopenmp -pthread \
@@ -153,7 +173,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.f
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	g++ -std=c++11 $(CFLAGS) -c $< -o $@
+	$(CXX) -std=c++11 $(CFLAGS) -c $< -o $@
 
 # ============================================================
 # Static library build
