@@ -340,6 +340,80 @@ void Precice_WriteCouplingData( SimulationData * sim )
 			{
 				switch( interfaces[i]->writeData[j] )
 				{
+					case DISPLACEMENTS:
+					getNodeDisplacements( interfaces[i]->nodeIDs, 
+										  interfaces[i]->numNodes, 
+										  interfaces[i]->dim, 
+										  sim->vold, 
+										  sim->mt, 
+										  interfaces[i]->nodeVectorData);
+
+					/* ---------------- Max absolute displacements ---------------- */
+  					int nNodes = interfaces[i]->numNodes;
+  					double *U  = interfaces[i]->nodeVectorData;
+  					double maxUx = 0.0, maxUy = 0.0, maxUz = 0.0;
+
+  					for (int k = 0; k < nNodes; ++k) 
+					{
+    					double ux = fabs(U[3*k + 0]);
+    					double uy = fabs(U[3*k + 1]);
+    					double uz = fabs(U[3*k + 2]);
+
+    					if (ux > maxUx) maxUx = ux;
+    					if (uy > maxUy) maxUy = uy;
+    					if (uz > maxUz) maxUz = uz;
+  					}
+  					printf("\n");
+  					printf("--------------------------------------------------------------\n");
+  					printf(" Max absolute displacement at interface (CalculiX → SU2)\n");
+  					printf("   |Ux|max = %15.6e\n", maxUx);
+  					printf("   |Uy|max = %15.6e\n", maxUy);
+  					printf("   |Uz|max = %15.6e\n", maxUz);
+  					printf("--------------------------------------------------------------\n\n");
+  					/* --------------------------------------------------------------- */
+
+					precicec_writeBlockVectorData( interfaces[i]->displacementsDataID, 
+												   interfaces[i]->numNodes,
+												   interfaces[i]->preciceNodeIDs,
+												interfaces[i]->nodeVectorData);
+
+					printf( "Writing DISPLACEMENTS coupling data with ID '%d'. \n",interfaces[i]->displacementsDataID );
+
+					break;
+
+									case DISPLACEMENTDELTAS:
+					getNodeDisplacementDeltas( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->vold, sim->coupling_init_v, sim->mt, interfaces[i]->nodeVectorData );
+					
+					double sumx=0.0, sumy=0.0, sumz=0.0;
+					double maxAbsUx=0.0, maxAbsUy=0.0, maxAbsUz=0.0;
+					double maxMag=0.0;
+
+					for (int k=0; k<interfaces[i]->numNodes; ++k) 
+					{
+    					double dux = interfaces[i]->nodeVectorData[3*k + 0];
+    					double duy = interfaces[i]->nodeVectorData[3*k + 1];
+    					double duz = interfaces[i]->nodeVectorData[3*k + 2];
+
+    					sumx += dux; sumy += duy; sumz += duz;
+
+    					if (fabs(dux) > maxAbsUx) maxAbsUx = fabs(dux);
+    					if (fabs(duy) > maxAbsUy) maxAbsUy = fabs(duy);
+   	 					if (fabs(duz) > maxAbsUz) maxAbsUz = fabs(duz);
+
+    					double mag = sqrt(dux*dux + duy*duy + duz*duz);
+    					if (mag > maxMag) maxMag = mag;
+					}
+
+					//printf("Delta disp sums:  X=% .6e  Y=% .6e  Z=% .6e\n", sumx, sumy, sumz);
+					printf("\nMax |delta|:      X=% .6e  Y=% .6e  Z=% .6e  max|dU|=% .6e\n",
+       				maxAbsUx, maxAbsUy, maxAbsUz, maxMag);
+					
+
+					precicec_writeBlockVectorData( interfaces[i]->displacementDeltasDataID, interfaces[i]->numNodes, interfaces[i]->preciceNodeIDs, interfaces[i]->nodeVectorData );
+
+
+					printf( "Writing DISPLACEMENTDELTAS coupling data with ID '%d'. \n",interfaces[i]->displacementDeltasDataID );
+					break;
 
 					/*
 				case TEMPERATURE:
@@ -401,80 +475,10 @@ void Precice_WriteCouplingData( SimulationData * sim )
 					free( myKDelta );
 					break; */
 
-				case DISPLACEMENTS:
-					getNodeDisplacements( interfaces[i]->nodeIDs, 
-										  interfaces[i]->numNodes, 
-										  interfaces[i]->dim, 
-										  sim->vold, 
-										  sim->mt, 
-										  interfaces[i]->nodeVectorData);
 
 
-					/* ---------------- Max absolute displacements ---------------- */
-  					int nNodes = interfaces[i]->numNodes;
-  					double *U  = interfaces[i]->nodeVectorData;
-  					double maxUx = 0.0, maxUy = 0.0, maxUz = 0.0;
-
-  					for (int k = 0; k < nNodes; ++k) 
-					{
-    					double ux = fabs(U[3*k + 0]);
-    					double uy = fabs(U[3*k + 1]);
-    					double uz = fabs(U[3*k + 2]);
-
-    					if (ux > maxUx) maxUx = ux;
-    					if (uy > maxUy) maxUy = uy;
-    					if (uz > maxUz) maxUz = uz;
-  					}
-  					printf("\n");
-  					printf("--------------------------------------------------------------\n");
-  					printf(" Max absolute displacement at interface (CalculiX → SU2)\n");
-  					printf("   |Ux|max = %15.6e\n", maxUx);
-  					printf("   |Uy|max = %15.6e\n", maxUy);
-  					printf("   |Uz|max = %15.6e\n", maxUz);
-  					printf("--------------------------------------------------------------\n\n");
-  					/* --------------------------------------------------------------- */
-
-					precicec_writeBlockVectorData( interfaces[i]->displacementsDataID, 
-												   interfaces[i]->numNodes,
-												   interfaces[i]->preciceNodeIDs,
-												interfaces[i]->nodeVectorData);
-
-					printf( "Writing DISPLACEMENTS coupling data with ID '%d'. \n",interfaces[i]->displacementsDataID );
-
-					break;
-				case DISPLACEMENTDELTAS:
-					getNodeDisplacementDeltas( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->vold, sim->coupling_init_v, sim->mt, interfaces[i]->nodeVectorData );
-					
-					double sumx=0.0, sumy=0.0, sumz=0.0;
-					double maxAbsUx=0.0, maxAbsUy=0.0, maxAbsUz=0.0;
-					double maxMag=0.0;
-
-					for (int k=0; k<interfaces[i]->numNodes; ++k) 
-					{
-    					double dux = interfaces[i]->nodeVectorData[3*k + 0];
-    					double duy = interfaces[i]->nodeVectorData[3*k + 1];
-    					double duz = interfaces[i]->nodeVectorData[3*k + 2];
-
-    					sumx += dux; sumy += duy; sumz += duz;
-
-    					if (fabs(dux) > maxAbsUx) maxAbsUx = fabs(dux);
-    					if (fabs(duy) > maxAbsUy) maxAbsUy = fabs(duy);
-   	 					if (fabs(duz) > maxAbsUz) maxAbsUz = fabs(duz);
-
-    					double mag = sqrt(dux*dux + duy*duy + duz*duz);
-    					if (mag > maxMag) maxMag = mag;
-					}
-
-					//printf("Delta disp sums:  X=% .6e  Y=% .6e  Z=% .6e\n", sumx, sumy, sumz);
-					printf("\nMax |delta|:      X=% .6e  Y=% .6e  Z=% .6e  max|dU|=% .6e\n",
-       				maxAbsUx, maxAbsUy, maxAbsUz, maxMag);
-					
-
-					precicec_writeBlockVectorData( interfaces[i]->displacementDeltasDataID, interfaces[i]->numNodes, interfaces[i]->preciceNodeIDs, interfaces[i]->nodeVectorData );
 
 
-					printf( "Writing DISPLACEMENTDELTAS coupling data with ID '%d'. \n",interfaces[i]->displacementDeltasDataID );
-					break;
 
 				case VELOCITIES:
 					getNodeVelocities( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->veold, sim->mt, interfaces[i]->nodeVectorData );

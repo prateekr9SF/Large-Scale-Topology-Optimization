@@ -1,16 +1,14 @@
 # TAU Profiling Setup for CalTop
 
-This directory contains notes and configuration information for building and using the **TAU Performance System** with **CalTop**.
+This directory contains installation and configuration notes for using the **TAU Performance System** with **CalTop**.
 
-CalTop contains both **C and Fortran** source code and uses **OpenMP** for shared-memory parallelism. The TAU installation described here enables source-level instrumentation through the **Program Database Toolkit (PDT)** and OpenMP runtime instrumentation through **OMPT**.
+CalTop is a mixed-language application containing **C and Fortran** source code. Its parallel execution model uses a combination of **OpenMP** and **POSIX threads (pthreads)**. TAU is configured here with OpenMP support, OMPT runtime instrumentation, and source-level instrumentation through the **Program Database Toolkit (PDT)**.
 
 The configuration documented below was tested on an Ubuntu workstation using the GCC 12 toolchain.
 
 ---
 
-## 1. Software Configuration
-
-The following software versions were used:
+## Software Configuration
 
 | Package     | Version / Configuration |
 | ----------- | ----------------------- |
@@ -20,6 +18,7 @@ The following software versions were used:
 | G++         | 12.5.0                  |
 | GNU Fortran | GCC 12 toolchain        |
 | OpenMP      | Enabled                 |
+| pthreads    | Used by CalTop          |
 | OMPT        | Enabled                 |
 | BFD         | Enabled                 |
 | libunwind   | Enabled                 |
@@ -37,15 +36,15 @@ The installation uses the following directory structure:
     └── TAU_install/
 ```
 
-The exact paths can be changed as needed.
+The exact installation paths can be changed as needed.
 
 ---
 
-# 2. Installing PDT
+# 1. Installing PDT
 
 PDT is used by TAU for automatic source-code instrumentation.
 
-Download and extract PDT 3.25.2, then enter the source directory:
+Download and extract PDT 3.25.2 and enter the source directory:
 
 ```bash
 cd ~/Documents/Software/PDT/pdtoolkit-3.25.2
@@ -64,9 +63,9 @@ Configure PDT with:
     -prefix=/home/prateek/Documents/Software/PDT/PDT_install/
 ```
 
-## 2.1 Building PDT with GCC 12
+## 1.1 Building PDT with GCC 12
 
-On systems where the default `/usr/bin/g++` points to a newer compiler, the PDT-generated Makefiles may ignore the shell `CXX` environment variable and use `/usr/bin/g++` directly.
+On systems containing multiple GCC versions, the PDT-generated Makefiles may use `/usr/bin/g++` directly rather than respecting the shell `CXX` variable.
 
 For example, the generated `ductape/Makefile` may contain:
 
@@ -74,13 +73,13 @@ For example, the generated `ductape/Makefile` may contain:
 PDT_GXX=/usr/bin/g++
 ```
 
-Therefore, explicitly override `PDT_GXX` when building:
+To guarantee that PDT is built with GCC 12, explicitly override `PDT_GXX`:
 
 ```bash
 make PDT_GXX=/usr/bin/g++-12 install
 ```
 
-This ensures that PDT and `tau_instrumentor` are compiled using G++ 12.
+This ensures that PDT components, including `tau_instrumentor`, are compiled using G++ 12.
 
 The resulting installation is located under:
 
@@ -88,18 +87,16 @@ The resulting installation is located under:
 /home/prateek/Documents/Software/PDT/PDT_install/x86_64/
 ```
 
-with executables under:
+Set the PDT environment:
 
-```text
-/home/prateek/Documents/Software/PDT/PDT_install/x86_64/bin
+```bash
+export PDT_HOME=/home/prateek/Documents/Software/PDT/PDT_install
+export PATH=$PDT_HOME/x86_64/bin:$PATH
 ```
 
 Verify the installation:
 
 ```bash
-export PDT_HOME=/home/prateek/Documents/Software/PDT/PDT_install
-export PATH=$PDT_HOME/x86_64/bin:$PATH
-
 which tau_instrumentor
 which pdbconv
 which pdbtree
@@ -107,9 +104,9 @@ which pdbtree
 
 ---
 
-# 3. Installing TAU
+# 2. Installing TAU
 
-Download and extract TAU 2.35.2, then enter the TAU source directory:
+Download and extract TAU 2.35.2 and enter the source directory:
 
 ```bash
 cd ~/Documents/Software/TAU/tau-2.35.2
@@ -121,17 +118,11 @@ The installation prefix used here is:
 /home/prateek/Documents/Software/TAU/TAU_install
 ```
 
-## 3.1 TAU Configuration for CalTop
+## 2.1 TAU Configuration for CalTop
 
-CalTop requires profiling support for:
+CalTop contains C and Fortran source code and uses both OpenMP and pthreads.
 
-* C
-* Fortran
-* OpenMP
-* PDT source instrumentation
-* OMPT OpenMP instrumentation
-
-Additional TAU functionality is enabled through BFD and libunwind.
+For the present installation, TAU uses **OpenMP as its thread package**. OMPT is enabled to provide OpenMP runtime-level instrumentation. PDT is enabled for source-level instrumentation of CalTop routines.
 
 Configure TAU using:
 
@@ -150,23 +141,132 @@ Configure TAU using:
     -tag=caltop-openmp
 ```
 
-### Important
-
-TAU's `-cc` and `-c++` options expect compiler names such as:
+The resulting configuration provides:
 
 ```text
-gcc-12
-g++-12
+CalTop
+│
+├── C
+│   └── GCC 12
+│
+├── Fortran
+│   └── GNU Fortran
+│
+├── Parallelism
+│   ├── OpenMP
+│   │   └── OMPT instrumentation
+│   │
+│   └── POSIX threads (pthreads)
+│       └── Application-level threading
+│
+└── TAU
+    ├── PDT
+    │   └── Source instrumentation
+    ├── BFD
+    │   └── Symbol/address resolution
+    └── libunwind
+        └── Stack unwinding
 ```
 
-rather than absolute compiler paths such as:
+### OpenMP and pthreads
+
+The `-openmp` option selects OpenMP as the threading package used by this TAU configuration.
+
+CalTop may still contain and execute pthread-based code. The presence of pthreads in the application does not, by itself, require replacing the TAU OpenMP configuration with a `-pthread` configuration.
+
+If detailed TAU instrumentation of pthread creation and synchronization is required in addition to OpenMP/OMPT profiling, a separate TAU pthread configuration or additional TAU runtime instrumentation can be investigated.
+
+For the primary CalTop profiling configuration, OpenMP + OMPT is used because OpenMP runtime behavior is an important component of CalTop's parallel execution.
+
+---
+
+# 3. Third-Party Packages
+
+Several optional packages are downloaded automatically during TAU configuration.
+
+## libunwind
+
+```bash
+-unwind=download
+```
+
+enables stack unwinding.
+
+TAU should report:
 
 ```text
-/usr/bin/gcc-12
-/usr/bin/g++-12
+NOTE: Enabling Stack Unwinding support
+NOTE: Using libunwind Unwinder.
 ```
 
-Using the latter may cause TAU to reject the compiler selection and silently fall back to the system-default compiler.
+When built with the GCC 12 configuration, TAU should also report:
+
+```text
+Using unwind_c_compiler=gcc-12
+Using unwind_cxx_compiler=g++-12
+```
+
+## BFD
+
+```bash
+-bfd=download
+```
+
+downloads/builds GNU BFD support.
+
+TAU should report:
+
+```text
+NOTE: Using BFD support
+NOTE: Using ELF support in BFD
+NOTE: Using DEMANGLE support
+```
+
+BFD provides binary address and symbol resolution.
+
+## OMPT
+
+```bash
+-ompt=download
+```
+
+enables the OpenMP Tools Interface.
+
+If the system OpenMP runtime does not provide the required OMPT functionality, TAU may download and build an LLVM OpenMP runtime.
+
+A successful configuration should report:
+
+```text
+Using OMPT 5
+```
+
+and:
+
+```text
+NOTE: Using OMPT OpenMP options for OMPT 5.0 specification
+```
+
+OMPT and PDT serve complementary purposes:
+
+```text
+                 CalTop
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+        ▼                     ▼
+       PDT                   OMPT
+        │                     │
+        ▼                     ▼
+Source instrumentation    OpenMP runtime
+        │                 instrumentation
+        │                     │
+        ▼                     ▼
+CalTop functions         Parallel regions
+Solver routines          Threads
+Sensitivities            Barriers
+FEA routines             Synchronization
+Optimization routines    Tasks
+```
 
 ---
 
@@ -174,11 +274,12 @@ Using the latter may cause TAU to reject the compiler selection and silently fal
 
 Before compiling TAU, inspect the output from `configure`.
 
-For this installation, TAU correctly detected:
+The C/C++ compiler detection should report GCC 12:
 
 ```text
 Default C++ compiler will be g++ version 12.5.0
 Default C compiler will be gcc version 12.5.0
+
 Using GNU lib dir as /usr/lib/gcc/x86_64-linux-gnu/12/
 Using GNU stdc++ lib dir as /usr/lib/gcc/x86_64-linux-gnu/12/
 ```
@@ -204,102 +305,31 @@ NOTE: Enabling Stack Unwinding support
 NOTE: Using libunwind Unwinder.
 ```
 
-PDT should also report Fortran support:
+PDT should additionally report:
 
 ```text
 PDT supports Fortran Loop Level information
 ```
 
-Do not proceed with the TAU build if the configuration unexpectedly reports GCC/G++ from another compiler version.
+Do not proceed if TAU unexpectedly detects a different GCC version.
 
 ---
 
-# 5. Third-Party Packages
+# 5. Build and Install TAU
 
-Several optional packages are downloaded automatically during the TAU configuration.
-
-## libunwind
-
-The option
-
-```bash
--unwind=download
-```
-
-downloads and builds `libunwind`.
-
-For the GCC 12 configuration, TAU should report something similar to:
-
-```text
-Using unwind_c_compiler=gcc-12
-Using unwind_cxx_compiler=g++-12
-```
-
-libunwind provides stack-unwinding functionality useful for call-stack and sampling-based performance analysis.
-
-## BFD
-
-The option
-
-```bash
--bfd=download
-```
-
-downloads GNU binutils and builds BFD support.
-
-TAU should report:
-
-```text
-NOTE: Using BFD support
-NOTE: Using ELF support in BFD
-NOTE: Using DEMANGLE support
-```
-
-BFD allows TAU to resolve binary addresses and symbols, which is useful for obtaining meaningful function-level profiling information.
-
-## OMPT
-
-The option
-
-```bash
--ompt=download
-```
-
-enables the OpenMP Tools Interface.
-
-If the system OpenMP runtime does not provide the required OMPT interface, TAU automatically downloads and builds an LLVM OpenMP runtime.
-
-A successful configuration should report:
-
-```text
-Using OMPT 5
-```
-
-and later:
-
-```text
-NOTE: Using OMPT OpenMP options for OMPT 5.0 specification
-```
-
-OMPT complements PDT instrumentation. PDT instruments CalTop source routines, while OMPT exposes events from the OpenMP runtime such as parallel regions, threads, synchronization, barriers, and tasks.
-
----
-
-# 6. Build and Install TAU
-
-Once configuration has completed successfully:
+Once configuration completes successfully:
 
 ```bash
 make install
 ```
 
-The resulting TAU installation is located under:
+The TAU installation is located at:
 
 ```text
 /home/prateek/Documents/Software/TAU/TAU_install
 ```
 
-For the `x86_64` architecture, TAU executables are installed under:
+with architecture-specific executables under:
 
 ```text
 /home/prateek/Documents/Software/TAU/TAU_install/x86_64/bin
@@ -307,7 +337,7 @@ For the `x86_64` architecture, TAU executables are installed under:
 
 ---
 
-# 7. Environment Setup
+# 6. Environment Setup
 
 Add PDT and TAU to the shell environment:
 
@@ -319,15 +349,9 @@ export PATH=$PDT_HOME/x86_64/bin:$PATH
 export PATH=$TAU_ROOT/x86_64/bin:$PATH
 ```
 
-These commands can optionally be added to `~/.bashrc` or `~/.zshrc`.
+These definitions may be added to `~/.bashrc` or `~/.zshrc`.
 
-Reload the shell configuration if necessary:
-
-```bash
-source ~/.bashrc
-```
-
-or:
+For example, for Zsh:
 
 ```bash
 source ~/.zshrc
@@ -335,9 +359,9 @@ source ~/.zshrc
 
 ---
 
-# 8. Verify the TAU Installation
+# 7. Verify the Installation
 
-Verify that the TAU compiler wrappers and utilities are available:
+Verify the TAU compiler wrappers and runtime tools:
 
 ```bash
 which tau_cc.sh
@@ -352,66 +376,19 @@ The returned paths should point to:
 /home/prateek/Documents/Software/TAU/TAU_install/x86_64/bin/
 ```
 
-The available TAU configurations can be inspected using:
+Inspect the installed TAU configurations with:
 
 ```bash
 ls $TAU_ROOT/x86_64/lib/Makefile.tau*
 ```
 
-The CalTop-specific configuration should contain the `caltop-openmp` tag and the enabled OpenMP/OMPT/PDT options.
+The CalTop configuration should contain the `caltop-openmp` tag together with the enabled PDT/OpenMP/OMPT configuration.
 
 ---
 
-# 9. TAU Configuration Used for CalTop
+# 8. Compiler Consistency
 
-The complete configuration is summarized below:
-
-```text
-CalTop
-│
-├── C
-│   └── GCC 12
-│
-├── Fortran
-│   └── GNU Fortran / GCC 12
-│
-├── OpenMP
-│   ├── TAU OpenMP thread support
-│   └── OMPT 5 runtime instrumentation
-│
-└── TAU 2.35.2
-    ├── PDT 3.25.2
-    │   └── Source-code instrumentation
-    ├── BFD
-    │   └── Symbol/address resolution
-    └── libunwind
-        └── Stack unwinding
-```
-
-The corresponding TAU configuration command is:
-
-```bash
-./configure \
-    -prefix=/home/prateek/Documents/Software/TAU/TAU_install \
-    -cc=gcc-12 \
-    -c++=g++-12 \
-    -fortran=gnu \
-    -pdt=/home/prateek/Documents/Software/PDT/PDT_install \
-    -pdt_c++=g++-12 \
-    -openmp \
-    -ompt=download \
-    -bfd=download \
-    -unwind=download \
-    -tag=caltop-openmp
-```
-
----
-
-# 10. Notes
-
-### Compiler consistency
-
-The workstation may contain multiple GCC versions. Always verify the compiler toolchain before rebuilding TAU or PDT:
+The workstation may contain multiple GCC versions. Verify the compiler toolchain before rebuilding PDT or TAU:
 
 ```bash
 gcc-12 --version
@@ -419,30 +396,49 @@ g++-12 --version
 gfortran-12 --version
 ```
 
-TAU configuration output should also be inspected to ensure that GCC 12 libraries are being selected:
+The TAU configuration should select GCC 12 libraries:
 
 ```text
 /usr/lib/gcc/x86_64-linux-gnu/12/
 ```
 
-### Reconfiguring TAU
-
-When changing important TAU configuration options, such as enabling Fortran support or changing compilers, perform a clean rebuild before reconfiguring.
-
-### Multiple TAU configurations
-
-TAU supports multiple configurations within the same installation. The
-
-```bash
--tag=caltop-openmp
-```
-
-option is used to distinguish the CalTop OpenMP configuration from other TAU configurations that may be built later.
+This is particularly important on systems where `/usr/bin/gcc`, `/usr/bin/g++`, or `/usr/bin/gfortran` refer to a newer system compiler.
 
 ---
 
-# 11. References
+# 9. CalTop Profiling Workflow
+
+The intended profiling workflow is:
+
+```text
+CalTop C / Fortran source
+          │
+          ▼
+     PDT instrumentation
+          │
+          ▼
+   TAU compiler wrappers
+          │
+          ├── C       → GCC 12
+          └── Fortran → GNU Fortran
+          │
+          ▼
+  Instrumented CalTop executable
+          │
+          ├── OpenMP execution
+          ├── OMPT runtime events
+          └── pthread-based execution
+          │
+          ▼
+       TAU profiles
+```
+
+The CalTop build system can subsequently be configured to switch between the normal GCC 12 build and a TAU-instrumented build without modifying the underlying source files.
+
+---
+
+# References
 
 * TAU Performance System: https://www.cs.uoregon.edu/research/tau/
 * TAU Installation Guide: https://www.cs.uoregon.edu/research/tau/docs/html-docs/latest/installguide/installguide.html
-* PDT: https://www.cs.uoregon.edu/research/pdt/
+* Program Database Toolkit (PDT): https://www.cs.uoregon.edu/research/pdt/
