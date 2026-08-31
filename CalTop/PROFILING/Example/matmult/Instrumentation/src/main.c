@@ -14,15 +14,6 @@ int main(void)
     double norm;
 
     //TAU_PROFILE("main()", "", TAU_DEFAULT);
-
-    /* 
-    Define TAU timers
-    *
-    * The first argument is the timer handle.
-    * The second argument is the name that will appear in TAU.
-    * The third argument is the type string.
-    * The fourth argument specifies the timer group.
-    */
     
     printf("Allocating memory ...");
     fflush(stdout);
