@@ -29,6 +29,28 @@ MKL_INCLUDE = /home/prateek/intel/oneapi/mkl/2025.3/include
 
 CMPLR_PATH  = /home/prateek/intel/oneapi/compiler/2025.3/bin
 
+
+# ============================================================
+# TAU Profiling
+#
+# Normal build:
+#   make
+#
+# TAU profiling build:
+#   make PROFILING=1
+# ============================================================
+
+PROFILING ?= 0
+
+TAU_ROOT = /home/prateek/Documents/Software/TAU/TAU_install
+
+TAU_MAKEFILE = $(TAU_ROOT)/x86_64/lib/Makefile.tau-caltop-openmp-ompt-pdt-openmp
+export TAU_MAKEFILE
+
+TAU_CC  = $(TAU_ROOT)/x86_64/bin/tau_cc.sh
+TAU_CXX = $(TAU_ROOT)/x86_64/bin/tau_cxx.sh
+TAU_FC  = $(TAU_ROOT)/x86_64/bin/tau_f90.sh
+
 # ============================================================
 # Directories
 # ============================================================
@@ -74,14 +96,34 @@ CC  = gcc-12
 CXX = g++-12
 FC  = gfortran-12
 
+LINK_CC = $(CC)
+LINK_FC = $(FC)
+
+# ============================================================
+# TAU profiling flags
+# ============================================================
+
+ifeq ($(PROFILING),1)
+
+  CFLAGS  += -DPROFILING_ON -I$(TAU_ROOT)/include
+  #FFLAGS  += -DPROFILING_ON -I$(TAU_ROOT)/include
+  
+  # PROFILING is 1, use TAU C and FORTRAN wrappers
+  LINK_CC = $(TAU_CC)
+  LINK_FC = $(TAU_FC)
+
+endif
+
 # Base CFLAGS (no preCICE yet)
 CFLAGS = -Wall $(OPT) -fopenmp -pthread \
          -DARCH="Linux" -DARPACK -DPARDISO -DMATRIXSTORAGE -DUSE_MT=1 -DMKL_LP64 \
-         -I$(MKL_INCLUDE) -I$(INCLUDE_DIR) \
+         -I$(MKL_INCLUDE) -I$(INCLUDE_DIR) 
          #-I$(YAML_PREFIX)/include
 
 # Fortran flags
 FFLAGS = -Wall -O3 -fallow-argument-mismatch -std=gnu
+
+
 
 # preCICE flags (used only when MDO=1)
 PKGCONF_CFLAGS  = $(shell pkg-config --cflags libprecice 2>/dev/null)
@@ -192,24 +234,24 @@ ccx_2.15.a: $(OCCXF) $(OCCXC) $(OCCXCXX) | $(OBJ_DIR)
 $(BIN_DIR)/calTop.exe: $(OCCXMAIN) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
 	./date.pl
 	$(CC) $(CFLAGS) -c $(DRIVER_DIR)/ccx_2.15.c -o $(OBJ_DIR)/drivers/ccx_2.15.o
-	$(FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAIN) ccx_2.15.a $(LIBS)
+	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAIN) ccx_2.15.a $(LIBS)
 	@echo "Build calTop.exe successfully!"
 
 # calFilt
 $(BIN_DIR)/calFilt.exe: $(OCCXMAINFILT) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $(DRIVER_DIR)/calFilt.c -o $(OBJ_DIR)/calFilt.o
-	$(FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFILT) ccx_2.15.a $(LIBS)
+	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFILT) ccx_2.15.a $(LIBS)
 	@echo "Build calFilt.exe successfully!"
 
 # calFSI (only meaningful when MDO=1)
 ifeq ($(MDO),1)
 $(BIN_DIR)/calFSI.exe: $(OCCXMAINFSI) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
-	$(FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI) ccx_2.15.a $(LIBS)
+	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI) ccx_2.15.a $(LIBS)
 	@echo "Build calFSI.exe successfully!"
 
 # calAdj (only meaningful when MDO=1)
 $(BIN_DIR)/calFSI_ADJ.exe: $(OCCXMAINFSI_ADJ) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
-	$(FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI_ADJ) ccx_2.15.a $(LIBS)
+	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI_ADJ) ccx_2.15.a $(LIBS)
 	@echo "Build calFSI_ADJ.exe successfully!"
 endif
 
