@@ -19,6 +19,10 @@
 #include <unistd.h>
 #include <sys/stat.h> 
 
+#ifdef PROFILING_ON
+#include <TAU.h>
+#endif
+
 
 
 
@@ -28,6 +32,11 @@ ITG myid = 0, nproc = 0;
 
 int main(int argc,char *argv[])
 {
+
+  #ifdef PROFILING_ON
+    TAU_PROFILE_INIT(argc, argv);
+    TAU_PROFILE_SET_NODE(0);
+  #endif
 
   FILE *f1;
 

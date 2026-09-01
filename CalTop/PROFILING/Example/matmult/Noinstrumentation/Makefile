@@ -6,7 +6,8 @@
 CC = g++-12
 
 # Compiler flags
-CFLAGS = -O2 -g -Wall -Wextra
+CFLAGS = -O2 -g -Wall -Wextra -fopenmp
+LDFLAGS = -fopenmp -lm
 
 # Directories
 SRC_DIR = src
@@ -42,7 +43,7 @@ all: $(TARGET)
 # ==============================================================
 
 $(TARGET): $(OBJECTS) | $(BIN_DIR)
-	$(CC) $(OBJECTS) -o $(TARGET) -lm
+	$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
 
 
 # ==============================================================

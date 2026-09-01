@@ -99,6 +99,16 @@ FC  = gfortran-12
 LINK_CC = $(CC)
 LINK_FC = $(FC)
 
+# Base CFLAGS (no preCICE yet)
+CFLAGS = -Wall $(OPT) -fopenmp -pthread \
+         -DARCH="Linux" -DARPACK -DPARDISO -DMATRIXSTORAGE -DUSE_MT=1 -DMKL_LP64 \
+         -I$(MKL_INCLUDE) -I$(INCLUDE_DIR) 
+         #-I$(YAML_PREFIX)/include
+
+# Fortran flags
+FFLAGS = -Wall -O3 -fallow-argument-mismatch -std=gnu
+
+
 # ============================================================
 # TAU profiling flags
 # ============================================================
@@ -113,17 +123,6 @@ ifeq ($(PROFILING),1)
   LINK_FC = $(TAU_FC)
 
 endif
-
-# Base CFLAGS (no preCICE yet)
-CFLAGS = -Wall $(OPT) -fopenmp -pthread \
-         -DARCH="Linux" -DARPACK -DPARDISO -DMATRIXSTORAGE -DUSE_MT=1 -DMKL_LP64 \
-         -I$(MKL_INCLUDE) -I$(INCLUDE_DIR) 
-         #-I$(YAML_PREFIX)/include
-
-# Fortran flags
-FFLAGS = -Wall -O3 -fallow-argument-mismatch -std=gnu
-
-
 
 # preCICE flags (used only when MDO=1)
 PKGCONF_CFLAGS  = $(shell pkg-config --cflags libprecice 2>/dev/null)
@@ -238,9 +237,15 @@ $(BIN_DIR)/calTop.exe: $(OCCXMAIN) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
 	@echo "Build calTop.exe successfully!"
 
 # calFilt
+#$(BIN_DIR)/calFilt.exe: $(OCCXMAINFILT) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
+#	$(CC) $(CFLAGS) -c $(DRIVER_DIR)/calFilt.c -o $(OBJ_DIR)/calFilt.o
+#	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFILT) ccx_2.15.a $(LIBS)
+#	@echo "Build calFilt.exe successfully!"
+
+# calFilt
 $(BIN_DIR)/calFilt.exe: $(OCCXMAINFILT) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $(DRIVER_DIR)/calFilt.c -o $(OBJ_DIR)/calFilt.o
-	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFILT) ccx_2.15.a $(LIBS)
+	$(LINK_FC) -Wall -O3 -fopenmp -pthread \
+	-o $@ $(OCCXMAINFILT) ccx_2.15.a $(LIBS)
 	@echo "Build calFilt.exe successfully!"
 
 # calFSI (only meaningful when MDO=1)

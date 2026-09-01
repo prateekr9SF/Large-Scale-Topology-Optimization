@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <omp.h>
 
 #include "matrix.h"
 
@@ -47,6 +48,7 @@ void matrixMultiply(double *A, double *B, double *C)
 {
     int i, j, k;
 
+    #pragma omp parallel for private(j, k)
     for (i = 0; i < N; i++)
     {
         for (j = 0; j < N; j++)

@@ -9,6 +9,10 @@
 
 #include <stdint.h> 
 
+#ifdef PROFILING_ON
+#include <TAU.h>
+#endif
+
 #define PROGRESS_WIDTH 40
 
 /**
@@ -157,6 +161,16 @@ static void copy_file_into(FILE *out, const char *path, size_t buf_bytes) {
  */
 void *filter_thread_bin(void *args_ptr)
 {
+    #ifdef PROFILING_ON
+        // Define TAU timer for profiling at local thread-level
+        TAU_PROFILE_TIMER(timer_filter_thread,
+                      "densityFilter_thread_work",
+                      "",
+                      TAU_USER);
+        // Begin profiling
+        TAU_PROFILE_START(timer_filter_thread);
+    #endif
+
     ThreadArgs *args = (ThreadArgs *)args_ptr;
 
     // Prepare thread-local filenames
@@ -324,6 +338,10 @@ void *filter_thread_bin(void *args_ptr)
 
     free(row_sum_local);
 
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(timer_filter_thread);
+    #endif
+
     return NULL;
 }
 
@@ -348,7 +366,8 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     ITG ne0 = *ne;
     // remove passive element effects
     int *isPassive = (int*)calloc((size_t)ne0, sizeof(int));
-    for (int p = 0; p < numPassive; ++p) {
+    for (int p = 0; p < numPassive; ++p) 
+    {
         int pid = passiveIDs[p] - 1;   // passiveIDs are 1-based
         if (pid >= 0 && pid < ne0)
             isPassive[pid] = 1;
@@ -358,8 +377,16 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
 
     double *elCentroid = NULL;
     NNEW(elCentroid, double, 3 * ne0);
-
+ 
+    #ifdef PROFILING_ON
+        TAU_PROFILE_TIMER(timer_get_centroid, "centeroid_eval", "", TAU_USER);
+        TAU_PROFILE_START(timer_get_centroid);
+    #endif
     mafillsmmain_filter(co, nk, *konp, *ipkonp, *lakonp, ne, ttime, &time, mortar, &ne0, elCentroid);
+
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(timer_get_centroid);
+    #endif
 
     pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
     ThreadArgs *args = malloc(num_threads * sizeof(ThreadArgs));
@@ -372,6 +399,11 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
 
     printf("Number of elements per thread: %d\n", elems_per_thread);
     printf("Creating threads and streaming thread-local binary shards...\n");
+
+    #ifdef PROFILING_ON
+        TAU_PROFILE_TIMER(timer_parallel_filter,"densityFilter_parallel_region", "",TAU_USER);
+        TAU_PROFILE_START(timer_parallel_filter);
+    #endif      
 
     for (int t = 0; t < num_threads; ++t) 
     {
@@ -398,6 +430,11 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
 
     for (int t = 0; t < num_threads; ++t)
         pthread_join(threads[t], NULL);
+    
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(timer_parallel_filter);
+    #endif
+
     free(isPassive); 
     // Move below progress bar region before printing
     printf("\033[%d;1H", num_threads + 5);
@@ -419,6 +456,11 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     //printf("Thread-local filter triplet files written to disk.\n");
     //printf("Merging filter triplet files from all threads...\n");
 
+    #ifdef PROFILING_ON
+        TAU_PROFILE_TIMER(timer_merge,"densityFilter_merge","",TAU_USER);
+        TAU_PROFILE_START(timer_merge);
+    #endif
+
     // Begin merging binary files
     printf("Merging thread-local binaries...");
     FILE *Fdrow = fopen("drow.bin","wb");
@@ -434,7 +476,8 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
 
 
     // Merge drow/dcol/dval
-    for (int t = 0; t < num_threads; ++t) {
+    for (int t = 0; t < num_threads; ++t) 
+    {
         char fpath[64];
         sprintf(fpath, "drow_%d.bin", t); copy_file_into(Fdrow, fpath, 8<<20); remove(fpath);
         sprintf(fpath, "dcol_%d.bin", t); copy_file_into(Fdcol, fpath, 8<<20); remove(fpath);
@@ -442,25 +485,30 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     }
     fclose(Fdrow); fclose(Fdcol); fclose(Fdval);
 
-        // --- Preview: first 5 entries of dval.bin (after merge) ---
+    // --- Preview: first 5 entries of dval.bin (after merge) ---
     {
         FILE *fin = fopen("dval.bin", "rb");
-        if (fin) {
+        if (fin) 
+        {
             double buf[5];
             size_t got = fread(buf, sizeof(double), 5, fin);
             fclose(fin);
             int nshow = (got < 5) ? (int)got : 5;
             printf("First %d entries of dval.bin: ", nshow);
-            for (int i = 0; i < nshow; ++i) {
+            for (int i = 0; i < nshow; ++i) 
+            {
                 printf("%.10g%s", buf[i], (i == nshow - 1) ? "\n" : ", ");
             }
-        } else {
+        } 
+        else 
+        {
             fprintf(stderr, "Warning: could not reopen dval.bin for preview\n");
         }
     }
 
     // Merge dnnz (already contiguous per thread)
-    for (int t = 0; t < num_threads; ++t) {
+    for (int t = 0; t < num_threads; ++t) 
+    {
         char fpath[64];
         sprintf(fpath, "dnnz_%d.bin", t); copy_file_into(Fdnnz, fpath, 1<<20); remove(fpath);
     }
@@ -469,21 +517,39 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     // Reduce dsum_T.bin → dsum.bin (sum across threads)
     printf("Reducing row-wise sums into dsum.bin...\n");
     double *dsum = (double*)calloc((size_t)ne0, sizeof(double));
-    if (!dsum) { fprintf(stderr, "Failed to allocate dsum accumulator.\n"); exit(EXIT_FAILURE); }
+    if(!dsum) 
+    { 
+        fprintf(stderr, "Failed to allocate dsum accumulator.\n"); exit(EXIT_FAILURE); 
+    }
 
     double *tmpbuf = (double*)malloc((size_t)ne0 * sizeof(double));
-    if (!tmpbuf) { fprintf(stderr,"Failed to allocate tmpbuf.\n"); free(dsum); exit(EXIT_FAILURE); }
+    if(!tmpbuf) 
+    {
+        fprintf(stderr,"Failed to allocate tmpbuf.\n"); 
+        free(dsum); 
+        exit(EXIT_FAILURE); 
+    }
 
-    for (int t = 0; t < num_threads; ++t) {
+    for (int t = 0; t < num_threads; ++t) 
+    {
         char fpath[64];
         sprintf(fpath, "dsum_%d.bin", t);
         FILE *in = fopen(fpath, "rb");
-        if (!in) { fprintf(stderr,"Warning: missing %s; treating as zeros\n", fpath); continue; }
+
+        if (!in)
+        { 
+            fprintf(stderr,"Warning: missing %s; treating as zeros\n", fpath); 
+            continue; 
+        }
+
         size_t got = fread(tmpbuf, sizeof(double), (size_t)ne0, in);
-        if (got != (size_t)ne0) {
+        
+        if (got != (size_t)ne0) 
+        {
             fprintf(stderr,"Error: short read in %s (%zu of %d)\n", fpath, got, (int)ne0);
             fclose(in); free(tmpbuf); free(dsum); exit(EXIT_FAILURE);
         }
+
         fclose(in);
         remove(fpath);
         for (int r = 0; r < ne0; ++r) dsum[r] += tmpbuf[r];
@@ -492,18 +558,29 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
 
     // --- Preview: first 5 entries of dsum (after merge/reduction) ---
     {
-    int nshow = (ne0 < 5) ? ne0 : 5;
-    printf("First %d entries of dsum: ", nshow);
-    for (int i = 0; i < nshow; ++i) {
-        printf("%.10g%s", dsum[i], (i == nshow - 1) ? "\n" : ", ");
-    }
+        int nshow = (ne0 < 5) ? ne0 : 5;
+        printf("First %d entries of dsum: ", nshow);
+        for (int i = 0; i < nshow; ++i) 
+        {
+            printf("%.10g%s", dsum[i], (i == nshow - 1) ? "\n" : ", ");
+        }
     }
 
     FILE *Fdsum = fopen("dsum.bin","wb");
-    if (!Fdsum) { fprintf(stderr,"Failed to open dsum.bin for write.\n"); free(dsum); exit(EXIT_FAILURE); }
+    if (!Fdsum) 
+    { 
+        fprintf(stderr,"Failed to open dsum.bin for write.\n");
+        free(dsum);
+        exit(EXIT_FAILURE); 
+    }
+    
     fwrite(dsum, sizeof(double), (size_t)ne0, Fdsum);
     fclose(Fdsum);
     free(dsum);
+
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(timer_merge);
+    #endif
 
     // Cleanup
     SFREE(elCentroid);
