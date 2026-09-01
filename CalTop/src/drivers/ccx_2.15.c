@@ -23,6 +23,10 @@
 #include <spoolesMPI.h>
 #endif
 
+#ifdef PROFILING_ON
+#include <TAU.H>
+#endif
+
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -38,6 +42,12 @@ ITG myid = 0, nproc = 0;
 
 int main(int argc,char *argv[])
 {
+
+  // Initialize TAU profiling for the main process in OpenMP/Pthreads runs
+  #ifdef PROFILING_ON
+    TAU_PROFILE_INIT(argc, argv);
+    TAU_PROFILE_SET_NODE(0);
+  #endif
 
   FILE *f1;
 

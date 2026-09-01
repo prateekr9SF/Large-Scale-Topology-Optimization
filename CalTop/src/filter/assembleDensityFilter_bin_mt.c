@@ -162,9 +162,12 @@ static void copy_file_into(FILE *out, const char *path, size_t buf_bytes) {
 void *filter_thread_bin(void *args_ptr)
 {
     #ifdef PROFILING_ON
+
+        TAU_REGISTER_THREAD();
+
         // Define TAU timer for profiling at local thread-level
         TAU_PROFILE_TIMER(timer_filter_thread,
-                      "densityFilter_thread_work",
+                      "densityFilter_eval",
                       "",
                       TAU_USER);
         // Begin profiling
@@ -379,9 +382,10 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     NNEW(elCentroid, double, 3 * ne0);
  
     #ifdef PROFILING_ON
-        TAU_PROFILE_TIMER(timer_get_centroid, "centeroid_eval", "", TAU_USER);
+        TAU_PROFILE_TIMER(timer_get_centroid, "Centroid()", "", TAU_USER);
         TAU_PROFILE_START(timer_get_centroid);
     #endif
+
     mafillsmmain_filter(co, nk, *konp, *ipkonp, *lakonp, ne, ttime, &time, mortar, &ne0, elCentroid);
 
     #ifdef PROFILING_ON
@@ -399,12 +403,12 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
 
     printf("Number of elements per thread: %d\n", elems_per_thread);
     printf("Creating threads and streaming thread-local binary shards...\n");
-
+    
     #ifdef PROFILING_ON
-        TAU_PROFILE_TIMER(timer_parallel_filter,"densityFilter_parallel_region", "",TAU_USER);
+        TAU_PROFILE_TIMER(timer_parallel_filter,"Filter()", "",TAU_USER);
         TAU_PROFILE_START(timer_parallel_filter);
     #endif      
-
+    
     for (int t = 0; t < num_threads; ++t) 
     {
         int start = t * elems_per_thread;
@@ -434,6 +438,7 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     #ifdef PROFILING_ON
         TAU_PROFILE_STOP(timer_parallel_filter);
     #endif
+    
 
     free(isPassive); 
     // Move below progress bar region before printing
@@ -457,7 +462,7 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
     //printf("Merging filter triplet files from all threads...\n");
 
     #ifdef PROFILING_ON
-        TAU_PROFILE_TIMER(timer_merge,"densityFilter_merge","",TAU_USER);
+        TAU_PROFILE_TIMER(timer_merge,"Disk I/O","",TAU_USER);
         TAU_PROFILE_START(timer_merge);
     #endif
 
