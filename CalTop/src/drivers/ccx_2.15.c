@@ -24,7 +24,7 @@
 #endif
 
 #ifdef PROFILING_ON
-#include <TAU.H>
+#include <TAU.h>
 #endif
 
 #include <stdlib.h>
@@ -1801,9 +1801,11 @@ while(istat>=0)
     filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems,
                                   &ne, &fnnzassumed, &qfilter, filternnz);
     /* Enforce rhomin floor to prevent division by zero */
-    for(i=0; i<ne_; i++){
-        if(designFiltered[i] < rhomin) designFiltered[i] = rhomin;
+    for(i=0; i<ne_; i++)
+    {
+      if(designFiltered[i] < rhomin) designFiltered[i] = rhomin;
     }
+
     rhoPhys = designFiltered;
     printf("Density filtering complete!\n");
     fflush(stdout);
