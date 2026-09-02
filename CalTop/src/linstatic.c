@@ -405,8 +405,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			TAU_PROFILE_START(t_assembly_total);
 		#endif
 		
-		
-
   		mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
 	    ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
 	    nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
