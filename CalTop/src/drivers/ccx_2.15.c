@@ -52,6 +52,7 @@ int main(int argc,char *argv[])
   #ifdef PROFILING_ON
     TAU_PROFILE_TIMER(t_preProc_CalTop,"preprocess: CalTop","",TAU_USER);  // Preprocess timer
     TAU_PROFILE_TIMER(t_fileIO_CalTop,"fileIO: CalTop","",TAU_USER);       // File Output timer
+    TAU_PROFILE_TIMER(t_filter_CalTop,"filter: CalTop","",TAU_USER);       // File-kernel operations
   #endif
 
   FILE *f1;
@@ -387,10 +388,6 @@ int main(int argc,char *argv[])
   ITG *rowFilters=NULL; /**<row index */
   ITG *colFilters=NULL; /**<column matrix */
 
-
-
-
-
   #ifdef CALCULIX_MPI
   MPI_Init(&argc, &argv) ;
   MPI_Comm_rank(MPI_COMM_WORLD, &myid) ;
@@ -586,6 +583,10 @@ kode=0;
 
 NNEW(ipoinp,ITG,2*nentries);
 
+#ifdef PROFILING_ON
+  TAU_PROFILE_START(t_preProc_CalTop);
+#endif
+
 /* conservative estimate of the fields to be allocated */
 readinput(jobnamec,&inpc,&nline,&nset_,ipoinp,&inp,&ipoinpc,ithermal,&nuel_);
 
@@ -593,11 +594,6 @@ NNEW(set,char,81*nset_);
 NNEW(meminset,ITG,nset_);
 NNEW(rmeminset,ITG,nset_);
 NNEW(iuel,ITG,4*nuel_);
-
-#ifdef PROFILING_ON
-TAU_PROFILE_START(t_preProc_CalTop);
-#endif
-
 
 FORTRAN(allocation,(&nload_,&nforc_,&nboun_,&nk_,&ne_,&nmpc_,&nset_,&nalset_,
    &nmat_,&ntmat_,&npmat_,&norien_,&nam_,&nprint_,mi,&ntrans_,
@@ -1157,6 +1153,7 @@ while(istat>=0)
   #ifdef PROFILING_ON
     TAU_PROFILE_STOP(t_preProc_CalTop);
   #endif
+
   /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
   NNEW(stx,double,6*mi[0]*ne);
 
@@ -1198,8 +1195,6 @@ while(istat>=0)
 
       */
   }
-
-
 
   if((abs(nmethod)!=1)||(iperturb[0]<2))icascade=0;
 
@@ -1718,15 +1713,15 @@ while(istat>=0)
   /* Necesary for all analysis types */
   if(((istep == 1)||(ntrans>0)||(mpcend<0)||(nk!=nkold)||(nmpc!=nmpcold))&&(icascade==0)) 
   {
-    //  if(icascade==0) {
-
     /* decascading the MPC's */
     printf("Decascading the MPC's...");
 
     callfrommain=1;
+
     #ifdef PROFILING_ON
       TAU_PROFILE_START(t_preProc_CalTop);
     #endif
+
     cascade(ipompc,&coefmpc,&nodempc,&nmpc,
 	    &mpcfree,nodeboun,ndirboun,&nboun,ikmpc,
 	    ilmpc,ikboun,ilboun,&mpcend,
@@ -1736,6 +1731,7 @@ while(istat>=0)
     #ifdef PROFILING_ON
       TAU_PROFILE_STOP(t_preProc_CalTop);
     #endif
+
     printf("done \n");
   }
 
@@ -1770,6 +1766,7 @@ while(istat>=0)
       #ifdef PROFILING_ON
         TAU_PROFILE_START(t_preProc_CalTop);
       #endif
+
 	    mastruct(&nk,kon,ipkon,lakon,&ne,nodeboun,ndirboun,&nboun,ipompc,
 		   nodempc,&nmpc,nactdof,icol,jq,&mast1,&irow,&isolver,neq,
 		   ikmpc,ilmpc,ipointer,nzs,&nmethodl,ithermal,
@@ -1833,12 +1830,14 @@ while(istat>=0)
    * Otherwise use raw design densities directly.
    *--------------------------------------------------------------------*/
 
-  #ifdef PROFILING_ON
-    TAU_PROFILE_START(t_preProc_CalTop);
-  #endif
 
+  // Non-zero penalization specified, filter densities
   if(pSupplied != 0)
   {
+    #ifdef PROFILING_ON
+      TAU_PROFILE_START(t_filter_CalTop);
+    #endif
+
     NNEW(filternnzElems, ITG, ne_);
     NNEW(designFiltered, double, ne_);
     printf("Filtering element densities...");
@@ -1854,6 +1853,10 @@ while(istat>=0)
     rhoPhys = designFiltered;
     printf("Density filtering complete!\n");
     fflush(stdout);
+
+    #ifdef PROFILING_ON
+      TAU_PROFILE_STOP(t_filter_CalTop);
+    #endif
   }
   else
   {
@@ -1862,10 +1865,6 @@ while(istat>=0)
     /* design initialised to 1.0 in rho.c - use directly */
     rhoPhys = design;
   }
-
-  #ifdef PROFILING_ON
-    TAU_PROFILE_STOP(t_preProc_CalTop);
-  #endif
 
 	if(iperturb[0]<2)
   {
