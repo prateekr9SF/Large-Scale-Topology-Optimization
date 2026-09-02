@@ -2095,7 +2095,6 @@ while(istat>=0)
 
     if (pSupplied ==0)
     {
-
       printf("Allocating memory for element volume and mass...");
       fflush(stdout);
       NNEW(eleVol,double,ne_);
@@ -2108,7 +2107,7 @@ while(istat>=0)
       NNEW(elCompl,double,ne_);
       printf("done\n");
 
-    
+      
       sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
              ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2129,6 +2128,7 @@ while(istat>=0)
              jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
 
       
+
       /* Call this function to only compute mass in the case of un-penalized FEA */
       printf("Computing mass...");
       fflush(stdout);
@@ -2144,6 +2144,15 @@ while(istat>=0)
     /* adjoint sensitivity calculation */
     if(pSupplied!=0)
     {
+
+      #ifdef PROFILING_ON
+        // Timer for Compliance sensitivity evaluation
+          TAU_PROFILE_TIMER(t_compGrad_total,"Compliance Grad: Total","",TAU_USER);
+          TAU_PROFILE_TIMER(t_cgGrad_total,"CG Grad: Total","",TAU_USER);
+          TAU_PROFILE_TIMER(t_volGrad_total,"Vol Grad: Total","",TAU_USER);
+      #endif
+
+
       printf("\n========================================\n");
       printf("SENSITIVITY EVALUATION\n");
       printf("========================================\n");
@@ -2184,6 +2193,11 @@ while(istat>=0)
       /* Evaluate sensitivities */
       //printf("Evaluating compliance sensitivities...");
       fflush(stdout);
+
+      // Time compliance sensitivity eval
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_compGrad_total);
+      #endif
 	    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	      xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
         ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2203,6 +2217,9 @@ while(istat>=0)
 	      &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
         jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
 
+        #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_compGrad_total);
+        #endif
       //printf("Finished evaluating compliance sensitivities.\n");
       fflush(stdout);
 
@@ -2224,11 +2241,17 @@ while(istat>=0)
         dCGyFiltered = (double*)calloc(ne, sizeof(double));
         dCGzFiltered = (double*)calloc(ne, sizeof(double));
 
+        #ifdef PROFILING_ON
+          TAU_PROFILE_START(t_cgGrad_total);
+        #endif
+
         compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             dCGx, dCGy, dCGz, mat_dens, passiveIDs, numPassive);
       
-        
+        #ifdef PROFILING_ON
+          TAU_PROFILE_STOP(t_cgGrad_total);
+        #endif
 
         filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
         printf("done\n");
@@ -2323,7 +2346,16 @@ while(istat>=0)
 
       printf("Evaluate volume fraction sensitivities...");
       fflush(stdout);
+
+      // Time volume fraction senstitivity eval
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_volGrad_total);
+      #endif
       volumeSens(ne,eleVol,passiveIDs,numPassive,volFracSens);
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_volGrad_total);
+      #endif
 
       printf("Filter element volume gradient ");
       fflush(stdout);
@@ -2364,11 +2396,6 @@ while(istat>=0)
       printf("\n Compliance:               %.3f \n",compliance_sum);
       printf(" Mass:                       %.3f \n", M);
       printf(" Aggregated stress (P-norm): %.3f \n", Pnorm);
-      //printf("Total domain volume:         %.6f \n",initialVol_sum);
-      //printf("Current domain volume:       %.6f \n",designVol_sum);
-      //printf("Volume constraint violation:: %.6f \n",designVol_sum-volfrac*initialVol_sum);
-      //printf("Discreteness, mnd, percent:               %.6f \n",mnd);
-
     } // end adjoint calculation
 
     printf("\n Writing rhosPhys.dat...");

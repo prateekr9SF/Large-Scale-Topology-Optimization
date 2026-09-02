@@ -34,7 +34,10 @@
 #ifdef PARDISO
    #include "pardiso.h"
    char envMKL[32];
+#endif
 
+#ifdef PROFILING_ON
+	#include "TAU.h"
 #endif
 
 void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
@@ -396,6 +399,14 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 		printf("Assembling stiffness matrix entries...\n");
 		fflush(stdout);
+
+		#ifdef PROFILING_ON
+			TAU_PROFILE_TIMER(t_assembly_total,"Linear system: Assembly","",TAU_USER);
+			TAU_PROFILE_START(t_assembly_total);
+		#endif
+		
+		
+
   		mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
 	    ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
 	    nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
@@ -458,28 +469,11 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		{
 	  		double r = fext[k] - f[k];
       		b[k] = r;
-	 
-	  		//res_l2 += r * r;
   		}
 
-		//double *btemp;
-		//NNEW(btemp,double,*neq);
-
-
-  		//for(k=0;k<*neq;++k)
-  	//	{
-	 // 		double r = fext[k] - f[k];
-     // 		btemp[k] = r;
-	 
-	  		//res_l2 += r * r;
-  	//	}
-
-		//res_l2 = sqrt(res_l2);
-
-		//printf("L2-norm : %f \n", res_l2);
-
-		//printf("done!\n");
-		
+		#ifdef PROFILING_ON
+			TAU_PROFILE_STOP(t_assembly_total);
+		#endif
 
   		SFREE(fext);
   		SFREE(f);
@@ -610,11 +604,19 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         			NNEW(emeini,double,6*mi[0]**ne);
 					NNEW(enerini,double,mi[0]**ne);
 				}
-				if (*eval_PNORM==1){
+
+				if (*eval_PNORM==1)
+				{
 				printf("\n========================================\n");
 				printf("STRESS CALCULATION\n");
 				printf("========================================\n");
-				}	
+				}
+
+				#ifdef PROFILING_ON
+					TAU_PROFILE_TIMER(t_stressGrad_total,"Stress Grad: Total","",TAU_USER);
+					TAU_PROFILE_START(t_stressGrad_total);
+				#endif
+
 				// Pass displacements (b) to results, compute stress, rhs adjoint and explicit terms. 
     			results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    		elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
@@ -692,10 +694,13 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                        		coefmpc,labmpc,nmpc,mi,fmpc,&calc_fn,&calc_f));
 				*/
 				//FORTRAN(adjrhs_scatter_linstatic_nompc,(nk, neq, mi, nactdof,brhs,b_adj,nboun, nodeboun, ndirboun));
-				for (i = 0; i < *nk; ++i) {
-    				for (ITG idir = 1; idir <= 3; ++idir) {
+				for (i = 0; i < *nk; ++i) 
+				{
+    				for (ITG idir = 1; idir <= 3; ++idir) 
+					{
         				ITG idof = nactdof[idir + i*mt] - 1;
-        				if (idof >= 0) {
+        				if (idof >= 0) 
+						{
             				b_adj[idof] = brhs[idir + i*mt];
         				}
     				}
@@ -770,8 +775,9 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					dPnorm_drho[i] = PnormMult* djdrho_impl[i];
 				}
 
-				
-
+				#ifdef PROFILING_ON
+					TAU_PROFILE_STOP(t_stressGrad_total);
+				#endif
 
 				// All linear system calculations are complete, free terms
 				SFREE(lam);
