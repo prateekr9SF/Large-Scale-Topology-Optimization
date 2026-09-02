@@ -1957,12 +1957,20 @@ while(istat>=0)
 
     if (eval_PNORM == 1)
     {
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_filter_CalTop);
+      #endif
+
       printf("Filtering element stress (P-norm) gradient...");
       fflush(stdout);
 
       /* Allocate memory for P-norm stress sensitivities */  
       NNEW(dPnorm_drhoFiltered, double, ne_);
       filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_filter_CalTop);
+      #endif
       
       #ifdef PROFILING_ON
         TAU_PROFILE_START(t_fileIO_CalTop);
@@ -2200,9 +2208,8 @@ while(istat>=0)
     /* adjoint sensitivity calculation */
     if(pSupplied!=0)
     {
-
       #ifdef PROFILING_ON
-        // Timer for Compliance sensitivity evaluation
+        // Timer for sensitivity evaluation
           TAU_PROFILE_TIMER(t_compGrad_total,"Compliance Grad: Total","",TAU_USER);
           TAU_PROFILE_TIMER(t_cgGrad_total,"CG Grad: Total","",TAU_USER);
           TAU_PROFILE_TIMER(t_volGrad_total,"Vol Grad: Total","",TAU_USER);
@@ -2311,9 +2318,17 @@ while(istat>=0)
           TAU_PROFILE_STOP(t_cgGrad_total);
         #endif
 
+        #ifdef PROFILING_ON
+          TAU_PROFILE_START(t_filter_CalTop);
+        #endif
+
         filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
         printf("done\n");
         fflush(stdout);
+
+        #ifdef PROFILING_ON
+          TAU_PROFILE_STOP(t_filter_CalTop);
+        #endif
 
         /* NOTE: We do not call filterOutPassiveElems_sens() for CG* sens
           since compute_mass_cg_and_cg_sens() already filters out passive elements and sets
@@ -2378,6 +2393,10 @@ while(istat>=0)
       /*-------------------------------------COMPLIANCE SENSITIVITY FILTERING AND I/O----------------------------------*/
       double compliance_sum=0;
 
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_filter_CalTop);
+      #endif
+
       printf("Filter compliance gradient ");
       fflush(stdout);
       filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
@@ -2431,9 +2450,17 @@ while(istat>=0)
         TAU_PROFILE_STOP(t_volGrad_total);
       #endif
 
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_filter_CalTop);
+      #endif
+
       printf("Filter element volume gradient ");
       fflush(stdout);
       filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_filter_CalTop);
+      #endif
     
 
       /* NOTE: We do not call filterOutPassiveElems_sens() for volFracSens
@@ -2483,7 +2510,6 @@ while(istat>=0)
         
   
      /* print output */
-      
       printf("\n Compliance:               %.3f \n",compliance_sum);
       printf(" Mass:                       %.3f \n", M);
       printf(" Aggregated stress (P-norm): %.3f \n", Pnorm);
@@ -2504,12 +2530,21 @@ while(istat>=0)
 
     if (numPassive > 0)
     {
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_filter_CalTop);
+      #endif
+
       /* set the filtered element densities of passive elements to 1 */
       printf("Setting physical element densities for passive elements to 1 ...");
       fflush(stdout);
       filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
       printf("done! \n");
       fflush(stdout);
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_filter_CalTop);
+      #endif
     }
 
     #ifdef PROFILING_ON
