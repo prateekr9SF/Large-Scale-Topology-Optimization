@@ -23,6 +23,10 @@
 #include "CalculiX.h"
 #include "pardiso.h"
 
+#ifdef PROFILING_ON
+#include <TAU.h>
+#endif
+
 ITG *icolpardiso=NULL,*pointers=NULL,iparm[64];
 long long pt[64];
 double *aupardiso=NULL;
@@ -85,6 +89,11 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
 		ITG *jq, ITG *nzs3)
 	{
 
+		#ifdef PROFILING_ON
+        	TAU_PROFILE_TIMER(t_pardiso_factor,"PARDISO: Factorization","",TAU_USER);
+			TAU_PROFILE_START(t_pardiso_factor);
+    	#endif
+
   		char *env;
 		/*  char env1[32]; */
   		ITG i,j,k,l,maxfct=1,mnum=1,phase=12,nrhs=1,*perm=NULL,mtype,
@@ -94,14 +103,6 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
 
   		double *b=NULL,*x=NULL;
 
-  //		if(*symmetryflag==0)
-//		{
- //     		printf(" Factoring the system of equations using the symmetric pardiso solver\n");
-//  		}
-//		else
-//		{
- //     		printf(" Factoring the system of equations using the unsymmetric pardiso solver\n");
-//  		}
 
   		iparm[0]=0;
 		/* set MKL_NUM_THREADS to min(CCX_NPROC_EQUATION_SOLVER,OMP_NUM_THREADS)
@@ -402,6 +403,11 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
   		FORTRAN(pardiso,(pt,&maxfct,&mnum,&mtype,&phase,neq,aupardiso,
 			   pointers,icolpardiso,perm,&nrhs,iparm,&msglvl,
                    b,x,&error));
+
+		#ifdef PROFILING_ON
+        	TAU_PROFILE_STOP(t_pardiso_factor);
+    	#endif
+				   
   		return;
 	}
 /*
@@ -435,18 +441,14 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
 void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs)
 {
 
+	#ifdef PROFILING_ON
+        TAU_PROFILE_TIMER(t_pardiso_solve,"PARDISO: Solve","",TAU_USER);
+		TAU_PROFILE_START(t_pardiso_solve);
+    #endif
+
   ITG maxfct=1,mnum=1,phase=33,*perm=NULL,mtype,
     	msglvl=0,i,error=0;
   double *x=NULL;
-
-  //if(*symmetryflag==0)
- // {
- //   printf(" Solving the system of equations using the symmetric pardiso solver\n");
- // }
- // else
- // {
- //   printf(" Solving the system of equations using the unsymmetric pardiso solver\n");
- // }
 
   if(*symmetryflag==0)
   {
@@ -460,9 +462,6 @@ void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs)
   iparm[0]=0;
 
 	/* pardiso_factor has been called befor, MKL_NUM_THREADS=nthread_mkl is set*/
-
-  //printf(" number of threads =% d\n\n",nthread_mkl);
-
   NNEW(x,double,*nrhs**neq);
 
   FORTRAN(pardiso,(pt,&maxfct,&mnum,&mtype,&phase,neq,aupardiso,
@@ -471,6 +470,10 @@ void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs)
 
   for(i=0;i<*nrhs**neq;i++){b[i]=x[i];}
   SFREE(x);
+
+	#ifdef PROFILING_ON
+    	TAU_PROFILE_STOP(t_pardiso_solve);
+	#endif
 
   return;
 }
@@ -506,6 +509,15 @@ void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs)
 void pardiso_cleanup(ITG *neq,ITG *symmetryflag)
 {
 
+	#ifdef PROFILING_ON
+        TAU_PROFILE_TIMER(t_pardiso_cleanup,
+                          "PARDISO: Cleanup",
+                          "",
+                          TAU_USER);
+
+        TAU_PROFILE_START(t_pardiso_cleanup);
+    #endif
+
   ITG maxfct=1,mnum=1,phase=-1,*perm=NULL,nrhs=1,mtype,
       msglvl=0,error=0;
   double *b=NULL,*x=NULL;
@@ -526,6 +538,10 @@ void pardiso_cleanup(ITG *neq,ITG *symmetryflag)
   SFREE(icolpardiso);
   SFREE(aupardiso);
   SFREE(pointers);
+
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_pardiso_cleanup);
+    #endif
 
   return;
 }
@@ -588,14 +604,28 @@ void pardiso_main(double *ad, double *au, double *adb, double *aub,
 	ITG *jq, ITG *nzs3,ITG *nrhs)
 	{
 
-  		if(*neq==0) return;
+		#ifdef PROFILING_ON
+        	TAU_PROFILE_TIMER(t_pardiso_total,"PARDISO: Total","",TAU_USER);
+        	TAU_PROFILE_START(t_pardiso_total);
+    	#endif
 
+  		if(*neq==0)
+		{
+			#ifdef PROFILING_ON
+        		TAU_PROFILE_STOP(t_pardiso_total);
+    		#endif
+			return;
+		}
   		pardiso_factor(ad,au,adb,aub,sigma,icol,irow, 
 			neq,nzs,symmetryflag,inputformat,jq,nzs3);
 
   		pardiso_solve(b,neq,symmetryflag,nrhs);
 
   		pardiso_cleanup(neq,symmetryflag);
+
+		#ifdef PROFILING_ON
+        	TAU_PROFILE_STOP(t_pardiso_total);
+    	#endif
 
   		return;
 	}
