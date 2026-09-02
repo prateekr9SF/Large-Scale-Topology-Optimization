@@ -49,6 +49,11 @@ int main(int argc,char *argv[])
     TAU_PROFILE_SET_NODE(0);
   #endif
 
+  #ifdef PROFILING_ON
+    TAU_PROFILE_TIMER(t_preProc_CalTop,"preprocess: CalTop","",TAU_USER);  // Preprocess timer
+    TAU_PROFILE_TIMER(t_fileIO_CalTop,"fileIO: CalTop","",TAU_USER);       // File Output timer
+  #endif
+
   FILE *f1;
 
   char *sideload=NULL;    /**< load label for distributed loads. */
@@ -589,6 +594,11 @@ NNEW(meminset,ITG,nset_);
 NNEW(rmeminset,ITG,nset_);
 NNEW(iuel,ITG,4*nuel_);
 
+#ifdef PROFILING_ON
+TAU_PROFILE_START(t_preProc_CalTop);
+#endif
+
+
 FORTRAN(allocation,(&nload_,&nforc_,&nboun_,&nk_,&ne_,&nmpc_,&nset_,&nalset_,
    &nmat_,&ntmat_,&npmat_,&norien_,&nam_,&nprint_,mi,&ntrans_,
    set,meminset,rmeminset,&ncs_,&namtot_,&ncmat_,&memmpc_,&ne1d,
@@ -597,6 +607,9 @@ FORTRAN(allocation,(&nload_,&nforc_,&nboun_,&nk_,&ne_,&nmpc_,&nset_,&nalset_,
    &nkon_,&mcs,&mortar,&ifacecount,&nintpoint,infree,&nheading_,&nobject_,
    iuel,&iprestr,&nstam,&ndamp,&nef, &eval_CG, &eval_PNORM));
 
+#ifdef PROFILING_ON
+TAU_PROFILE_STOP(t_preProc_CalTop);
+#endif
 
 //printf("CG flag after allocation: %d\n", eval_CG);
 //printf("PNROM flag ater allocation %d\n", eval_PNORM);
@@ -1051,7 +1064,9 @@ while(istat>=0)
   /* reading the input file */
   if(istep==0)mortar=-1;
 
-  
+  #ifdef PROFILING_ON
+    TAU_PROFILE_START(t_preProc_CalTop);
+  #endif
   FORTRAN(calinput,(co,&nk,kon,ipkon,lakon,&nkon,&ne,
             nodeboun,ndirboun,xboun,&nboun,
 	    ipompc,nodempc,coefmpc,&nmpc,&nmpc_,nodeforc,ndirforc,xforc,&nforc,
@@ -1082,6 +1097,10 @@ while(istat>=0)
 	    &maxlenmpcref,&memmpc_,&isens,&namtot,&nstam,dacon,vel,&nef,
 	    velo,veloo));
 
+    #ifdef PROFILING_ON
+      TAU_PROFILE_STOP(t_preProc_CalTop);
+    #endif
+
     /* Define material density for gravity loads */
     double mat_dens;  // Material density
     mat_dens = rhcon[1];
@@ -1089,6 +1108,10 @@ while(istat>=0)
     /* Define a system-defined structure to get information about a file
        Returns 0 if file is found */
     struct stat buffer;
+
+    #ifdef PROFILING_ON
+      TAU_PROFILE_START(t_preProc_CalTop);
+    #endif
 
     if (stat("skinElementList.nam", &buffer) != 0) 
     {
@@ -1130,6 +1153,10 @@ while(istat>=0)
     filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
     printf("done\n");
   }
+
+  #ifdef PROFILING_ON
+    TAU_PROFILE_STOP(t_preProc_CalTop);
+  #endif
   /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
   NNEW(stx,double,6*mi[0]*ne);
 
@@ -1697,13 +1724,18 @@ while(istat>=0)
     printf("Decascading the MPC's...");
 
     callfrommain=1;
-
+    #ifdef PROFILING_ON
+      TAU_PROFILE_START(t_preProc_CalTop);
+    #endif
     cascade(ipompc,&coefmpc,&nodempc,&nmpc,
 	    &mpcfree,nodeboun,ndirboun,&nboun,ikmpc,
 	    ilmpc,ikboun,ilboun,&mpcend,
 	    labmpc,&nk,&memmpc_,&icascade,&maxlenmpc,
             &callfrommain,iperturb,ithermal);
-
+     
+    #ifdef PROFILING_ON
+      TAU_PROFILE_STOP(t_preProc_CalTop);
+    #endif
     printf("done \n");
   }
 
@@ -1734,11 +1766,19 @@ while(istat>=0)
       }
 
       printf("Analyzing matrix structure...done!\n");
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_preProc_CalTop);
+      #endif
 	    mastruct(&nk,kon,ipkon,lakon,&ne,nodeboun,ndirboun,&nboun,ipompc,
 		   nodempc,&nmpc,nactdof,icol,jq,&mast1,&irow,&isolver,neq,
 		   ikmpc,ilmpc,ipointer,nzs,&nmethodl,ithermal,
                    ikboun,ilboun,iperturb,mi,&mortar,typeboun,labmpc,
 		   &iit,&icascade,&network);
+
+       #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_preProc_CalTop);
+      #endif
     }
 
     else
@@ -1792,6 +1832,11 @@ while(istat>=0)
    * With a filter radius > 0 (pSupplied != 0), apply the density filter.
    * Otherwise use raw design densities directly.
    *--------------------------------------------------------------------*/
+
+  #ifdef PROFILING_ON
+    TAU_PROFILE_START(t_preProc_CalTop);
+  #endif
+
   if(pSupplied != 0)
   {
     NNEW(filternnzElems, ITG, ne_);
@@ -1817,6 +1862,10 @@ while(istat>=0)
     /* design initialised to 1.0 in rho.c - use directly */
     rhoPhys = design;
   }
+
+  #ifdef PROFILING_ON
+    TAU_PROFILE_STOP(t_preProc_CalTop);
+  #endif
 
 	if(iperturb[0]<2)
   {
@@ -1915,6 +1964,10 @@ while(istat>=0)
       /* Allocate memory for P-norm stress sensitivities */  
       NNEW(dPnorm_drhoFiltered, double, ne_);
       filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+      
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+      #endif
 
       int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
       if (rs != 0) 
@@ -1922,6 +1975,10 @@ while(istat>=0)
         printf("Unable to write P-norm sensitivities to disk!\n");
         fflush(stdout);
       }
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+      #endif
       
       SFREE(dPnorm_drhoFiltered);
       printf("done \n");
@@ -2198,6 +2255,7 @@ while(istat>=0)
       #ifdef PROFILING_ON
         TAU_PROFILE_START(t_compGrad_total);
       #endif
+
 	    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	      xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
         ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2220,6 +2278,7 @@ while(istat>=0)
         #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_compGrad_total);
         #endif
+
       //printf("Finished evaluating compliance sensitivities.\n");
       fflush(stdout);
 
@@ -2264,12 +2323,21 @@ while(istat>=0)
 
         printf("  Writing CG sensitivities to disk...");
         fflush(stdout);
+        
+        #ifdef PROFILING_ON
+          TAU_PROFILE_START(t_fileIO_CalTop);
+        #endif
+
         /* ... after you fill dCGx, dCGy, dCGz ... */
         int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
         if (rc != 0) 
         {
           printf("  Unable to write CG sensitivities to disk!\n");
         }
+
+        #ifdef PROFILING_ON
+          TAU_PROFILE_STOP(t_fileIO_CalTop);
+        #endif
 
         printf("done!\n");
         fflush(stdout);
@@ -2326,13 +2394,20 @@ while(istat>=0)
         printf("done\n");
         fflush(stdout);
       }
-
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+      #endif
+      
       FILE *gradC;
       printf("Writing compliance sensitivities...");
       fflush(stdout);
       write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
       fflush(stdout);
       printf("done!\n");
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+      #endif
 
       SFREE(gradCompl);
       SFREE(elCompl);
@@ -2365,12 +2440,20 @@ while(istat>=0)
       /* NOTE: We do not call filterOutPassiveElems_sens() for volFracSens
       since volumeSens() already filters out passive elements and sets
       theur sensitivity to zero */
+      
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+      #endif
 
-      printf("  Writing volume sensitivities...");
+      printf("Writing volume sensitivities...");
       fflush(stdout);
       write_volume_sensitivities(ne, eleVol, rhoPhys, volFracSensFiltered);
       printf("done!\n");
       fflush(stdout);
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+      #endif
 
       SFREE(volFracSens);
       SFREE(volFracSensFiltered);
@@ -2382,11 +2465,20 @@ while(istat>=0)
       printf("SENSITIVITY EVALUATION\n");
       printf("========================================\n");
       fflush(stdout);
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+      #endif
   
       printf("Writing objectives...");
       fflush(stdout);
       write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz, passiveIDs, numPassive, &Pnorm);
       printf("done!\n");
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+      #endif
+
       fflush(stdout);
       SFREE(eleVol);
         
@@ -2401,8 +2493,15 @@ while(istat>=0)
     printf("\n Writing rhosPhys.dat...");
     fflush(stdout);
 
+    #ifdef PROFILING_ON
+      TAU_PROFILE_START(t_fileIO_CalTop);
+    #endif
     FILE *rho_file;
     rho_file=fopen("rhosPhys.dat","w"); //open in write mode
+      
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+    #endif
 
     if (numPassive > 0)
     {
@@ -2414,13 +2513,19 @@ while(istat>=0)
       fflush(stdout);
     }
 
+    #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+    #endif
+
     /* loop over all elements and write physical element densities to file */
     for (int iii=0;iii<ne;iii++)
     {
       fprintf(rho_file,"%.15f  \n",rhoPhys[iii]);            
     }
 
-
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+    #endif
 
     /* NOTE: In the first iteration, the rhoPhys do not account for the skin.
              However, all sensitivities at the end of the first iteration 
@@ -2430,7 +2535,9 @@ while(istat>=0)
              Hence, second iteration onwards, the raw desnities remain as 1 since the densities are all zero.  */
 
     
-
+    #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+      #endif
     if (numPassive > 0)
     {
       /* write output fields for passive elements */
@@ -2450,6 +2557,10 @@ while(istat>=0)
       printf("done!\n\n");
       fflush(stdout);
     }
+
+    #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+    #endif
 
     /* ensure any buffered data is written to file */
     fflush(rho_file); 
