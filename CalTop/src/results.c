@@ -373,8 +373,9 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         /******************************P-NORM ADJOINT RHS CALCULATION***************************************/
         if (get_adjoint == 1)
         {
-            // STEP 2: ASSEMBLE RHS FOR P-NORM ADJOINT (TODO: ZHENG TO CORRECT)
-            printf("    Assembling RHS for stress adjoint using analytical solution");
+            // STEP 2: ASSEMBLE RHS FOR P-NORM ADJOINT
+            printf("Assembling RHS for stress adjoint using analytical solution...");
+            fflush(stdout);
 
             //Allocate per-thread RHS blocks and the reduced RHS
             NNEW(rhs1, double, num_cpus * mt * *nk);
@@ -408,6 +409,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             //Done with per-thread storage
 	        SFREE(rhs1);
             printf("done!\n");
+            fflush(stdout);
         }
 
         if (get_adjoint == 1)

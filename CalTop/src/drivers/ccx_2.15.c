@@ -1109,6 +1109,9 @@ while(istat>=0)
       TAU_PROFILE_START(t_preProc_CalTop);
     #endif
 
+    printf("\n========================================\n");
+    printf("PASSIVE DOMAIN DEFINITION \n");
+    printf("========================================\n");
     if (stat("skinElementList.nam", &buffer) != 0) 
     {
       printf("File 'skinElementList.nam' not found -> skin surface will not be defined \n");
@@ -1118,22 +1121,22 @@ while(istat>=0)
     {
       printf("File skinElementList.nam found -> Setting skin definition. \n");
       passiveIDs = passiveElements("skinElementList.nam", &numPassive);
-      printf("  Read %d passive elements.\n", numPassive);
+      printf("Read %d passive elements.\n", numPassive);
 
-      printf("  First five skin element IDs => \n");
+      printf("First five skin element IDs => \n");
       for (int i = 0; i < 5; i++) 
       {
-        printf("  Passive Element ID: %d\n", passiveIDs[i]);
+        printf("Passive Element ID: %d\n", passiveIDs[i]);
       }
 
       printf("  .\n");
       printf("  .\n");
       printf("  .\n");
 
-      printf("  Last five skin element IDs => \n");
+      printf("Last five skin element IDs => \n");
       for (int i = numPassive - 5; i < numPassive; i++) 
       {
-        printf("  Passive Element ID: %d\n", passiveIDs[i]);
+        printf("Passive Element ID: %d\n", passiveIDs[i]);
       }
 
     }
@@ -1947,7 +1950,7 @@ while(istat>=0)
 
     endl = time(NULL);
 
-	  printf("\nTime taken for linstatic() is %.8f seconds \n", difftime(endl, startl));
+	  printf("Time taken for linstatic() is %.8f seconds \n", difftime(endl, startl));
     fflush(stdout); 
       
     /* Note:  stress adjoint is calculated in linstatic()

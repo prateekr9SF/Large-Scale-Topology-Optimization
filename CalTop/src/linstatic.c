@@ -663,13 +663,12 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         				if (az > umax_z) { umax_z = az; node_umax_z = n + 1; }
     				}
 
-    				printf("\n========================================\n");
-    				printf("MAX |DISPLACEMENT| (nodal)\n");
-    				printf("========================================\n");
-    				printf("Max |Ux| = %.15e  at node %d\n", umax_x, (int)node_umax_x);
-    				printf("Max |Uy| = %.15e  at node %d\n", umax_y, (int)node_umax_y);
-    				printf("Max |Uz| = %.15e  at node %d\n", umax_z, (int)node_umax_z);
-    				printf("========================================\n\n");
+    				printf("\n");
+    				printf("MAX |DISPLACEMENT| (nodal) ==> \n");
+    				printf("Max |Ux| = %.6e  at node %d\n", umax_x, (int)node_umax_x);
+    				printf("Max |Uy| = %.6e  at node %d\n", umax_y, (int)node_umax_y);
+    				printf("Max |Uz| = %.6e  at node %d\n", umax_z, (int)node_umax_z);
+					printf("\n");
 				}
 
 				
@@ -707,9 +706,12 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			if (*eval_PNORM==1)
 			{	
       		#ifdef PARDISO
-			printf("PARSIDO: adjoint solve \n");
+				printf("PARDISO: Solving stress adjoint...");
+				fflush(stdout);
       			pardiso_main(ad,au,adb,aub,&sigma,b_adj,icol,irow,neq,nzs,
 		   			&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
+					printf("done\n");
+					fflush(stdout);
 			#endif
 			}
 				//printf(" SKIPPING PARSIDO: adjoint solve \n");

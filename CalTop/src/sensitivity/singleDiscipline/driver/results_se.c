@@ -155,7 +155,7 @@ void results_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
     NNEW(dfn,double,mt**nk);
 	    
     if(((*nmethod!=4)&&(*nmethod!=5))||(iperturb[0]>1)){
-	printf("\nUsing up to %" ITGFORMAT " cpu(s) for the sensitivity of the internal forces.\n\n", num_cpus);
+	printf("Using up to %" ITGFORMAT " cpu(s) for the sensitivity of the internal forces.\n\n", num_cpus);
     }
 
     /* nodal forces without perturbation */
