@@ -1737,7 +1737,6 @@ while(istat>=0)
 
     printf("done \n");
   }
-
   /* determining the matrix structure: changes if SPC's have changed */
 
   if((icascade==0)&&(nmethod<8))
@@ -2625,8 +2624,6 @@ while(istat>=0)
     /* all operations done, close file */
     fclose(rho_file);
 
-    printf("done!\n");
-
 
     SFREE(nactdof);
     SFREE(icol);
@@ -2792,13 +2789,15 @@ while(istat>=0)
   }
   if(istep == 1)
   {
-    printf("Linear analysis complete!\n");
+    //printf("Linear analysis complete!\n");
+    
     break;
   }
 
  } // end while(istat>=0)
 
-  printf("De-allocate memory...");
+  printf("Free memory...");
+  fflush(stdout);
 
   FORTRAN(closefile,());
 
@@ -3012,5 +3011,6 @@ while(istat>=0)
   calculix_freeExternalBehaviours();
   #endif /* CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT */
   printf("done! \n");
+  fflush(stdout);
   return 0;
 }

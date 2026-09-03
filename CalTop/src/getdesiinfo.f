@@ -136,13 +136,19 @@
       open(40,file='WarnNodeDesignReject.nam',status='unknown')
       write(40,*) '*NSET,NSET=WarnNodeDesignReject'
       write(*,*) '*INFO in getdesiinfo:'
+      flush(6)
       write(*,*) '      rejected design nodes (if any) are stored in'
+      flush(6)
       write(*,*) '      file WarnNodeDesignReject.nam'
+      flush(6)
       write(*,*) '      This file can be loaded into'
+      flush(6)
       write(*,*) '      an active cgx-session by typing'
+      flush(6)
       write(*,*)
      &     '      read WarnNodeDesignReject.nam inp'
       write(*,*)
+      flush(6)
 !
 !     Search the name of the node set in "set(i)" and
 !     assign the nodes of the set to the appropriate variables
