@@ -1595,31 +1595,41 @@ c
 !
       write(*,*)
       write(*,*) 'STEP ',istep
+      flush(6)
       write(*,*)
       if(nmethod.eq.-1) then
          write(*,*) 'Visco analysis was selected'
+         flush(6)
       elseif(nmethod.eq.0) then
          write(*,*) 'No analysis was selected'
+         flush(6)
       elseif(nmethod.eq.1) then
          write(*,*) 'Static analysis was selected'
+         flush(6)
       elseif(nmethod.eq.2) then
          write(*,*) 'Frequency analysis was selected'
+         flush(6)
       elseif(nmethod.eq.3) then
          write(*,*) 'Buckling analysis was selected'
+         flush(6)
       elseif(nmethod.eq.4) then
          write(*,*) 'Dynamic analysis was selected'
+         flush(6)
       endif
       write(*,*)
       if(iperturb(1).eq.1) then
          write(*,*) 'Perturbation parameter is active'
+         flush(6)
          write(*,*)
       elseif(iperturb(1).eq.3) then
          write(*,*) 'Nonlinear material laws are taken into account'
+         flush(6)
          write(*,*)
       endif
 !
       if(iperturb(1).ge.2) then
          write(*,*) 'Newton-Raphson iterative procedure is active'
+         flush(6)
          write(*,*)
       endif
 !

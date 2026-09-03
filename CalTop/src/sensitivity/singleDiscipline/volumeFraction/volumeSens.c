@@ -44,7 +44,7 @@
 
     int nthreads = omp_get_max_threads();
 
-    printf("Using %d CPU(s) for volume fraction sensitivity calculation", nthreads);
+    printf("\nUsing %d thread(s) for volume fraction sensitivity calculation\n", nthreads);
     fflush(stdout);
 
     /* Evaluate full solid volume (note: should exclude passive volume if applicable) */

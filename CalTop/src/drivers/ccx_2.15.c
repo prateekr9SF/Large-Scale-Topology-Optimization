@@ -2476,7 +2476,7 @@ while(istat>=0)
         TAU_PROFILE_START(t_filter_CalTop);
       #endif
 
-      printf("Filter element volume gradient ");
+      printf("Filter volume fraction gradient ");
       fflush(stdout);
       filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
 
@@ -2493,7 +2493,7 @@ while(istat>=0)
         TAU_PROFILE_START(t_fileIO_CalTop);
       #endif
 
-      printf("Writing volume sensitivities...");
+      printf("\nWriting volume sensitivities...");
       fflush(stdout);
       write_volume_sensitivities(ne, eleVol, rhoPhys, volFracSensFiltered);
       printf("done!\n");
@@ -2510,7 +2510,7 @@ while(istat>=0)
       
       
       printf("\n========================================\n");
-      printf("SENSITIVITY EVALUATION\n");
+      printf("OUTPUT\n");
       printf("========================================\n");
       fflush(stdout);
 
@@ -2530,14 +2530,13 @@ while(istat>=0)
       fflush(stdout);
       SFREE(eleVol);
         
-  
-     /* print output */
-      printf("\n Compliance:               %.3f \n",compliance_sum);
-      printf(" Mass:                       %.3f \n", M);
-      printf(" Aggregated stress (P-norm): %.3f \n", Pnorm);
+      /* Print output */
+      printf("\nCompliance (J):              %12.3f\n", compliance_sum);
+      printf("Total mass (kg):             %12.3f\n", M);
+      printf("Aggregated stress (P-norm): %12.3f\n", Pnorm);
     } // end adjoint calculation
 
-    printf("\n Writing rhosPhys.dat...");
+    printf("\nWriting rhosPhys.dat...");
     fflush(stdout);
 
     #ifdef PROFILING_ON
@@ -2558,7 +2557,7 @@ while(istat>=0)
       #endif
 
       /* set the filtered element densities of passive elements to 1 */
-      printf("Setting physical element densities for passive elements to 1 ...");
+      printf("\nSetting physical element densities for passive elements to 1 ...");
       fflush(stdout);
       filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
       printf("done! \n");
@@ -2578,6 +2577,8 @@ while(istat>=0)
     {
       fprintf(rho_file,"%.15f  \n",rhoPhys[iii]);            
     }
+    printf("Finished writing physical element densities to disk \n");
+    fflush(stdout);
 
     #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_fileIO_CalTop);
