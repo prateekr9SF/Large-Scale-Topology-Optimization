@@ -1,0 +1,30 @@
+  #ifdef PROFILING_ON
+    TAU_PROFILE_TIMER(t_preProc_CalTop,"preprocess: CalTop","",TAU_USER);  // Preprocess timer
+      -readInput()
+      -allocate()
+      -calinput()
+      -passiveElements()
+      -filteroutPassiveElems_density()
+      -cascade()
+      -mastruct()
+
+    TAU_PROFILE_TIMER(t_fileIO_CalTop,"fileIO: CalTop","",TAU_USER);       // File Output timer
+     - write_Stress_sens()
+     - write_cg_sens()
+     - write_compliance_sensitivities()
+     - write_volume_sensitivities()
+     - write_objectives()
+     - write_rhosPhys()
+     - tecplot_vtu_passive()
+     - teclot_vtu_active()
+     - tecplot_vtu()
+    
+
+    TAU_PROFILE_TIMER(t_filter_CalTop,"filter: CalTop","",TAU_USER);
+      -filterDensity_buffered_bin_mt()
+      -filterSensitivity_bin_buffered_mts3()  // stress
+      -filterSensitivity_bin_buffered_mts3() // CG
+      -filterSensitivity_bin_buffered_mts3() // compliance
+      -filterSensitivity_bin_buffered_mts() // Volume fraction
+      -filterOutPassiveElems_density() // passive elements
+  #endif
