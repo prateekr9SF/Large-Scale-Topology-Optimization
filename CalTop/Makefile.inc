@@ -1053,7 +1053,7 @@ $(SRC_DIR)/v_betrag.c \
 $(SRC_DIR)/v_prod.c \
 $(SRC_DIR)/v_result.c \
 $(SRC_DIR)/writeheading.c \
-$(SRC_DIR)/output/volumeSens.c \
+$(SRC_DIR)/sensitivity/singleDiscipline/volumeFraction/volumeSens.c \
 $(SRC_DIR)/output/tecplot_vtu.c \
 $(SRC_DIR)/output/write_complianceSens.c \
 $(SRC_DIR)/output/write_volumeSens.c \

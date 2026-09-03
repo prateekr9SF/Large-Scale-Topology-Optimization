@@ -2453,7 +2453,10 @@ while(istat>=0)
       /*---------------------------------------------------------------------------------------------------------------*/
 
       /*-------------------------------------VOLUME SENSITIVITY FILTERING AND I/O----------------------------------*/
-
+      printf("\n========================================\n");
+      printf("SENSITIVITY EVALUATION (VOLUME FRACTION)\n");
+      printf("========================================\n");
+      
       FILE *elV_file;
 
       printf("Evaluate volume fraction sensitivities...");
