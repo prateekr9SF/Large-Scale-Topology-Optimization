@@ -1964,7 +1964,7 @@ while(istat>=0)
         TAU_PROFILE_START(t_filter_CalTop);
       #endif
 
-      printf("Filtering element stress (P-norm) gradient...");
+      printf("Filtering element stress (P-norm) gradient ");
       fflush(stdout);
 
       /* Allocate memory for P-norm stress sensitivities */  
@@ -2220,7 +2220,7 @@ while(istat>=0)
 
 
       printf("\n========================================\n");
-      printf("SENSITIVITY EVALUATION\n");
+      printf("SENSITIVITY EVALUATION (COMPLIANCE)\n");
       printf("========================================\n");
       
       printf("Allocating memory for sensitivities...");
@@ -2291,13 +2291,70 @@ while(istat>=0)
       //printf("Finished evaluating compliance sensitivities.\n");
       fflush(stdout);
 
+      // Insert compliance filtering here ->
+      double compliance_sum=0;
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_filter_CalTop);
+      #endif
+
+      printf("Filter compliance gradient ");
+      fflush(stdout);
+      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+      printf("done! \n");
+      fflush(stdout);
+      
+      if (numPassive > 0)
+      {
+        /* set the filtered compliance sens of passive elements to 0 */
+        printf("Setting compliance sensitivities for skin elements to 0 ...");
+        fflush(stdout);
+        filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
+        printf("done\n");
+        fflush(stdout);
+      }
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_filter_CalTop);
+      #endif
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+      #endif
+      
+      FILE *gradC;
+      printf("Writing compliance sensitivities...");
+      fflush(stdout);
+
+      write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
+      fflush(stdout);
+
+      printf("done!\n");
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+      #endif
+
+      SFREE(gradCompl);
+      SFREE(elCompl);
+      SFREE(gradComplFiltered);
+
+        // Finish all compliance related ops
+
+  
+      
+      /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/    
+      
       /* Define variables for mass and center of gravity */
       double M, cgx, cgy, cgz;
-      
-      /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/      
+
       if (eval_CG == 1)
       {
-        printf("Evaluate and filter CG sensitivities...");
+        printf("\n========================================\n");
+        printf("SENSITIVITY EVALUATION (CG)\n");
+        printf("========================================\n");
+
+        printf("Evaluate and filter CG sensitivities...\n\n");
         fflush(stdout);
         /* Allocate memory for CG sensitivities */
         dCGx = (double*)calloc(ne, sizeof(double));
@@ -2325,8 +2382,9 @@ while(istat>=0)
           TAU_PROFILE_START(t_filter_CalTop);
         #endif
 
+        printf("\nFilter CG gradient");
         filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
-        printf("done\n");
+        
         fflush(stdout);
 
         #ifdef PROFILING_ON
@@ -2336,9 +2394,8 @@ while(istat>=0)
         /* NOTE: We do not call filterOutPassiveElems_sens() for CG* sens
           since compute_mass_cg_and_cg_sens() already filters out passive elements and sets
           the sensitivity to zero */
-    
 
-        printf("  Writing CG sensitivities to disk...");
+        printf("\nWriting CG sensitivities to disk...");
         fflush(stdout);
         
         #ifdef PROFILING_ON
@@ -2391,48 +2448,7 @@ while(istat>=0)
 
 
       /*---------------------------------------------------------------------------------------------------------------*/
-
-
-      /*-------------------------------------COMPLIANCE SENSITIVITY FILTERING AND I/O----------------------------------*/
-      double compliance_sum=0;
-
-      #ifdef PROFILING_ON
-        TAU_PROFILE_START(t_filter_CalTop);
-      #endif
-
-      printf("Filter compliance gradient ");
-      fflush(stdout);
-      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
-      printf("done! \n");
-      fflush(stdout);
       
-      if (numPassive > 0)
-      {
-        /* set the filtered compliance sens of passive elements to 0 */
-        printf("Setting compliance sensitivities for skin elements to 0 ...");
-        fflush(stdout);
-        filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
-        printf("done\n");
-        fflush(stdout);
-      }
-      #ifdef PROFILING_ON
-        TAU_PROFILE_START(t_fileIO_CalTop);
-      #endif
-      
-      FILE *gradC;
-      printf("Writing compliance sensitivities...");
-      fflush(stdout);
-      write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
-      fflush(stdout);
-      printf("done!\n");
-
-      #ifdef PROFILING_ON
-        TAU_PROFILE_STOP(t_fileIO_CalTop);
-      #endif
-
-      SFREE(gradCompl);
-      SFREE(elCompl);
-      SFREE(gradComplFiltered);
       
       /*---------------------------------------------------------------------------------------------------------------*/
 

@@ -177,9 +177,9 @@ void compute_mass_cg_and_cg_sens(
     *cgy = CGy; 
     *cgz = CGz;
 
-    printf("Total mass:           %.6f kg\n", mass);
-    printf("Passive element mass: %.6f kg\n", passiveMass);
-    printf("Active element mass:  %.6f kg\n", mass - passiveMass);
+    printf("Total mass:           %12.3f kg\n", mass);
+    printf("Passive element mass: %12.3f kg\n", passiveMass);
+    printf("Active element mass:  %12.3f kg\n", mass - passiveMass);
     fflush(stdout);
 
 
@@ -328,9 +328,10 @@ void compute_mass(
       }
     }
 
-    printf("Total mass:           %.6f kg\n", mass);
-    printf("Passive element mass: %.6f kg\n", passiveMass);
-    printf("Active element mass:  %.6f kg\n", mass - passiveMass);
+    printf("Total mass:           %12.3f kg\n", mass);
+    printf("Passive element mass: %12.3f kg\n", passiveMass);
+    printf("Active element mass:  %12.3f kg\n", mass - passiveMass);
     fflush(stdout);
+    
     free(is_skin);
 }
