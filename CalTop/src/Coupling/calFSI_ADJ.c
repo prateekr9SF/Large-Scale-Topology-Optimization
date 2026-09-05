@@ -554,11 +554,11 @@ FORTRAN(uexternaldb,(&lop,&lrestart,time,&dtime,&kstep,&kinc));
 
 printf("\n");
 
-printf("  #####      ##      ##         #######    #####    ####### \n");
-printf(" ##         ####     ##         ##        ##          ##    \n");
-printf(" ##        ##  ##    ##         ######     #####      ##    \n");
-printf(" ##        ######    ##         ##             ##     ##    \n");
-printf("  #####    ##  ##    #######    ##         #####    ####### \n");
+printf("  #####      ##      ##          #######   #####    #######       ##      ######  \n");
+printf(" ##         ####     ##          ##       ##           ##        ####     ##   ## \n");
+printf(" ##        ##  ##    ##          #####     #####       ##       ##  ##    ##   ## \n");
+printf(" ##        ######    ##          ##            ##      ##       ######    ##   ## \n");
+printf("  #####    ##  ##    #######     ##        #####    #######     ##  ##    ######  \n");
 
 printf("\n");
 
@@ -593,6 +593,115 @@ kode=0;
 #endif
 
 NNEW(ipoinp,ITG,2*nentries);
+
+
+/* Read deformed SU2 mesh */
+char su2file[512];
+char ** marker_list;
+int marker_count = 0;
+int found_surface = 0;
+int found_fixed = 0;
+
+/* Fine su2 mesh in CWD */
+find_AD_su2_file(su2file);
+
+printf("Found SU2 mesh:\n");
+printf("%s\n\n", su2file);
+
+/* get all availbale markers  in the .su2 file */
+marker_list = get_su2_markers(su2file, &marker_count);
+
+/* loop over all markers and call specific nam file generators */
+for (int i = 0; i < marker_count; i++)
+{
+  if (strcmp(marker_list[i], "surface") == 0)
+  {
+    found_surface = 1;
+    /* Extract .nam for traction nodes */
+    extract_marker(su2file,"surface","NSurface.nam");
+
+    /* Write skin element list for surface elements */
+    extract_skin_elements(su2file, "surface", "skinElementList.nam");
+  }
+
+  else if (strcmp(marker_list[i], "fixed") == 0)
+  {
+    found_fixed = 1;
+    extract_marker(su2file,"fixed","Nfix1.nam");
+  }
+
+  else if (strcmp(marker_list[i], "tank") == 0)
+  {
+    /* Write skin element list for tank elements */
+    extract_skin_elements(su2file, "tank", "tankElementList.nam");
+  }
+}
+
+/* if marker surface is not found, exit */
+if (!found_surface)
+{
+  fprintf(stderr, "\nERROR: Required SU2 marker 'surface' was not found.\n"
+            "       A marker named 'surface' is required to define\n"
+            "       the traction boundary.\n\n"
+          );
+
+  for (int i = 0; i < marker_count; i++)
+  {
+    free(marker_list[i]);
+  }
+
+  free(marker_list);
+  FORTRAN(stop,());
+}
+
+/* if marker fixed is not found, exit */
+if (!found_fixed)
+{
+  fprintf(stderr,
+          "\nERROR: Required SU2 marker 'fixed' was not found.\n"
+          "       A marker named 'fixed' is required to define\n"
+          "       the constrained boundary.\n\n"
+        );
+
+  for (int i = 0; i < marker_count; i++)
+  {
+    free(marker_list[i]);
+  }
+  free(marker_list);
+  FORTRAN(stop,());
+}
+
+/* Free marker list */
+for (int i = 0; i < marker_count; i++)
+{
+  free(marker_list[i]);
+}
+  free(marker_list);
+
+/* get mesh.nam */
+convert_volume_mesh(su2file);
+printf("\nExtracted CalTop/CalculiX mesh from SU2 mesh file\n\n");
+
+/* Move all mesh files to Solid*/
+if (rename("mesh.nam", "Solid/mesh.nam") != 0)
+{
+  perror("ERROR: Could not move mesh.nam to Solid/");
+  FORTRAN(stop,());
+}
+
+if (rename("Nfix1.nam", "Solid/Nfix1.nam") != 0)
+{
+  perror("ERROR: Could not move Nfix1.nam to Solid/");
+  FORTRAN(stop,());
+}
+
+if (rename("NSurface.nam", "Solid/NSurface.nam") != 0)
+{
+  perror("ERROR: Could not move Nfix1.nam to Solid/");
+  FORTRAN(stop,());
+}
+
+
 
 /* conservative estimate of the fields to be allocated */
 readinput(jobnamec,&inpc,&nline,&nset_,ipoinp,&inp,&ipoinpc,ithermal,&nuel_);
@@ -1099,6 +1208,9 @@ while(istat>=0)
        Returns 0 if file is found */
     struct stat buffer;
 
+    printf("\n========================================\n");
+    printf("PASSIVE DOMAIN DEFINITION \n");
+    printf("========================================\n");
     if (stat("skinElementList.nam", &buffer) != 0) 
     {
       printf("File 'skinElementList.nam' not found -> skin surface will not be defined \n");
@@ -1108,22 +1220,22 @@ while(istat>=0)
     {
       printf("File skinElementList.nam found -> Setting skin definition. \n");
       passiveIDs = passiveElements("skinElementList.nam", &numPassive);
-      printf("  Read %d passive elements.\n", numPassive);
+      printf("Read %d passive elements.\n", numPassive);
 
-      printf("  First five skin element IDs => \n");
+      printf("First five skin element IDs => \n");
       for (int i = 0; i < 5; i++) 
       {
-        printf("  Passive Element ID: %d\n", passiveIDs[i]);
+        printf("Passive Element ID: %d\n", passiveIDs[i]);
       }
 
       printf("  .\n");
       printf("  .\n");
       printf("  .\n");
 
-      printf("  Last five skin element IDs => \n");
+      printf("Last five skin element IDs => \n");
       for (int i = numPassive - 5; i < numPassive; i++) 
       {
-        printf("  Passive Element ID: %d\n", passiveIDs[i]);
+        printf("Passive Element ID: %d\n", passiveIDs[i]);
       }
 
     }
@@ -1138,6 +1250,7 @@ while(istat>=0)
     /* Set the element density of passive elements to 1 */
     filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
     printf("done\n");
+    fflush(stdout);
   }
   /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
   NNEW(stx,double,6*mi[0]*ne);
@@ -1684,11 +1797,13 @@ while(istat>=0)
   if(mpcfreeref==-1)
   {
     printf("Storing uncascaded MPCs...");
+    fflush(stdout);
     memmpcref_=memmpc_;mpcfreeref=mpcfree;maxlenmpcref=maxlenmpc;
     NNEW(nodempcref,ITG,3*memmpc_);memcpy(nodempcref,nodempc,sizeof(ITG)*3*memmpc_);
     NNEW(coefmpcref,double,memmpc_);memcpy(coefmpcref,coefmpc,sizeof(double)*memmpc_);
     NNEW(ikmpcref,ITG,nmpc);memcpy(ikmpcref,ikmpc,sizeof(ITG)*nmpc);
     printf("done! \n");
+    fflush(stdout);
   }
 
   /* decascading MPC's only necessary if MPC's changed */
@@ -1699,6 +1814,7 @@ while(istat>=0)
 
     /* decascading the MPC's */
     printf("Decascading the MPC's...");
+    fflush(stdout);
 
     callfrommain=1;
 
@@ -1709,6 +1825,7 @@ while(istat>=0)
             &callfrommain,iperturb,ithermal);
 
     printf("done \n");
+    fflush(stdout);
   }
 
   /* determining the matrix structure: changes if SPC's have changed */
@@ -1738,6 +1855,7 @@ while(istat>=0)
       }
 
       printf("Analyzing matrix structure...done!\n");
+      fflush(stdout);
 	    mastruct(&nk,kon,ipkon,lakon,&ne,nodeboun,ndirboun,&nboun,ipompc,
 		   nodempc,&nmpc,nactdof,icol,jq,&mast1,&irow,&isolver,neq,
 		   ikmpc,ilmpc,ipointer,nzs,&nmethodl,ithermal,
@@ -1788,6 +1906,7 @@ while(istat>=0)
   // Set preciceUSed to 1
   preciceUsed = 1;
   int staticMDO = 0;
+
   if (preciceUsed)
   {
     int isStaticOrDynamic = (nmethod == 1) || (nmethod == 4);
@@ -1812,53 +1931,45 @@ while(istat>=0)
 
   NNEW(dPnorm_drho, double, ne);
 
-  printf("\nTOPOLOGY OPTIMIZATION PARAMTERS----------------------------|\n");
-  printf("MDO \n");
-  if (staticMDO)
-  {
-    printf("  Static aeroelasticity            YES\n");
-  }
-  else{
-    printf("  Static aeroelasticity           NO\n");
-  }
-  printf("SIMP \n");
-  printf("  Penalty parameter                 %.2f\n", pstiff);
+  printf("\n|---------------- TOPOLOGY OPTIMIZATION PARAMETERS ----------------|\n");
+
+  /* SIMP */
+  printf("| %-62s |\n", "SIMP");
+  printf("| %-40s %18.2f |\n", "Penalty parameter", pstiff);
+  printf("|--------------------------------------------------------------------|\n");
+
+  /* FILTER MATRIX */
+  printf("| %-62s |\n", "FILTER MATRIX");
+  printf("| %-40s %18.2f |\n", "Density filter radius", rmin);
+  printf("| %-40s %18d |\n",  "Nonzeros in filter matrix", fnnzassumed);
+  printf("|--------------------------------------------------------------------|\n");
+
+  /* SKIN DEFINITION */
+  printf("| %-62s |\n", "SKIN DEFINITION");
+  printf("| %-40s %18d |\n", "Number of skin elements", numPassive);
+  printf("|--------------------------------------------------------------------|\n");
+
+  /* STRESS AGGREGATION */
+  printf("| %-62s |\n", "STRESS AGGREGATION");
+  printf("| %-40s %18.2f |\n", "P-norm exponent", pexp);
+  printf("| %-40s %18.2f |\n", "Stress relaxation", eps_relax);
+  printf("| %-40s %18.2f |\n", "Stress threshold", sigma0);
+  printf("|--------------------------------------------------------------------|\n");
+
+  /* SENSITIVITY FLAGS */
+  printf("| %-62s |\n", "SENSITIVITY FLAGS");
+  printf("| %-40s %18s |\n", "Compliance", "YES");
+  printf("| %-40s %18s |\n", "Volume fraction", "YES");
+  printf("| %-40s %18s |\n", "Center of mass", eval_CG ? "YES" : "NO");
+  printf("| %-40s %18s |\n", "PNORM", eval_PNORM ? "YES" : "NO");
+  printf("|--------------------------------------------------------------------|\n");
+
+  /* MATERIAL */
+  printf("| %-62s |\n", "MATERIAL PROPERTY");
+  printf("| %-40s %18.1f |\n", "Material density", mat_dens);
+  printf("|--------------------------------------------------------------------|\n");
+
   printf("\n");
-  printf("FILTER MATRIX \n");
-  printf("  Density filter radius             %.2f\n", rmin);
-  printf("  Non zeros in Filtermatrix         %d\n", fnnzassumed);
-  printf("\n");
-  printf("SKIN DEFINITION \n");
-  printf("  Number of skin elements           %d\n", numPassive);
-  printf("\n");
-  printf("STRESS AGGREGATION \n");
-  printf("  P-norm exponent                   %.2f\n", pexp);
-  printf("  Stress relaxation                 %.2f\n", eps_relax);
-  printf("  Stress threshold                  %.2f\n", sigma0);
-  printf("\n");
-  printf("SENSITIVITY FLAGS \n");
-  printf("  Compliance:                       YES\n");
-  printf("  Volume fraction:                  YES\n");
-  if (eval_CG == 1)
-  {
-    printf("  Center of mass                    YES\n");
-  }
-  else{
-    printf("  Center of mass                    NO\n");
-  }
-  if (eval_PNORM == 1)
-  {
-    printf("  PNORM                             YES\n");
-  }
-  else
-  {
-    printf("  PNORM                             NO\n");
-  }
-  printf("MATERIAL PROPERTY \n");
-  printf("  Material density                  %.1f\n", mat_dens);
-      
-  printf("|------------------------------------------------------------|\n");
-     
   fflush(stdout);
 
   printf("\n");
@@ -1866,6 +1977,7 @@ while(istat>=0)
   {
     printf("Penalization parameter found --> will evaluate senitivities\n");  
     printf("Building filter matrix\n");
+    fflush(stdout);
     
     NNEW(filternnzElems,ITG,ne_);
     NNEW(designFiltered,double,ne_);
@@ -1875,7 +1987,8 @@ while(istat>=0)
     /* apply the filter matrix on rho to get rhoPhys */ 
     printf("Filtering element densities...\n");
     filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
-    printf("Done!");
+    printf("done!");
+    fflush(stdout);;
 
     /* Set physical element densities to */
     rhoPhys=designFiltered;
@@ -1912,25 +2025,27 @@ while(istat>=0)
       time_t startl, endl; 
 	    startl = time(NULL);
 
-      printf("\n\nSOLVING LINEAR SYSTEM----------------------------------------|\n\n");
+      printf("\n========================================\n");
+      printf("LINEAR ELASTIC SOLUTION \n");
+      printf("========================================\n");
   
-	    linstatic_MDO(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
-	     ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,ndirforc,xforc,
-             &nforc, nelemload,sideload,xload,&nload,
-	     nactdof,&icol,jq,&irow,neq,&nzl,&nmethod,ikmpc,
-	     ilmpc,ikboun,ilboun,elcon,nelcon,rhcon,nrhcon,
-	     alcon,nalcon,alzero,&ielmat,&ielorien,&norien,orab,&ntmat_,
-             t0,t1,t1old,ithermal,prestr,&iprestr, vold,iperturb,sti,nzs,
-	     &kode,filab,eme,&iexpl,plicon,
-             nplicon,plkcon,nplkcon,&xstate,&npmat_,matname,
-	     &isolver,mi,&ncmat_,&nstate_,cs,&mcs,&nkon,&ener,
-             xbounold,xforcold,xloadold,amname,amta,namta,
-             &nam,iamforc,iamload,iamt1,iamboun,&ttime,
-             output,set,&nset,istartset,iendset,ialset,&nprint,prlab,
-             prset,&nener,trab,inotr,&ntrans,fmpc,cbody,ibody,xbody,&nbody,
-	     xbodyold,timepar,thicke,jobnamec,tieset,&ntie,&istep,&nmat,
-	     ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
-	     orname,rhoPhys,&pstiff, stx, &sigma0, &eps_relax, &rhomin, &pexp, &Pnorm, dPnorm_drho, &mat_dens, preciceParticipantName,configFilename, ikforc, ilforc);
+	    linstatic(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
+	      ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,ndirforc,xforc,
+        &nforc, nelemload,sideload,xload,&nload,
+	      nactdof,&icol,jq,&irow,neq,&nzl,&nmethod,ikmpc,
+	      ilmpc,ikboun,ilboun,elcon,nelcon,rhcon,nrhcon,
+	      alcon,nalcon,alzero,&ielmat,&ielorien,&norien,orab,&ntmat_,
+        t0,t1,t1old,ithermal,prestr,&iprestr, vold,iperturb,sti,nzs,
+	      &kode,filab,eme,&iexpl,plicon,
+        nplicon,plkcon,nplkcon,&xstate,&npmat_,matname,
+	      &isolver,mi,&ncmat_,&nstate_,cs,&mcs,&nkon,&ener,
+        xbounold,xforcold,xloadold,amname,amta,namta,
+        &nam,iamforc,iamload,iamt1,iamboun,&ttime,
+        output,set,&nset,istartset,iendset,ialset,&nprint,prlab,
+        prset,&nener,trab,inotr,&ntrans,fmpc,cbody,ibody,xbody,&nbody,
+	      xbodyold,timepar,thicke,jobnamec,tieset,&ntie,&istep,&nmat,
+	      ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
+	      orname,rhoPhys,&pstiff, stx, &sigma0, &eps_relax, &rhomin, &pexp, &Pnorm, dPnorm_drho, &mat_dens,&eval_PNORM);
 
       endl = time(NULL);
 
@@ -1942,7 +2057,8 @@ while(istat>=0)
 
       if (eval_PNORM == 1)
       {
-        printf(" Filter element stress (P-norm) gradient ");
+        printf("Filtering element stress (P-norm) gradient ");
+        fflush(stdout);
 
         /* Allocate memory for P-norm stress sensitivities */
         // NOTE: P-norm sensitivity initialized and passed to linstatic() earlier
@@ -1952,17 +2068,17 @@ while(istat>=0)
         int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
         if (rs != 0) 
         {
-          printf(" Unable to write P-norm sensitivities to disk!\n");
+          printf("Unable to write P-norm sensitivities to disk!\n");
+          fflush(stdout);
         }
       
         SFREE(dPnorm_drhoFiltered);
         printf("done \n");
+        fflush(stdout);
       }
 
       // Free this sens outside for now
       SFREE(dPnorm_drho);
-
-      printf("|------------------------------------------------------------|\n");
 
 	    for(i=0;i<3;i++)
       {
@@ -2121,11 +2237,13 @@ while(istat>=0)
 
       NNEW(elCG,double,3*ne_);
 
-            NNEW(gradCompl,double,ne_);
+      NNEW(gradCompl,double,ne_);
 
       /* allocate memory for element complaince and initialize to zero */
       NNEW(elCompl,double,ne_);
 
+      /* This sensitivity analysis can stay as is for simple 
+      aeroelastic simulations */
       sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
              ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2158,16 +2276,17 @@ while(istat>=0)
     /* adjoint sensitivity calculation */
     if(pSupplied!=0)
     {
-      printf("SENSITIVITY ANALYSIS-----------------------------------------|\n\n");
+      printf("\n========================================\n");
+      printf("COUPLED SENSITIVITY EVALUATION (COMPLIANCE)\n");
+      printf("========================================\n");
       
-      printf("  Allocating memory for sensitivities...");
+      printf("Allocating memory for sensitivities...");
+      fflush(stdout);
       /* allocate memory for compliance gradient and initialize to zero */
       NNEW(gradCompl,double,ne_);
 
       /* allocate memory for element complaince and initialize to zero */
       NNEW(elCompl,double,ne_);
-
-
 
       /* allocate memory for element volume and initialize to zero */
       NNEW(eleVol,double,ne_); 
@@ -2187,8 +2306,8 @@ while(istat>=0)
 	    starts = time(NULL);
 
 
-      /* Evaluate sensitivities */
-      printf("  Evaluating compliance sensitivities...");
+      // Need a precice-compatible sensitivity()
+  
       sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
              ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2208,18 +2327,51 @@ while(istat>=0)
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
              jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
 
-      printf("done\n");
+      fflush(stdout);
+
+      // Finish all compliance related activities here
+      double compliance_sum=0;
+
+      printf("Filter aeroelastic compliance gradient ");
+      fflush(stdout);
+      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+      printf("done! \n");
+      fflush(stdout);
+
+      
+      if (numPassive > 0)
+      {
+        /* set the filtered compliance sens of passive elements to 0 */
+        printf("Setting aeroelastic compliance sensitivities for skin elements to 0 ...");
+        fflush(stdout);
+        filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
+        printf("done\n");
+        fflush(stdout);
+      }
+
+      
+      printf("Writing aeroelastic compliance sensitivities...");
+      write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
+      printf("done!\n");
+      fflush(stdout);
+
+      SFREE(gradCompl);
+      SFREE(elCompl);
+      SFREE(gradComplFiltered);
 
       //printf("done!\n");
       // Mass and C.G properties
       double M, cgx, cgy, cgz;
       
-      /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/
+  
 
       
       if (eval_CG == 1)
       {
-        printf("  Evaluate and filter CG sensitivities...");
+        printf("\n========================================\n");
+        printf("SENSITIVITY EVALUATION (CG)\n");
+        printf("========================================\n");
+
 
         /* Allocate memory for CG sensitivities */
         dCGx = (double*)calloc(ne, sizeof(double));
@@ -2231,23 +2383,25 @@ while(istat>=0)
         dCGyFiltered = (double*)calloc(ne, sizeof(double));
         dCGzFiltered = (double*)calloc(ne, sizeof(double));
 
+        printf("Evaluate mass and CG sensitivitities...");
+        fflush(stdout);
         compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             dCGx, dCGy, dCGz, mat_dens, passiveIDs, numPassive);
-      
+        fflush(stdout);
         
-
+        printf("Filter CG senitivities...");
+        fflush(stdout);
         filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
-
         printf("done\n");
+        fflush(stdout);
       
         if (numPassive > 0)
         {
-
-          printf("  Setting CG sensitivites for skin elements to zero ...");
+          printf("Setting CG sensitivites for skin elements to zero ...");
+          fflush(stdout);
           /* set the filtered CGx sens of passive elements to 0 */
           filterOutPassiveElems_sens(dCGxFiltered, ne, passiveIDs, numPassive);
-
 
           /* set the filtered CGy sens of passive elements to 0 */
           filterOutPassiveElems_sens(dCGyFiltered, ne, passiveIDs, numPassive);
@@ -2255,9 +2409,11 @@ while(istat>=0)
           /* set the filtered CGz sens of passive elements to 0 */
           filterOutPassiveElems_sens(dCGzFiltered, ne, passiveIDs, numPassive);
           printf("done\n");
+          fflush(stdout);
         }
 
-        printf("  Writing CG sensitivities to disk...");
+        printf("Writing CG sensitivities to disk...");
+        fflush(stdout);
         /* ... after you fill dCGx, dCGy, dCGz ... */
         int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
         if (rc != 0) 
@@ -2266,6 +2422,7 @@ while(istat>=0)
         }
 
         printf("done!\n");
+        fflush(stdout);
 
         free(dCGx);
         free(dCGy);
@@ -2285,7 +2442,7 @@ while(istat>=0)
       else
       {
         // Only compute the CG value for objectives.csv
-         printf("  Evaluate CG..");
+         printf("Evaluate CG..");
         compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
@@ -2293,55 +2450,28 @@ while(istat>=0)
         printf("done \n");
         SFREE(elCG);
       }
-      /*---------------------------------------------------------------------------------------------------------------*/      
-
-
-      /*---------------------------------------------------------------------------------------------------------------*/
-
-
-      /*-------------------------------------COMPLIANCE SENSITIVITY FILTERING AND I/O----------------------------------*/
-      double compliance_sum=0;
-
-      printf("  Filter compliance gradient ");
-      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
-      printf("done! \n");
-
-      
-      if (numPassive > 0)
-      {
-        /* set the filtered compliance sens of passive elements to 0 */
-        printf("  Setting compliance sensitivities for skin elements to 0 ...");
-        filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
-        printf("done\n");
-      }
-
-      FILE *gradC;
-      printf("  Writing compliance sensitivities...");
-      write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
-      printf("done!\n");
-
-      SFREE(gradCompl);
-      SFREE(elCompl);
-      SFREE(gradComplFiltered);
-      
-      /*---------------------------------------------------------------------------------------------------------------*/
 
       /*-------------------------------------VOLUME SENSITIVITY FILTERING AND I/O----------------------------------*/
 
-      FILE *elV_file;
-      printf("  Filter element volume gradient ");
+      printf("\n========================================\n");
+      printf("SENSITIVITY EVALUATION (VOLUME FRACTION)\n");
+      printf("========================================\n");
+
+      printf("Filter element volume gradient ");
+      fflush(stdout);
       filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
       printf("done! \n");
+      fflush(stdout);
 
       if (numPassive > 0)
       {
         /* set the filtered volumefraction sens of passive elements to 0 */
-        printf("  Setting volume fraction sensitivities for skin elements to 0 ...");
+        printf("Setting volume fraction sensitivities for skin elements to 0 ...");
         filterOutPassiveElems_sens(eleVolFiltered, ne, passiveIDs, numPassive);
         printf("done! \n");
       }
 
-      printf("  Writing volume sensitivities...");
+      printf("Writing volume sensitivities...");
       write_volume_sensitivities(ne, eleVol, rhoPhys, eleVolFiltered);
       printf("done!\n");
 
@@ -2351,10 +2481,13 @@ while(istat>=0)
       ends = time(NULL);
       
       
-      printf("\n\nOUTPUT FILEDS--------------------------------------------------------------|\n\n");
+      printf("\n========================================\n");
+      printf("OUTPUT\n");
+      printf("========================================\n");
      
       
-      printf("  Writing objectives...");
+      printf("Writing objectives...");
+      fflush(stdout);
       write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz, passiveIDs, numPassive, &Pnorm);
       printf("done!\n");
       
@@ -2373,13 +2506,6 @@ while(istat>=0)
       printf("  Mass                       : %12.6e\n", M);
       printf("  Aggregated stress (P-norm) : %12.6e\n", Pnorm);
 
-      /* Optional outputs */
-      //printf("  Initial volume             : %12.6e\n", initialVol_sum);
-     // printf("  Current volume             : %12.6e\n", designVol_sum);
-     // printf("  Volume constraint          : %12.6e\n",
-     //  designVol_sum - volfrac * initialVol_sum);
-
-      //printf("  Discreteness metric        : %12.6e\n", mnd);
 
       printf("====================================================\n");
       printf("\n");
@@ -2395,7 +2521,7 @@ while(istat>=0)
     if (numPassive > 0)
     {
       /* set the filtered element densities of passive elements to 1 */
-      printf("  Setting physical element densities to 1 ...");
+      printf("Setting physical element densities to 1 ...");
       filterOutPassiveElems_density(rhoPhys, ne, passiveIDs, numPassive);
       printf("done! \n");
     }

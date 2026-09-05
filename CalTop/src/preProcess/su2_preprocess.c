@@ -917,3 +917,53 @@ void find_su2_file(char *filename)
            suffix);
     exit(EXIT_FAILURE);
 }
+
+
+void find_AD_su2_file(char *filename)
+{
+    DIR *dir;
+    struct dirent *entry;
+
+    const char *directory = "Adjoint";
+    const char *prefix = "deformed_";
+    size_t prefix_len = strlen(prefix);
+
+    /* Open Adjoint directory */
+    dir = opendir(directory);
+
+    if (dir == NULL)
+    {
+        printf("ERROR: Cannot open directory \"%s\"\n", directory);
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Search through files in Adjoint directory */
+    while ((entry = readdir(dir)) != NULL)
+    {
+        size_t len = strlen(entry->d_name);
+
+        /* Check whether the filename starts with "deformed_" */
+        if (len >= prefix_len &&
+            strncmp(entry->d_name, prefix, prefix_len) == 0)
+        {
+            /* Store complete path to detected file */
+            sprintf(filename, "%s/%s", directory, entry->d_name);
+
+            printf("Detected deformed mesh file: %s\n", filename);
+            fflush(stdout);
+
+            closedir(dir);
+            return;
+        }
+    }
+
+    /* No matching file was found */
+    closedir(dir);
+
+    printf("ERROR: No file starting with \"%s\" found in directory \"%s\"\n",
+           prefix, directory);
+    fflush(stdout);
+
+    exit(EXIT_FAILURE);
+}

@@ -25,6 +25,21 @@
  */
 void find_su2_file(char *filename);
 
+/**
+ * @brief Finds the deformed SU2 solid mesh file in the current 
+ * working directory.
+ *
+ * This function scans the current directory for a file ending with
+ * the `.su2` extension. The discovered filename is copied into the
+ * user-provided character buffer.
+ *
+ * @param filename Character array where the SU2 filename is stored.
+ *
+ * @note
+ * The function exits with EXIT_FAILURE if no SU2 mesh is found.
+ */
+void find_AD_su2_file(char *filename);
+
 
 
 /**

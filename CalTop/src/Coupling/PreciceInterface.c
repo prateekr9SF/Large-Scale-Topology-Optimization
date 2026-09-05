@@ -272,9 +272,9 @@ void Precice_ReadCouplingData( SimulationData * sim )
         				double Fz = interfaces[i]->nodeVectorData[3*a + 2];
 
         				/* CalculiX *CLOAD format: nodeID, DOF, force */
-       					fprintf(f, "%d, 1, %.16e\n", nid, Fx);
-        				fprintf(f, "%d, 2, %.16e\n", nid, Fy);
-        				fprintf(f, "%d, 3, %.16e\n", nid, Fz);
+       					fprintf(f, "%d, 1, %.6e\n", nid, Fx);
+        				fprintf(f, "%d, 2, %.6e\n", nid, Fy);
+        				fprintf(f, "%d, 3, %.6e\n", nid, Fz);
 
         				/* Compute resultant force */
         				Fx_tot += Fx;
@@ -381,7 +381,7 @@ void Precice_WriteCouplingData( SimulationData * sim )
 
 					break;
 
-									case DISPLACEMENTDELTAS:
+					case DISPLACEMENTDELTAS:
 					getNodeDisplacementDeltas( interfaces[i]->nodeIDs, interfaces[i]->numNodes, interfaces[i]->dim, sim->vold, sim->coupling_init_v, sim->mt, interfaces[i]->nodeVectorData );
 					
 					double sumx=0.0, sumy=0.0, sumz=0.0;

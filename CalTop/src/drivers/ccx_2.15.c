@@ -2530,9 +2530,17 @@ while(istat>=0)
       SFREE(eleVol);
         
       /* Print output */
-      printf("\nCompliance (J):              %12.3f\n", compliance_sum);
-      printf("Total mass (kg):             %12.3f\n", M);
-      printf("Aggregated stress (P-norm): %12.3f\n", Pnorm);
+      printf("\n");
+      printf("====================================================\n");
+      printf("                 Summary                            \n"); 
+      printf("====================================================\n");
+
+      printf("  Compliance                 : %12.6e\n", compliance_sum);
+      printf("  Mass                       : %12.6e\n", M);
+      printf("  Aggregated stress (P-norm) : %12.6e\n", Pnorm);
+
+      printf("====================================================\n");
+      printf("\n");
     } // end adjoint calculation
 
     printf("\nWriting rhosPhys.dat...");
