@@ -272,9 +272,9 @@ void Precice_ReadCouplingData( SimulationData * sim )
         				double Fz = interfaces[i]->nodeVectorData[3*a + 2];
 
         				/* CalculiX *CLOAD format: nodeID, DOF, force */
-       					fprintf(f, "%d, 1, %.6e\n", nid, Fx);
-        				fprintf(f, "%d, 2, %.6e\n", nid, Fy);
-        				fprintf(f, "%d, 3, %.6e\n", nid, Fz);
+       					fprintf(f, "%d, 1, %.10f\n", nid, Fx);
+        				fprintf(f, "%d, 2, %.10f\n", nid, Fy);
+        				fprintf(f, "%d, 3, %.10f\n", nid, Fz);
 
         				/* Compute resultant force */
         				Fx_tot += Fx;
