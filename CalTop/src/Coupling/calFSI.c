@@ -2059,7 +2059,43 @@ while(istat>=0)
       endl = time(NULL);
 
 	    printf("\nTime taken for linstatic.c is %.8f seconds \n", 
-		  difftime(endl, startl)); 
+		  difftime(endl, startl));
+
+    if (eval_PNORM == 1)
+    {
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_filter_CalTop);
+      #endif
+
+      printf("Filtering element stress (P-norm) gradient ");
+      fflush(stdout);
+
+      /* Allocate memory for P-norm stress sensitivities */  
+      NNEW(dPnorm_drhoFiltered, double, ne_);
+      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_filter_CalTop);
+      #endif
+      
+      #ifdef PROFILING_ON
+        TAU_PROFILE_START(t_fileIO_CalTop);
+      #endif
+
+      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
+      if (rs != 0) 
+      {
+        printf("Unable to write P-norm sensitivities to disk!\n");
+        fflush(stdout);
+      }
+
+      #ifdef PROFILING_ON
+        TAU_PROFILE_STOP(t_fileIO_CalTop);
+      #endif
+      
+      SFREE(dPnorm_drhoFiltered);
+      printf("done \n");
+    }
 
       // Free this sens outside for now
       SFREE(dPnorm_drho);
@@ -2254,6 +2290,260 @@ while(istat>=0)
       SFREE(gradCompl);
     }
 
+    if(pSupplied!=0)
+    {
+
+      printf("\n========================================\n");
+      printf("SENSITIVITY EVALUATION (COMPLIANCE)\n");
+      printf("========================================\n");
+      
+      printf("Allocating memory for sensitivities...");
+      fflush(stdout);
+      /* allocate memory for compliance gradient and initialize to zero */
+      NNEW(gradCompl,double,ne_);
+
+      /* allocate memory for element complaince and initialize to zero */
+      NNEW(elCompl,double,ne_);
+
+      /* allocate memory for element volume and initialize to zero */
+      NNEW(eleVol,double,ne_); 
+
+      double *volFracSens = NULL;
+      /* allocate memory for element volume fraction sensitivity */
+      NNEW(volFracSens,double,ne_);
+
+      double *volFracSensFiltered = NULL;
+      /* allocate memeory for filtered element volume fraction sensitivity */
+      NNEW(volFracSensFiltered,double, ne_);
+
+      /* allocate memory for filtered compliance gradient and initialize to zero */
+      NNEW(gradComplFiltered,double,ne_);  //allocate memory to gradcompliance, initialize to 0
+
+
+      /* allocate memory for center of gravity (x,y,z) of each element */
+      NNEW(elCG,double,3*ne_);
+
+      printf("done! \n");
+      fflush(stdout);
+
+      time_t starts, ends; 
+	    starts = time(NULL);
+
+
+      /* Evaluate sensitivities */
+      //printf("Evaluating compliance sensitivities...");
+      fflush(stdout);
+
+	    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
+	      xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
+        ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
+	      nactdof,icol,jq,&irow,neq,&nzl,&nmethod,ikmpc,
+	      ilmpc,ikboun,ilboun,elcon,nelcon,rhcon,nrhcon,
+	      alcon,nalcon,alzero,&ielmat,&ielorien,&norien,orab,&ntmat_,
+        t0,t1,t1old,ithermal,prestr,&iprestr, vold,iperturb,sti,nzs,
+	      &kode,filab,eme,&iexpl,plicon,
+        nplicon,plkcon,nplkcon,&xstate,&npmat_,matname,
+	      &isolver,mi,&ncmat_,&nstate_,cs,&mcs,&nkon,&ener,
+        xbounold,xforcold,xloadold,amname,amta,namta,
+        &nam,iamforc,iamload,iamt1,iamboun,&ttime,
+        output,set,&nset,istartset,iendset,ialset,&nprint,prlab,
+        prset,&nener,trab,inotr,&ntrans,fmpc,cbody,ibody,xbody,&nbody,
+	      xbodyold,timepar,thicke,jobnamec,tieset,&ntie,&istep,&nmat,
+	      ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
+	      &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
+        jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
+
+
+      //printf("Finished evaluating compliance sensitivities.\n");
+      fflush(stdout);
+
+      // Insert compliance filtering here ->
+      double compliance_sum=0;
+
+
+      printf("Filter compliance gradient ");
+      fflush(stdout);
+      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+      printf("done! \n");
+      fflush(stdout);
+      
+      if (numPassive > 0)
+      {
+        /* set the filtered compliance sens of passive elements to 0 */
+        printf("Setting compliance sensitivities for skin elements to 0 ...");
+        fflush(stdout);
+        filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
+        printf("done\n");
+        fflush(stdout);
+      }
+      
+      FILE *gradC;
+      printf("Writing compliance sensitivities...");
+      fflush(stdout);
+
+      write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
+      fflush(stdout);
+
+      printf("done!\n");
+
+      SFREE(gradCompl);
+      SFREE(elCompl);
+      SFREE(gradComplFiltered);
+
+      // Finish all compliance related ops
+
+  
+      
+      /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/    
+      
+      /* Define variables for mass and center of gravity */
+      double M, cgx, cgy, cgz;
+
+      if (eval_CG == 1)
+      {
+        printf("\n========================================\n");
+        printf("SENSITIVITY EVALUATION (CG)\n");
+        printf("========================================\n");
+
+        printf("Evaluate and filter CG sensitivities...\n\n");
+        fflush(stdout);
+        /* Allocate memory for CG sensitivities */
+        dCGx = (double*)calloc(ne, sizeof(double));
+        dCGy = (double*)calloc(ne, sizeof(double));
+        dCGz = (double*)calloc(ne, sizeof(double));
+
+        /* Allocate memory for filteredCG sensitivities */
+        dCGxFiltered = (double*)calloc(ne, sizeof(double));
+        dCGyFiltered = (double*)calloc(ne, sizeof(double));
+        dCGzFiltered = (double*)calloc(ne, sizeof(double));
+
+
+        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+                            &M, &cgx, &cgy, &cgz,
+                            dCGx, dCGy, dCGz, mat_dens, passiveIDs, numPassive);
+      
+
+        printf("\nFilter CG gradient");
+        filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+        
+        fflush(stdout);
+
+        /* NOTE: We do not call filterOutPassiveElems_sens() for CG* sens
+          since compute_mass_cg_and_cg_sens() already filters out passive elements and sets
+          the sensitivity to zero */
+
+        printf("\nWriting CG sensitivities to disk...");
+        fflush(stdout);
+        
+
+        /* ... after you fill dCGx, dCGy, dCGz ... */
+        int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
+        if (rc != 0) 
+        {
+          printf("  Unable to write CG sensitivities to disk!\n");
+        }
+
+        printf("done!\n");
+        fflush(stdout);
+
+        free(dCGx);
+        free(dCGy);
+        free(dCGz);
+        free(dCGxFiltered);
+        free(dCGyFiltered);
+        free(dCGzFiltered);
+      
+        dCGx = NULL;
+        dCGy = NULL; 
+        dCGz = NULL; 
+        dCGxFiltered = NULL;
+        dCGyFiltered = NULL;
+        dCGzFiltered = NULL;
+      } // end eval_CG ==1
+
+      else
+      {
+        /* Compute the CG and mass without sensitivities */
+        printf("Evaluate CG..");
+        fflush(stdout);
+        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+                            &M, &cgx, &cgy, &cgz,
+                            NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
+      
+        printf("done \n");
+        fflush(stdout);
+        SFREE(elCG);
+      }
+      /*---------------------------------------------------------------------------------------------------------------*/      
+
+
+      /*---------------------------------------------------------------------------------------------------------------*/
+      
+      
+      /*---------------------------------------------------------------------------------------------------------------*/
+
+      /*-------------------------------------VOLUME SENSITIVITY FILTERING AND I/O----------------------------------*/
+      printf("\n========================================\n");
+      printf("SENSITIVITY EVALUATION (VOLUME FRACTION)\n");
+      printf("========================================\n");
+      
+      FILE *elV_file;
+
+      printf("Evaluate volume fraction sensitivities...");
+      fflush(stdout);
+
+      // Time volume fraction senstitivity eval
+      volumeSens(ne,eleVol,passiveIDs,numPassive,volFracSens);
+
+
+      printf("Filter volume fraction gradient ");
+      fflush(stdout);
+      filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
+    
+      /* NOTE: We do not call filterOutPassiveElems_sens() for volFracSens
+      since volumeSens() already filters out passive elements and sets
+      theur sensitivity to zero */
+      
+
+      printf("\nWriting volume sensitivities...");
+      fflush(stdout);
+      write_volume_sensitivities(ne, eleVol, rhoPhys, volFracSensFiltered);
+      printf("done!\n");
+      fflush(stdout);
+
+      SFREE(volFracSens);
+      SFREE(volFracSensFiltered);
+
+      ends = time(NULL);
+      
+      
+      printf("\n========================================\n");
+      printf("OUTPUT\n");
+      printf("========================================\n");
+      fflush(stdout);
+  
+      printf("Writing objectives...");
+      fflush(stdout);
+      write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz, passiveIDs, numPassive, &Pnorm);
+      printf("done!\n");
+
+      fflush(stdout);
+      SFREE(eleVol);
+        
+      /* Print output */
+      printf("\n");
+      printf("====================================================\n");
+      printf("                 Summary                            \n"); 
+      printf("====================================================\n");
+
+      printf("  Compliance                 : %12.6e\n", compliance_sum);
+      printf("  Mass                       : %12.6e\n", M);
+      printf("  Aggregated stress (P-norm) : %12.6e\n", Pnorm);
+
+      printf("====================================================\n");
+      printf("\n");
+    } // end adjoint calculation
+
     /* Write deformed SU2 solid mesh file */
     printf("\nUpdaing solid .su2 file with aeroelastic nodal coordinates...\n");
     fflush(stdout);
@@ -2261,28 +2551,30 @@ while(istat>=0)
     fflush(stdout);
 
     
-    /* Evaluate objectives */
+    if (pSupplied == 0)
+    {
+      /* Evaluate objectives */
     
-    /* allocate memory for compliance gradient and initialize to zero */
-    NNEW(gradCompl,double,ne_);
+      /* allocate memory for compliance gradient and initialize to zero */
+      NNEW(gradCompl,double,ne_);
 
-    /* allocate memory for element complaince and initialize to zero */
-    NNEW(elCompl,double,ne_);
+      /* allocate memory for element complaince and initialize to zero */
+      NNEW(elCompl,double,ne_);
 
-    /* allocate memory for element volume and initialize to zero */
-    NNEW(eleVol,double,ne_); 
+      /* allocate memory for element volume and initialize to zero */
+      NNEW(eleVol,double,ne_); 
 
-    /* allocate memory for center of gravity (x,y,z) of each element */
-    NNEW(elCG,double,3*ne_);
+      /* allocate memory for center of gravity (x,y,z) of each element */
+      NNEW(elCG,double,3*ne_);
 
-    time_t starts, ends; 
-	  starts = time(NULL);
+      time_t starts, ends; 
+	    starts = time(NULL);
 
-    /* Evaluate sensitivities -> this step is redundat but needs to be done to compute
+      /* Evaluate sensitivities -> this step is redundat but needs to be done to compute
        structre volume and compliance  */
-    printf("Evaluating compliance...");
-    fflush(stdout);
-    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
+      printf("Evaluating compliance...");
+      fflush(stdout);
+      sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
        ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
 	     nactdof,icol,jq,&irow,neq,&nzl,&nmethod,ikmpc,
@@ -2301,46 +2593,46 @@ while(istat>=0)
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
        jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
 
-    printf("done!\n");
-    /* Free compliance gradient */
-    SFREE(gradCompl);
+      printf("done!\n");
+      /* Free compliance gradient */
+      SFREE(gradCompl);
 
-    // Mass and C.G properties
-    double M, cgx, cgy, cgz;
+      // Mass and C.G properties
+      double M, cgx, cgy, cgz;
     
-    /* Only compute the CG value for objectives.csv  */
-      printf("Evaluate mass properties...\n");
-      compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+      /* Only compute the CG value for objectives.csv  */
+        printf("Evaluate mass properties...\n");
+        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
-      SFREE(elCG);
+        SFREE(elCG);
       /*---------------------------------------------------------------------------------------------------------------*/      
 
 
-      /*-----------------------------------------------TOTAL COMPLIANCE------------------------------------------------*/
-      double compliance_sum=0;
+        /*-----------------------------------------------TOTAL COMPLIANCE------------------------------------------------*/
+        double compliance_sum=0;
 
-      printf("Evaluate total compliance...\n");
-      getCompliance(ne,elCompl,&compliance_sum);
-      fflush(stdout);
-      SFREE(elCompl);
-      printf("Done evaluating total compliance \n");   
-      /*---------------------------------------------------------------------------------------------------------------*/
+        printf("Evaluate total compliance...\n");
+        getCompliance(ne,elCompl,&compliance_sum);
+        fflush(stdout);
+        SFREE(elCompl);
+        printf("Done evaluating total compliance \n");   
+        /*---------------------------------------------------------------------------------------------------------------*/
 
-      ends = time(NULL);
+        ends = time(NULL);
 
             /* -------------------------------------------------- */
-      /* Design summary                               */
-      /* -------------------------------------------------- */
+        /* Design summary                               */
+        /* -------------------------------------------------- */
 
-      printf("\n");
-      printf("====================================================\n");
-      printf("                 Summary                            \n"); 
-      printf("====================================================\n");
+        printf("\n");
+        printf("====================================================\n");
+        printf("                 Summary                            \n"); 
+        printf("====================================================\n");
 
-      printf("  Compliance                 : %12.6e\n", compliance_sum);
-      printf("  Mass                       : %12.6e\n", M);
-      printf("  Aggregated stress (P-norm) : %12.6e\n", Pnorm);
+        printf("  Compliance                 : %12.6e\n", compliance_sum);
+        printf("  Mass                       : %12.6e\n", M);
+        printf("  Aggregated stress (P-norm) : %12.6e\n", Pnorm);
 
       printf("====================================================\n");
       printf("\n");
@@ -2360,6 +2652,8 @@ while(istat>=0)
       printf("done!\n");
       
       SFREE(eleVol);
+
+    } // end of pSupplied == 0
   
 
 
