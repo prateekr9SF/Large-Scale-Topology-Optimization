@@ -545,28 +545,26 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					nrhs            = 1 for all linear elastic systems
 
 				*/	
-
-				//printf("nrhs value: %d\n", nrhs);
-				// Call PARDISO to solve linear system
-				//printf("Calling PARSIDO from linstatic.c \n");
-      			//pardiso_main(ad,au,adb,aub,&sigma,btemp,icol,irow,neq,nzs,
-		   		//&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
 				
-
 				printf("Caling PARDISO...\n");
 				fflush(stdout);
+				
+				/*
 				pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,neq,nzs,
 		   		&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
 				printf("Linear solution complete.\n");
 				fflush(stdout);
+				*/
 
-				//printf(" PARDISO: factorizing K...\n");
-				//pardiso_factor(ad,au,adb,aub,&sigma,  /* adb/aub may be NULL if unused */
-               	//	icol,irow,neq,nzs,&symmetryflag,&inputformat,jq,&nzs[2]);
+				printf("PARDISO: factorizing K...\n");
+				fflush(stdout);
+				pardiso_factor(ad,au,adb,aub,&sigma,  /* adb/aub may be NULL if unused */
+               		icol,irow,neq,nzs,&symmetryflag,&inputformat,jq,&nzs[2]);
 
 				/* --- Primal solve: K u = b --- */
-				//printf(" PARDISO: solving primal...\n");
-				//pardiso_solve(b,neq,&symmetryflag,&nrhs);
+				printf("PARDISO: solving primal system...\n");
+				fflush(stdout);
+				pardiso_solve(b,neq,&symmetryflag,&nrhs);
 
 				#else
             	printf("*ERROR in linstatic: the PARDISO library is not linked\n\n");
@@ -605,9 +603,9 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 				if (*eval_PNORM==1)
 				{
-				printf("\n========================================\n");
-				printf("STRESS CALCULATION\n");
-				printf("========================================\n");
+					printf("\n========================================\n");
+					printf("STRESS CALCULATION\n");
+					printf("========================================\n");
 				}
 
 				#ifdef PROFILING_ON
@@ -702,17 +700,25 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         				}
     				}
 				}
-
+			
+			// Stress adjoint system 
 			if (*eval_PNORM==1)
 			{	
-      		#ifdef PARDISO
+      			#ifdef PARDISO
 				printf("PARDISO: Solving stress adjoint...");
 				fflush(stdout);
+
+				/*
       			pardiso_main(ad,au,adb,aub,&sigma,b_adj,icol,irow,neq,nzs,
 		   			&symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
 					printf("done\n");
 					fflush(stdout);
-			#endif
+				*/
+				pardiso_solve(b_adj,neq,&symmetryflag,&nrhs);
+
+				// Stress adjoint system solved, cleanup now
+				pardiso_cleanup(neq,&symmetryflag);
+				#endif
 			}
 				//printf(" SKIPPING PARSIDO: adjoint solve \n");
       			//pardiso_solve(b_adj, neq, &symmetryflag, &nrhs);
