@@ -89,10 +89,10 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
 		ITG *jq, ITG *nzs3)
 	{
 
-		#ifdef PROFILING_ON
-        	TAU_PROFILE_TIMER(t_pardiso_factor,"PARDISO: Factorization","",TAU_USER);
-			TAU_PROFILE_START(t_pardiso_factor);
-    	#endif
+	//	#ifdef PROFILING_ON
+    //    	TAU_PROFILE_TIMER(t_pardiso_factor,"PARDISO: Factorization","",TAU_USER);
+	//		TAU_PROFILE_START(t_pardiso_factor);
+    //	#endif
 
   		char *env;
 		/*  char env1[32]; */
@@ -404,9 +404,9 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
 			   pointers,icolpardiso,perm,&nrhs,iparm,&msglvl,
                    b,x,&error));
 
-		#ifdef PROFILING_ON
-        	TAU_PROFILE_STOP(t_pardiso_factor);
-    	#endif
+	//	#ifdef PROFILING_ON
+    //    	TAU_PROFILE_STOP(t_pardiso_factor);
+    //	#endif
 				   
   		return;
 	}
@@ -441,10 +441,10 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
 void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs)
 {
 
-	#ifdef PROFILING_ON
-        TAU_PROFILE_TIMER(t_pardiso_solve,"PARDISO: Solve","",TAU_USER);
-		TAU_PROFILE_START(t_pardiso_solve);
-    #endif
+//	#ifdef PROFILING_ON
+//        TAU_PROFILE_TIMER(t_pardiso_solve,"PARDISO: Solve","",TAU_USER);
+//		TAU_PROFILE_START(t_pardiso_solve);
+//    #endif
 
   ITG maxfct=1,mnum=1,phase=33,*perm=NULL,mtype,
     	msglvl=0,i,error=0;
@@ -471,9 +471,9 @@ void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs)
   for(i=0;i<*nrhs**neq;i++){b[i]=x[i];}
   SFREE(x);
 
-	#ifdef PROFILING_ON
-    	TAU_PROFILE_STOP(t_pardiso_solve);
-	#endif
+//	#ifdef PROFILING_ON
+//    	TAU_PROFILE_STOP(t_pardiso_solve);
+//	#endif
 
   return;
 }
@@ -509,14 +509,14 @@ void pardiso_solve(double *b, ITG *neq,ITG *symmetryflag,ITG *nrhs)
 void pardiso_cleanup(ITG *neq,ITG *symmetryflag)
 {
 
-	#ifdef PROFILING_ON
-        TAU_PROFILE_TIMER(t_pardiso_cleanup,
-                          "PARDISO: Cleanup",
-                          "",
-                          TAU_USER);
+//	#ifdef PROFILING_ON
+//        TAU_PROFILE_TIMER(t_pardiso_cleanup,
+//                          "PARDISO: Cleanup",
+//                          "",
+//                          TAU_USER);
 
-        TAU_PROFILE_START(t_pardiso_cleanup);
-    #endif
+//        TAU_PROFILE_START(t_pardiso_cleanup);
+//    #endif
 
   ITG maxfct=1,mnum=1,phase=-1,*perm=NULL,nrhs=1,mtype,
       msglvl=0,error=0;
@@ -539,9 +539,9 @@ void pardiso_cleanup(ITG *neq,ITG *symmetryflag)
   SFREE(aupardiso);
   SFREE(pointers);
 
-    #ifdef PROFILING_ON
-        TAU_PROFILE_STOP(t_pardiso_cleanup);
-    #endif
+//    #ifdef PROFILING_ON
+//        TAU_PROFILE_STOP(t_pardiso_cleanup);
+//    #endif
 
   return;
 }
@@ -604,16 +604,16 @@ void pardiso_main(double *ad, double *au, double *adb, double *aub,
 	ITG *jq, ITG *nzs3,ITG *nrhs)
 	{
 
-		#ifdef PROFILING_ON
-        	TAU_PROFILE_TIMER(t_pardiso_total,"PARDISO: Total","",TAU_USER);
-        	TAU_PROFILE_START(t_pardiso_total);
-    	#endif
+	//	#ifdef PROFILING_ON
+    //    	TAU_PROFILE_TIMER(t_pardiso_total,"PARDISO: Total","",TAU_USER);
+    //    	TAU_PROFILE_START(t_pardiso_total);
+    //	#endif
 
   		if(*neq==0)
 		{
-			#ifdef PROFILING_ON
-        		TAU_PROFILE_STOP(t_pardiso_total);
-    		#endif
+		//	#ifdef PROFILING_ON
+      //  		TAU_PROFILE_STOP(t_pardiso_total);
+    	//	#endif
 			return;
 		}
   		pardiso_factor(ad,au,adb,aub,sigma,icol,irow, 
@@ -623,9 +623,9 @@ void pardiso_main(double *ad, double *au, double *adb, double *aub,
 
   		pardiso_cleanup(neq,symmetryflag);
 
-		#ifdef PROFILING_ON
-        	TAU_PROFILE_STOP(t_pardiso_total);
-    	#endif
+	//	#ifdef PROFILING_ON
+    //    	TAU_PROFILE_STOP(t_pardiso_total);
+    //	#endif
 
   		return;
 	}

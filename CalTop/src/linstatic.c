@@ -558,13 +558,33 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 				printf("PARDISO: factorizing K...\n");
 				fflush(stdout);
+
+				#ifdef PROFILING_ON
+        			TAU_PROFILE_TIMER(t_pardiso_factor,"PARDISO: Factorization","",TAU_USER);
+					TAU_PROFILE_START(t_pardiso_factor);
+    			#endif
+
 				pardiso_factor(ad,au,adb,aub,&sigma,  /* adb/aub may be NULL if unused */
                		icol,irow,neq,nzs,&symmetryflag,&inputformat,jq,&nzs[2]);
+
+				#ifdef PROFILING_ON
+        		TAU_PROFILE_STOP(t_pardiso_factor);
+    			#endif
 
 				/* --- Primal solve: K u = b --- */
 				printf("PARDISO: solving primal system...\n");
 				fflush(stdout);
+
+				#ifdef PROFILING_ON
+        			TAU_PROFILE_TIMER(t_pardiso_solve,"PARDISO: Solve","",TAU_USER);
+					TAU_PROFILE_START(t_pardiso_solve);
+    			#endif
+
 				pardiso_solve(b,neq,&symmetryflag,&nrhs);
+
+				#ifdef PROFILING_ON
+    				TAU_PROFILE_STOP(t_pardiso_solve);
+				#endif
 
 				#else
             	printf("*ERROR in linstatic: the PARDISO library is not linked\n\n");
