@@ -1,264 +1,312 @@
-# CalTop: A CalculiX-based Topology Optimization Framework
+# CalTop: CalculiX-based topology optimization
 
-## Overview
+CalTop is a density-based topology optimization framework built on CalculiX 2.15. It combines finite element analysis, density filtering, and adjoint sensitivities with gradient-based optimization. The CalFSI and CalADJ components extend the framework to coupled aeroelastic analysis and derivatives with SU2.
 
-These is broad consensus that the decarbonization of the aviation sector by the year 2025 will require cordinated progress across four primary domains: **Technology**, aircraft operations, sustainable aviation fuels and out-of-sector abatement. CalTop is a large-scale aerostructrual topology optimization framework that is develoepd to synthesize novel structrual layouts for the next generation of aircraft configurations. 
+The repository contains three main components:
 
-The aerostructural optimization framework consists of the three main components:
+- **CalGeo** processes SU2 solid meshes and generates mesh and CalculiX node-set files for loads, supports, and designated surface regions.
+- **CalFilt** constructs the density filter used during optimization, with parallel assembly for large tetrahedral meshes.
+- **CalTop** evaluates structural responses and design sensitivities using a multithreaded CalculiX-based solver. External optimization drivers can use these results to update the design.
+- **CalFSI** uses [preCICE](https://precice.org/) to couple CalTop with [SU2](https://su2code.github.io/) for fluid–structure interaction and static aeroelastic analysis.
+- **CalADJ** couples CalTop with SU2 to compute coupled aeroelastic derivatives for gradient-based optimization.
 
-## CalGeo
+## Repository layout
 
-A Python-based pre-processor that reads a .su2 solid mesh and generates traction and fixed surface .nam files for Finite Element Analysis.
+- `CalGeo/`: mesh preprocessing utilities.
+- `CalTop/`: CalculiX-based analysis and topology optimization source.
+- `CalFSI/`: preCICE-based CalTop–SU2 coupling for aeroelastic analysis.
+- `CalADJ/`: CalTop–SU2 coupling for aeroelastic derivatives.
+- `Deps/`: bundled or referenced dependencies.
+- `TestCases/`: example problems, including the RAE 2822 wing section.
+- `SPOOLES_MAKE/`, `PARDISO_MAKE/`: build configurations for the corresponding solvers.
 
+**## Build Instructions**
 
-## CalFilt
+1\. Clone the repository:
 
-A parallelized density filter generator that partitions the tetrahedral mesh and write density filter files to disk for downstream use in topology optimization
+   \`\`\`sh
 
-## CalTop
+   git clone https\://github.com/prateekr9SF/Large-Scale-Topology-Optimization.git
 
- A multi-threaded topology optimization framework built upon **CalculiX 2.15**, featuring advanced solvers such as **SPOOLES, PARDISO, SUPERLU, and PASTIX**. It implements a **density-based finite element framework** interfaced with **IPOPT** for gradient-based optimization. Additionally, CalTop integrates with **SU2_CFD** to solve **static aero-elastic topology optimization problems**.
+   \`\`\`
 
+   This is the \`ROOT\` directory
 
+2\. Install dependency ARPACK:
 
-## File Structure
-```
-├── Large-Scale-Topology-Optimization/                # Density-based Finite Element Analysis     
-    ├── CalGeo/               # Source code density-based CalculiX 2.15
-    ├── CalTop/ 
-    ├── CalPy/ 
-│       ├── ccx_2.15.c     # Main CalculiX driver
-│       ├── add_file_1     # Optimization routine
-│       ├── add_file_2     # Density filtering and sensitivity analysis
-│       └── add_file_3     # Utility functions
-    ├── include/
-         ├── ccx_2.15.h     # Main CalculiX driver header
-├── CalGeo/                 # Mesh passive element identifier
-├── Deps/                   # Dependencies (ARPACK,SPOOLES,YAML)
-├── TestCases/              # Test cases for topology optimization
-    ├── RAE2822/            # RAE2822 3D wing section
+   \`\`\` sh
 
-└── README.md               # This file
-```
-## Build Instructions
+   wget https\://web.archive.org/web/20220526222500fw\_/https\://www\.caam.rice.edu/software/ARPACK/SRC/arpack96.tar.gz
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/prateekr9SF/Large-Scale-Topology-Optimization.git
-   ```
-   This is the `ROOT` directory
+   wget https\://web.archive.org/web/20220526222500fw\_/https\://www\.caam.rice.edu/software/ARPACK/SRC/patch.tar.gz
 
-2. Install dependency ARPACK:
-   ``` sh
-   wget https://web.archive.org/web/20220526222500fw_/https://www.caam.rice.edu/software/ARPACK/SRC/arpack96.tar.gz
-   wget https://web.archive.org/web/20220526222500fw_/https://www.caam.rice.edu/software/ARPACK/SRC/patch.tar.gz
-   ```
+   \`\`\`
+
    Open ARmake.inc and make the following changes:
-   - **Line 28:** Change `home = $(HOME)/ARPACK` to the path where ARPACK is extracted.
-   - **Line 115:** Change `MAKE=/bin/make` to `MAKE=make`
-   - **Line 120:** Change `SHELL =/bin/sh` to `SHELL=sh`
-   - **Lines 104-105:** Set Fortran compiler flags:
-   ```sh
+
+   \- **\*\*Line 28:\*\*** Change \`home = $(HOME)/ARPACK\` to the path where ARPACK is extracted.
+
+   \- **\*\*Line 115:\*\*** Change \`MAKE=/bin/make\` to \`MAKE=make\`
+
+   \- **\*\*Line 120:\*\*** Change \`SHELL =/bin/sh\` to \`SHELL=sh\`
+
+   \- **\*\*Lines 104-105:\*\*** Set Fortran compiler flags:
+
+   \`\`\`sh
+
    FC = gfortran
-   ```
-   ***Line 35:*** Set platform to INTEL (if applicable)
-   ```sh
+
+   \`\`\`
+
+**\*\****\*Line 35:\****\*\*** Set platform to INTEL (if applicable)
+
+   \`\`\`sh
+
    PLAT = INTEL
-   ```
-   Open `UTIL/second.f' and comment out line 24:
-   ```sh
-   * EXTERNAL  ETIME
-   ```
+
+   \`\`\`
+
+   Open \`UTIL/second.f' and comment out line 24:
+
+   \`\`\`sh
+
+   \* EXTERNAL  ETIME
+
+   \`\`\`
+
    Now build ARPACK using:
-   ```sh
+
+   \`\`\`sh
+
    make lib
-   ```
-3. Install dependency yamp-cpp:
+
+   \`\`\`
+
+3\. Install dependency yamp-cpp:
+
    Get the latest verion of yamp-cp and build as a shared library:
-   ```sh
-   wget https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.zip
+
+   \`\`\`sh
+
+   wget https\://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.zip
+
    unzip yaml-cpp-0.6.2.zip
+
    cd yaml-cpp-yaml-cpp-0.6.2
+
    mkdir build
+
    cd build
+
    cmake -DBUILD_SHARED_LIBS=ON ..
+
    make 
-   ```
-   After building, make sure to set `LD_BIBRARY_PATH` to the installation directory
 
-4. CalTop currently supports **SPOOLES** and **INTEL MKL PARDISO** for matrix factorization.
-   #### Option A: SPOOLES (Single-thread build)
-   
-   ```sh
-   wget http://www.netlib.org/linalg/spooles/spooles.2.2.tgz
+   \`\`\`
+
+   After building, make sure to set \`LD_BIBRARY_PATH\` to the installation directory
+
+4\. CalTop currently supports **\*\*SPOOLES\*\*** and **\*\*INTEL MKL PARDISO\*\*** for matrix factorization.
+
+**#### Option A: SPOOLES (Single-thread build)**
+
+   \`\`\`sh
+
+   wget http\://www\.netlib.org/linalg/spooles/spooles.2.2.tgz
+
    mkdir SPOOLES.2.2
-   tar zxvf spooles.2.2.tgz -C SPOOLES.2.2
-   cd SPOOLES.2.2
-   ```
-   Edit `Make.inc` to set compiler version:
-   ```sh
-   CC=gcc
-   ```
-   Build SPOOLES
-   ```sh
-   make lib
-   ```
 
-   Navigate to the `SPOOLES_MAKE` directory and move the Makefile to `ROOT`.
-   Open the `Makefile` and edit paths:
-   ```sh
-   SPOOLES_PATH = <spooles_installation_dir/src>
-   ARPACK_PATH = <ARPACK installation_dir>
-   ```
-   #### Option B: INTEL MKL PARDISO (Multi-thread build)
+   tar zxvf spooles.2.2.tgz -C SPOOLES.2.2
+
+   cd SPOOLES.2.2
+
+   \`\`\`
+
+   Edit \`Make.inc\` to set compiler version:
+
+   \`\`\`sh
+
+   CC=gcc
+
+   \`\`\`
+
+   Build SPOOLES
+
+   \`\`\`sh
+
+   make lib
+
+   \`\`\`
+
+   Navigate to the \`SPOOLES_MAKE\` directory and move the Makefile to \`ROOT\`.
+
+   Open the \`Makefile\` and edit paths:
+
+   \`\`\`sh
+
+   SPOOLES_PATH = \<spooles_installation_dir/src>
+
+   ARPACK_PATH = \<ARPACK installation_dir>
+
+   \`\`\`
+
+**#### Option B: INTEL MKL PARDISO (Multi-thread build)**
 
    Install the Intel oneAPI Base Toolkit
-   https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html
+
+   https\://www\.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html
 
    Install the Intel oneAPI HPC Toolkit
-   https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html
 
-   Navigate to the `PARDISO_MAKE` directory and move the Makefile to `ROOT`.
-   Open the `Makefile` and edit paths:
-   ```sh
-   ARPACK_PATH = <ARPACK installation_dir>
-   MKL_LIB = <oneAPI_installation_path/intel/oneapi/mkl/year/lib/intel64>
-   MKL_INCLUDE = <oneAPI_installation_path/intel/oneapi/mkl/year/include>
-   MKL_INCLUDE = <oneAPI_installation_path/intel/oneapi/compiler/year/bin>
-   ```
-   NOTE: Default instalation directory for Intel oneAPI is `opt/`
+   https\://www\.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html
 
-6. Build and install    `CalTop`
+   Navigate to the \`PARDISO_MAKE\` directory and move the Makefile to \`ROOT\`.
+
+   Open the \`Makefile\` and edit paths:
+
+   \`\`\`sh
+
+   ARPACK_PATH = \<ARPACK installation_dir>
+
+   MKL_LIB = \<oneAPI_installation_path/intel/oneapi/mkl/year/lib/intel64>
+
+   MKL_INCLUDE = \<oneAPI_installation_path/intel/oneapi/mkl/year/include>
+
+   MKL_INCLUDE = \<oneAPI_installation_path/intel/oneapi/compiler/year/bin>
+
+   \`\`\`
+
+   NOTE: Default instalation directory for Intel oneAPI is \`opt/\`
+
+6\. Build and install    \`CalTop\`
 
    If installing in current directory:
-   ```sh
+
+   \`\`\`sh
+
    make 
+
    make install
-   ```
+
+   \`\`\`
 
    If using custom installation directory:
-   ```sh
-   make install PREFIX=$HOME/<installation_dir>
-   ```
 
-   Note: Run `make` or `make -j N` to build with `N` CPUs.
+   \`\`\`sh
 
-6. Set CalTop path
-    In your `.bashrc` or `.profile` set:
-   ```sh
-   CALTOP_PATH=<installation_dir>
+   make install PREFIX=$HOME/\<installation_dir>
+
+   \`\`\`
+
+   Note: Run \`make\` or \`make -j N\` to build with \`N\` CPUs.
+
+6\. Set CalTop path
+
+    In your \`.bashrc\` or \`.profile\` set:
+
+   \`\`\`sh
+
+   CALTOP_PATH=\<installation_dir>
+
    export PATH=$CALTOP_PATH:$PATH
-   ```
-   source `.bashrc`
 
-7. Uninstalling CalTop:
-   
+   \`\`\`
+
+   source \`.bashrc\`
+
+7\. Uninstalling CalTop:
+
    If installed in default (current) directory:
-   ```sh 
+
+   \`\`\`sh 
+
    make uninstall
-   ```
+
+   \`\`\`
 
    If installed in custom directory:
-   ```sh
-   make install PREFIX=$HOME/<installation_dir>
-   ```
+
+   \`\`\`sh
+
+   make install PREFIX=$HOME/\<installation_dir>
+
+   \`\`\`
+
 ## Usage: calFilt
 
-calFilt builds a density filter matrix to be used by calTop for solving topology optimizaion problems.
-Before building the density filter matrix, to enable parallelization, set:
-
-To build a densty filter matrix:
+`calFilt` assembles a density filter for CalTop. Set the number of OpenMP threads, then run it with the mesh filename stem, filter radius, and filter-kernel storage parameter:
 
 ```sh
 export OMP_NUM_THREADS=N
+calFilt.exe -i <filename_without_extension> -r <filter_radius> -f <number_of_nonzeros_in_filter_kernel>
 ```
-where ```N``` is the number of threads available on the core. Then build the filter matrix as
 
-``` sh
-calFilt.exe -i <filename_without_extension> -r <filter_spehere_radius> -f <number_of_non-zeros_in_filter_kernel>
-```
+Choose `N` according to the CPUs allocated to the process.
 
 ## Usage: calGeo
 
-calGeo is a series of python functions that extract fields from a .su2 file. 
+`calGeo` reads an SU2 mesh and prepares files used by the structural analysis. You can call the Python script directly or define a shell alias:
 
-Before running calGeo, create an alias in your `.bashrc`:
-
-``` sh
-alias calGeo='python3 some_path/Large-Scale-Topology-Optimization/CalGeo/calGeo.py'
+```sh
+alias calGeo='python3 /path/to/Large-Scale-Topology-Optimization/CalGeo/calGeo.py'
 ```
 
-Thereafter, source your `.bashrc`. Now calGeo.py is aliased as `calGeo` in your environemnt and can be run from any location as:
-
-``` sh
-calGeo mesh_name.su2 SkinMarkerList 
-```
-Additionally if you wish to detect skin element and mark them as passive, use argument "--SkinMarkerList" followed by a list of marker names identified as "skin<N>", where <N> is a positive integer that represents the layer of skins. An example case for a "mesh_name.su2" constaining markers named "skin1,skin3,skin10" is written as 
+After reloading your shell configuration, run it with the mesh and marker arguments appropriate to the case. For example, to identify several skin markers as passive regions:
 
 ```sh
 calGeo mesh_name.su2 SkinMarkerList skin1 skin3 skin10
 ```
 
-which will result in the necessary `.nam ` and `.msh` files for calTop
+The marker names must match those in the SU2 mesh. The preprocessing step generates the `.nam` and `.msh` files required by CalTop.
 
 ## Usage: calTop
 
-CalTop can be run in one of two modes at a time:
+CalTop reads a CalculiX input case and element densities from `density.dat` (or the executable's default densities). Set the OpenMP thread count before running a shared-memory build:
 
-### Mode 1: Pure FEA mode with user-defined or default element densities (density.dat)
-``` sh
-calTop.exe <filename_without_extension> 
-```
-This mode will result in evaluation of the linear elastic response and an `elastic_Field.vtu` file for visualizing element densities, stresses and nodal displacements.
-
-### Mode 2: FEA + Adjoint sensitivity analysis + Filtering with user-defined or default element densities (density.dat)
 ```sh
- calTop.exe <filename_without_extension> -p 2 
- ```
-
-where `p` is the penalization parameter.
-
-This mode will result in evaluation of the linear elastic response and the following sensitivities:
-
-1. **compliance_sens.csv**: Element compliance sensitivities
-2. **volume_sens.csv**: Element volume sensitivities
-3. **center_of_gravity_sens.csv**: Element C.G sensitivities
-
-Additionally, the following files are also written:
-1. **rhos.dat**: Filtered element densities
-2. **objectives.csv**: Structure compliance, volume fraction and C.G
-
-**NOTE**: When running in a shared-memeory environment, before calling calTop, set the number of processes as:
-``` sh
-export OMP_NUM_THREADS=<num_procs>
+export OMP_NUM_THREADS=<number_of_threads>
 ```
 
-## Adding FADO and IPOPT
-To use CalTop with FADO interface for optimization, obtain FADO from github. https://github.com/WabalabaKing/FADO_pyoptsparse (This is not the official repo but have ipopt driver and pyoptsparse interface builtin)
-FADO already comes with multiple optimization algorithms. To use IPOPT and pyoptSparse, obtain ipyopt package from https://pypi.org/project/ipyopt/ (or just do pip install ipyopt)
+**Structural analysis:**
 
-## Profiling
-The underlying density-based CalculiX codebase can be profiled using TAU. A comprehensive discusion on calTop's performance is forthcoming. To profile calTop, the source code transformation-based approach in recommended as it allows for fine-grain profiling. TAU must be built with PDT using the following configuration:
-
-``` sh
-./configure -cc=cc -fortran=gfortran -pthread -openmp -bfd=download -unwind=download -pdt=<pdt_root_dir> -prefix=<tau_install_dir>
+```sh
+calTop.exe <filename_without_extension>
 ```
 
-Once TAU is in path, the `TAU_MAKEFILE`  and `TAU execuatble` shoudl be added to the environment:
+This evaluates the linear elastic response and writes `elastic_Field.vtu` for visualization of densities, stresses, and displacements.
 
-``` sh
-export PATH="<install_dir>/x86_64/bin:$PATH"
-export TAU_MAKEFILE=<install_dir>/x86_64/lib/Makefile.tau-pthread-pdt-openmp
+**Structural analysis and sensitivities:**
+
+```sh
+calTop.exe <filename_without_extension> -p 2
 ```
 
-To compile calTop with TAU, we recommend using the Makefile in `TAU_MAKE`.
+Here, `-p` sets the density penalization parameter. This mode evaluates the response, adjoint sensitivities, and filtering. Its outputs include:
 
+| File | Contents |
+| --- | --- |
+| `compliance_sens.csv` | Element compliance sensitivities |
+| `volume_sens.csv` | Element volume sensitivities |
+| `center_of_gravity_sens.csv` | Element center-of-gravity sensitivities |
+| `rhos.dat` | Filtered element densities |
+| `objectives.csv` | Compliance, volume fraction, and center-of-gravity values |
+
+## Coupled aeroelastic workflow
+
+CalFSI links the structural analysis in CalTop with the aerodynamic analysis in SU2. [preCICE](https://precice.org/) coordinates the exchange of interface forces and displacements so that the fluid and structural solutions can be coupled. CalADJ provides the corresponding coupled aeroelastic derivatives used by gradient-based design optimization. The SU2 coupling requires a separately configured SU2 installation and preCICE setup.
+
+## Optimization with FADO and IPOPT
+
+CalTop can be used with [FADO_pyoptsparse](https://github.com/WabalabaKing/FADO_pyoptsparse) to drive an optimization. That fork provides an IPOPT driver and a pyOptSparse interface; it is a separate project. Install the [`ipyopt` package](https://pypi.org/project/ipyopt/) when using the IPOPT interface.
 
 ## License
-This project is licensed under [MIT License](LICENSE).
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## Contact
-For inquiries, please reach out to **Prateek Ranjan PhD** at `prateekr@mit.edu`.
 
-## Acknowledgement
-This work was supported by NASA under award number **80NSSC19M0125** as part of the **C**enter for **H**igh-**E**fficiency **E**lectrical **T**echnologies for **A**ircraft **(CHEETA)**.
+For inquiries, contact Prateek Ranjan at `prateekr@mit.edu`.
+
+## Acknowledgment
+
+This work was supported by NASA under award 80NSSC19M0125 as part of the Center for High-Efficiency Electrical Technologies for Aircraft (CHEETA).
