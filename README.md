@@ -1,4 +1,4 @@
-# CalTop: CalculiX-based topology optimization
+# CalTop: CalculiX-based Topology Optimization Framework
 
 CalTop is a density-based topology optimization framework built on CalculiX 2.15. It combines finite element analysis, density filtering, and adjoint sensitivities with gradient-based optimization. The CalFSI and CalADJ components extend the framework to coupled aeroelastic analysis and derivatives with SU2.
 
@@ -7,7 +7,7 @@ The repository contains three main components:
 - **CalGeo** processes SU2 solid meshes and generates mesh and CalculiX node-set files for loads, supports, and designated surface regions.
 - **CalFilt** constructs the density filter used during optimization, with parallel assembly for large tetrahedral meshes.
 - **CalTop** evaluates structural responses and design sensitivities using a multithreaded CalculiX-based solver. External optimization drivers can use these results to update the design.
-- **CalFSI** uses [preCICE](https://precice.org/) to couple CalTop with [SU2](https://su2code.github.io/) for fluid–structure interaction and static aeroelastic analysis.
+- **CalFSI** uses [preCICE](https://precice.org/) to couple CalTop with [SU2](https://github.com/prateekr9SF/SU2/) for fluid–structure interaction and static aeroelastic analysis.
 - **CalADJ** couples CalTop with SU2 to compute coupled aeroelastic derivatives for gradient-based optimization.
 
 ## Repository layout
