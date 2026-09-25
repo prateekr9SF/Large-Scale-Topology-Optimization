@@ -220,11 +220,12 @@ Here, `-p` sets the density penalization parameter. This mode evaluates the resp
 
 | File | Contents |
 | --- | --- |
-| `compliance_sens.csv` | Element compliance sensitivities |
-| `volume_sens.csv` | Element volume sensitivities |
+| `stress_sens.csv` | Aggregatedn p-norm stress sensitivities |
+| `compliance_sens.csv` | Compliance sensitivities |
+| `volume_sens.csv` | Volume fraction sensitivities |
 | `center_of_gravity_sens.csv` | Element center-of-gravity sensitivities |
 | `rhos.dat` | Filtered element densities |
-| `objectives.csv` | Compliance, volume fraction, and center-of-gravity values |
+| `objectives.csv` | Compliance, volume fraction, center-of-gravity and aggregated p-norm stress values |
 
 ## Coupled aeroelastic workflow
 
