@@ -261,3 +261,7 @@ For inquiries, contact Prateek Ranjan at `prateekr@mit.edu`.
 ## Acknowledgment
 
 This work was supported by NASA under award 80NSSC19M0125 as part of the Center for High-Efficiency Electrical Technologies for Aircraft (CHEETA).
+
+CalTop development used the [Delta](https://delta.ncsa.illinois.edu/) advanced computing resource at the [National Center for Supercomputing Applications (NCSA)](https://www.ncsa.illinois.edu/), University of Illinois Urbana-Champaign.
+
+High-end computing (HEC) resources supporting this work were provided by the [NASA Advanced Supercomputing (NAS) Division](https://www.nas.nasa.gov/) at Ames Research Center.
