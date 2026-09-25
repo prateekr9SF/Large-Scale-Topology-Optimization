@@ -234,6 +234,17 @@ CalFSI links the structural analysis in CalTop with the aerodynamic analysis in 
 
 CalTop can be used with [FADO_pyoptsparse](https://github.com/WabalabaKing/FADO_pyoptsparse) to drive an optimization. That fork provides an IPOPT driver and a pyOptSparse interface; it is a separate project. Install the [`ipyopt` package](https://pypi.org/project/ipyopt/) when using the IPOPT interface.
 
+## Authors
+
+- **Prateek Ranjan** — Project lead; CalTop development. Department of Aerospace Engineering, University of Illinois Urbana-Champaign.
+- **Wanzheng Zheng** — CalTop development. Department of Aerospace Engineering, University of Illinois Urbana-Champaign.
+- **Ghanendra Das** — CalTop development. School of Aerospace Engineering, Georgia Institute of Technology.
+
+## Research Direction and Support
+
+- **Phillip J. Ansell** — Research direction and financial support.
+- **Kai A. James** — Research direction and financial support.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
