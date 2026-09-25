@@ -16,6 +16,25 @@
 !     along with this program; if not, write to the Free Software
 !     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 !
+
+! ======================================================================
+!             CALTOP: THERMAL CONDUCTIVITY ASSEMBLY REGION
+!
+!   materialdata_th()  --> obtains solid-material conductivity
+!
+!   coconloc           --> conductivity at current Gauss point
+!
+!   SIMP interpolation can be applied here:
+!
+!       k(rho_e) = k_min + rho_e^p * (k_0 - k_min)
+!
+!   The interpolated conductivity is then used to assemble
+!
+!       K_e(rho_e) = integral(B_T^T k(rho_e) B_T dV)
+!
+! ======================================================================
+
+
       subroutine e_c3d_th(co,nk,kon,lakonl,s,sm,
      &  ff,nelem,nmethod,rhcon,nrhcon,ielmat,ielorien,norien,orab,
      &  ntmat_,t0,t1,ithermal,vold,iperturb,nelemload,
@@ -337,8 +356,21 @@ c            nope=nope+1
          endif
          return
       endif
+
 !
-!     computation of the matrix: loop over the Gauss points
+!     ================================================================
+!     THERMAL ELEMENT MATRIX ASSEMBLY
+!     ================================================================
+!     Integrate the element thermal conductivity matrix over the
+!     element volume using Gaussian quadrature:
+!
+!          K_e = integral( B_T^T * k * B_T dV )
+!
+!     where B_T contains the spatial derivatives of the temperature
+!     shape functions and k is the thermal conductivity tensor.
+!
+!     Loop over all volume integration (Gauss) points.
+!     ================================================================
 !
       do kk=1,mint3d
          if(intscheme.eq.0) then
@@ -374,6 +406,11 @@ c            nope=nope+1
                ze=gauss3d5(3,kk)
                weight=weight3d5(kk)
             elseif(lakonl(4:4).eq.'4') then
+!
+!              C3D4: four-node linear tetrahedral element.
+!              Obtain the coordinates and weight of the tetrahedral
+!              integration point.
+!
                xi=gauss3d4(1,kk)
                et=gauss3d4(2,kk)
                ze=gauss3d4(3,kk)
@@ -424,6 +461,9 @@ c            nope=nope+1
          elseif(nope.eq.10) then
             call shape10tet(xi,et,ze,xl,xsj,shp,iflag)
          elseif(nope.eq.4) then
+!
+!           C3D4 tetrahedral shape functions and spatial gradients
+!
             call shape4tet(xi,et,ze,xl,xsj,shp,iflag)
          elseif(nope.eq.15) then
             call shape15w(xi,et,ze,xl,xsj,shp,iflag)
@@ -456,6 +496,20 @@ c            nope=nope+1
      &         +vold(0,konl(10))*(shp(4,10)+shp(4,14))
      &         +vold(0,konl(11))*(shp(4,11)+shp(4,15))
      &         +vold(0,konl(12))*(shp(4,12)+shp(4,16))
+!
+!        ---------------------------------------------------------------
+!        Interpolate temperature to the current integration point
+!        ---------------------------------------------------------------
+!        The Gauss-point temperature is obtained from the nodal
+!        temperatures using
+!
+!             T_gp = sum_i( N_i * T_i ).
+!
+!        This temperature is subsequently passed to materialdata_th
+!        so that temperature-dependent thermal properties can be
+!        evaluated.
+!        ---------------------------------------------------------------
+!
          else
             do i1=1,nope
                t1l=t1l+shp(4,i1)*vold(0,konl(i1))
@@ -475,7 +529,25 @@ c            nope=nope+1
             enddo
          endif
 !
-!           material data
+!        ---------------------------------------------------------------
+!        Evaluate thermal material properties
+!        ---------------------------------------------------------------
+!        Obtain the thermal conductivity at the current Gauss point.
+!        materialdata_th accounts for the material definition,
+!        temperature dependence, and material orientation.
+!
+!        Important outputs for the conductivity matrix:
+!
+!          coconloc : thermal conductivity components
+!          mattyp   : conductivity type
+!                     1 = isotropic
+!                     2 = orthotropic
+!                     otherwise = fully anisotropic
+!
+!        For topology optimization, the conductivity interpolation
+!        based on the physical element density can be introduced after
+!        this call and before assembling the element matrix.
+!        ---------------------------------------------------------------
 !
          istiff=1
          call materialdata_th(cocon,ncocon,imat,iorien,pgauss,orab,
@@ -493,11 +565,35 @@ c            nope=nope+1
             shpj(4,i1)=shp(4,i1)*xsj
          enddo
 !
+!        Integration coefficients:
+!
+!          c1 = thermal conductivity * Gauss weight
+!          c2 = density * specific heat * Gauss weight
+!
+!        c1 contributes to the thermal conductivity matrix K_e.
+!        c2 contributes to the thermal capacity (mass) matrix and is
+!        relevant to transient heat-transfer analysis.
+!
+         c1=coconloc(1)*weight
+         c2=rho*sph*weight
          c1=coconloc(1)*weight
          c2=rho*sph*weight
 !
-!           determination of the stiffness, and/or mass and/or
-!           buckling matrix
+!        ================================================================
+!        ASSEMBLE ELEMENT THERMAL CONDUCTIVITY MATRIX
+!        ================================================================
+!
+!        For each pair of element nodes (i,j), assemble
+!
+!             K_e(i,j) += B_i^T * k * B_j * detJ * weight
+!
+!        where
+!
+!             B_i = [dN_i/dx, dN_i/dy, dN_i/dz]^T.
+!
+!        Only the upper triangular portion is explicitly assembled
+!        because the thermal conductivity matrix is symmetric.
+!        ================================================================
 !
          do jj=1,nope
 !
@@ -507,12 +603,37 @@ c            nope=nope+1
 !                   part of the stiffness matrix which, for buckling 
 !                   calculations, is done in a preliminary static
 !                   call
+
+!
+!              ---------------------------------------------------------
+!              Isotropic thermal conductivity
+!              ---------------------------------------------------------
+!              For k_x = k_y = k_z = k:
+!
+!                K_ij += k * (
+!                           dN_i/dx*dN_j/dx
+!                         + dN_i/dy*dN_j/dy
+!                         + dN_i/dz*dN_j/dz )
+!                         * detJ * weight
+!
 !
                if(mattyp.eq.1) then
 !
                   s(ii,jj)=s(ii,jj)+c1*
      &                 (shpj(1,ii)*shpj(1,jj)+shpj(2,ii)*shpj(2,jj)
      &                 +shpj(3,ii)*shpj(3,jj))
+
+!
+!              ---------------------------------------------------------
+!              Orthotropic thermal conductivity
+!              ---------------------------------------------------------
+!              Independent conductivity values are used in the three
+!              material directions:
+!
+!                   kx = coconloc(1)
+!                   ky = coconloc(2)
+!                   kz = coconloc(3)
+!
 !
                elseif(mattyp.eq.2) then
 !
@@ -538,7 +659,18 @@ c            nope=nope+1
 !
                endif
 !
-!                     mass matrix
+!              ---------------------------------------------------------
+!              THERMAL CAPACITY MATRIX -- transient analysis only
+!              ---------------------------------------------------------
+!              Assemble
+!
+!                   C_ij = integral(rho * cp * N_i * N_j dV)
+!
+!              This matrix represents thermal energy storage and is
+!              distinct from the conductivity matrix assembled above.
+!              For a purely steady-state heat-conduction problem, this
+!              is not the primary matrix of interest.
+!              ---------------------------------------------------------
 !
                if(mass.eq.1) then
                   sm(ii,jj)=sm(ii,jj)
