@@ -242,8 +242,8 @@ CalTop can be used with [FADO_pyoptsparse](https://github.com/WabalabaKing/FADO_
 
 ## Research Direction and Support
 
-- **Phillip J. Ansell** — Research direction and financial support.
-- **Kai A. James** — Research direction and financial support.
+- **Professor Phillip J. Ansell** — Research direction and financial support. Department of Aerospace Engineering, University of Illinois Urbana-Champaign.
+- **Professor Kai A. James** — Research direction and financial support. School of Aerospace Engineering, Georgia Institute of Technology.
 
 ## License
 
