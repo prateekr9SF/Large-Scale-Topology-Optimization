@@ -10,6 +10,10 @@ The repository contains three main components:
 - **CalFSI** uses [preCICE](https://precice.org/) to couple CalTop with [SU2](https://github.com/prateekr9SF/SU2/) for fluid–structure interaction and static aeroelastic analysis.
 - **CalADJ** couples CalTop with SU2 to compute coupled aeroelastic derivatives for gradient-based optimization.
 
+## Performance
+CalTop is under active development. The [TAU Performance System](https://www.cs.uoregon.edu/research/tau/home.php) is used to instrument the code and assess its performance across heterogeneous computing clusters. For profiling details, see the [profiling README](CalTop/PROFILING/README.md).
+
+
 ## Repository layout
 
 - `CalGeo/`: mesh preprocessing utilities.
