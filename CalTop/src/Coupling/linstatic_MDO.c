@@ -341,7 +341,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			if (ampli != NULL) 
 			{
     			SFREE(ampli);
-			}
+		}
 
   		    NNEW(ampli,double,*nam);
 
