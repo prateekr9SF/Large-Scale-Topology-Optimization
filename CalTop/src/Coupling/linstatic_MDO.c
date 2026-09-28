@@ -338,6 +338,11 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   		    /* allocating a field for the instantaneous amplitude */
 
+			if (ampli != NULL) 
+			{
+    			SFREE(ampli);
+			}
+
   		    NNEW(ampli,double,*nam);
 
   		    FORTRAN(tempload,(xforcold,xforc,xforcact,iamforc,nforc,xloadold,xload,
@@ -571,6 +576,13 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 		    printf("Computing the Right Hand Side...");
 			fflush(stdout);
+
+			// Free b from older iters in memory
+			if (b != NULL) 
+			{
+    			SFREE(b);
+			}
+
   		    NNEW(b,double,*neq);
 		
 		    double res_l2 = 0.0;   // ||b||_2
@@ -653,10 +665,25 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				    */					
 
 				    printf("Caling PARDISO...\n");
+					fflush(stdout);
+					/*
 				    pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,neq,nzs,
 		   		    &symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
 					printf("Linear solution complete.\n");
 					fflush(stdout);
+					*/
+
+					printf("PARDISO: factorizing K...\n");
+					fflush(stdout);
+
+					pardiso_factor(ad,au,adb,aub,&sigma,  /* adb/aub may be NULL if unused */
+               		icol,irow,neq,nzs,&symmetryflag,&inputformat,jq,&nzs[2]);
+
+					/* --- Primal solve: K u = b --- */
+					printf("PARDISO: solving primal system...\n");
+					fflush(stdout);
+
+					pardiso_solve(b,neq,&symmetryflag,&nrhs);
 
 				    #else
             	    printf("*ERROR in linstatic: the PARDISO library is not linked\n\n");
@@ -824,12 +851,13 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					SFREE(neigh);
 				}
     		}   
-            
-            SFREE(v);
-		    SFREE(stn);
-			SFREE(inum);
-    		SFREE(b);
+
+			SFREE(v);
 			SFREE(fn);
+			SFREE(brhs);
+			SFREE(stn);
+			SFREE(inum);
+			SFREE(djdrho_expl);
 
     		if(strcmp1(&filab[261],"E   ")==0) SFREE(een);
     		if(strcmp1(&filab[2697],"ME  ")==0) SFREE(emn);
@@ -847,8 +875,18 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		printf("========================================\n");
 		fflush(stdout);
 				
-		// Pass displacements (b) to results, compute stress, rhs adjoint and explicit terms. 
-    	results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+		if (*eval_PNORM!=1)
+		{	
+			// We only compute the stress-state and exit
+			NNEW(v,double,mt**nk);
+    		NNEW(fn,double,mt**nk);
+			NNEW(brhs,double,mt**nk);
+    		NNEW(stn,double,6**nk);
+    		NNEW(inum,ITG,*nk);
+			NNEW(djdrho_expl, double, *ne);
+
+			// Pass displacements (b) to results and compute stress
+    		results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    		elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	    		ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 	    		prestr,iprestr,filab,eme,emn,een,iperturb,
@@ -865,10 +903,38 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
             	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, (*eval_PNORM == 1) ? 1 : 0);
-       
+		}
+
 		// Stress adjoint system
 		if (*eval_PNORM ==1)
 		{
+			// Allocate new arrays
+			NNEW(v,double,mt**nk);
+    		NNEW(fn,double,mt**nk);
+			NNEW(brhs,double,mt**nk);
+    		NNEW(stn,double,6**nk);
+    		NNEW(inum,ITG,*nk);
+			NNEW(djdrho_expl, double, *ne);
+
+			// Pass displacements (b) to results, compute stress, rhs adjoint and explicit terms. 
+    		results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+	    		elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
+	    		ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
+	    		prestr,iprestr,filab,eme,emn,een,iperturb,
+            	f,fn,nactdof,&iout,qa,vold,b,nodeboun,ndirboun,xbounact,nboun,ipompc,
+	    		nodempc,coefmpc,labmpc,nmpc,nmethod,cam,neq,veold,accold,&bet,
+            	&gam,&dtime,&time,ttime,plicon,nplicon,plkcon,nplkcon,
+	    		xstateini,xstiff,xstate,npmat_,epn,matname,mi,&ielas,&icmd,
+            	ncmat_,nstate_,stiini,vini,ikboun,ilboun,ener,enern,emeini,
+            	xstaten,eei,enerini,cocon,ncocon,set,nset,istartset,iendset,
+            	ialset,nprint,prlab,prset,qfx,qfn,trab,inotr,ntrans,fmpc,
+	    		nelemload,nload,ikmpc,ilmpc,istep,&iinc,springarea,&reltime,
+            	&ne0,thicke,shcon,nshcon,
+            	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
+            	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
+	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
+            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, (*eval_PNORM == 1) ? 1 : 0);
+
 			double *b_adj = NULL;
 			NNEW(b_adj,double,*neq); // Adjoint variables in equation space
 			DMEMSET(b_adj,0,*neq,0.0);
@@ -897,13 +963,15 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			#endif
 
 			// At this pint we have th explicit and adjoint variables
-			double *lam = NULL, *stn=NULL;
+			double *lam = NULL;
+			
+			//, *stn=NULL;
 
 			/* allocate minimal outputs and reuse existing arrays and args*/
 			NNEW(lam, double, mt**nk); // Adjoint variables in nodal space
-			NNEW(stn, double, 6**nk);
-			NNEW(inum, ITG, *nk);
-			int iout = -1;
+			//NNEW(stn, double, 6**nk);
+			//NNEW(inum, ITG, *nk);
+			//int iout = -1;
 
 			// NOTE: B_adj is the adjoint solution in equation space
 			adjoint_eq_2_node(nk, nactdof, nboun, nodeboun, ndirboun, typeboun, mi, lam, b_adj);	
@@ -922,7 +990,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
    				- adjoint nodal field: lam (just expanded)
 			*/
 			FORTRAN(pnorm_implicit,(co,kon,ipkon,lakon,ne,mi,
-        	xstiff, v, lam, design, penal, pexp, eps, sigma0,
+        	xstiff, vold, lam, design, penal, pexp, eps, sigma0,
         	&nea_loc, &neb_loc, &list_loc, ilist_loc, djdrho_impl));
 
 			/* Assemble the global P-norm sensitivity */
@@ -955,6 +1023,15 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		for(k=0;k<7**nbody;k=k+7){xbodyold[k]=xbodyact[k];}
 
 		// All linear system calculations are complete, free terms
+
+		SFREE(v);
+		SFREE(stn);
+		SFREE(inum);
+    	SFREE(b);
+		SFREE(fn);
+		SFREE(brhs);
+		SFREE(djdrho_expl);
+
     	SFREE(ad);
 		SFREE(au);
 
