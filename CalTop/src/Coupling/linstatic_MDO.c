@@ -867,8 +867,82 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, (*eval_PNORM == 1) ? 1 : 0);
        
 		// Stress adjoint system
-				
+		if (*eval_PNORM ==1)
+		{
+			double *b_adj = NULL;
+			NNEW(b_adj,double,*neq); // Adjoint variables in equation space
+			DMEMSET(b_adj,0,*neq,0.0);
 
+			for (i = 0; i < *nk; ++i) 
+			{
+    			for (ITG idir = 1; idir <= 3; ++idir) 
+				{
+        			ITG idof = nactdof[idir + i*mt] - 1;
+        			if (idof >= 0) 
+					{
+            			b_adj[idof] = brhs[idir + i*mt];
+        			}
+    			}
+			}
+
+			#ifdef PARDISO
+			printf("PARDISO: Solving stress adjoint...");
+			fflush(stdout);
+
+			// Resuse the factorized K to solve stress adjoint
+			pardiso_solve(b_adj,neq,&symmetryflag,&nrhs);
+
+			// Stress adjoint system solved, cleanup now
+			pardiso_cleanup(neq,&symmetryflag);
+			#endif
+
+			// At this pint we have th explicit and adjoint variables
+			double *lam = NULL, *stn=NULL;
+
+			/* allocate minimal outputs and reuse existing arrays and args*/
+			NNEW(lam, double, mt**nk); // Adjoint variables in nodal space
+			NNEW(stn, double, 6**nk);
+			NNEW(inum, ITG, *nk);
+			int iout = -1;
+
+			// NOTE: B_adj is the adjoint solution in equation space
+			adjoint_eq_2_node(nk, nactdof, nboun, nodeboun, ndirboun, typeboun, mi, lam, b_adj);	
+
+			/* Allocate memory for implicit derivative*/
+			NNEW(djdrho_impl, double, *ne);
+
+			/* Work on all elements */
+			ITG nea_loc = 1, neb_loc = *ne, list_loc = 0;
+			ITG *ilist_loc = NULL;
+
+			DMEMSET(djdrho_impl,0,*ne,0.0);
+
+			/* call Fortran:
+   				- primal nodal field: use vold (current solution in CCX)
+   				- adjoint nodal field: lam (just expanded)
+			*/
+			FORTRAN(pnorm_implicit,(co,kon,ipkon,lakon,ne,mi,
+        	xstiff, v, lam, design, penal, pexp, eps, sigma0,
+        	&nea_loc, &neb_loc, &list_loc, ilist_loc, djdrho_impl));
+
+			/* Assemble the global P-norm sensitivity */
+			double PnormMult;
+			PnormMult = *Pnorm/pow(*Pnorm,*pexp);
+
+			for (int i = 0; i < *ne; ++i)
+			{
+				dPnorm_drho[i] = PnormMult* djdrho_impl[i];
+			}
+
+
+			// Stress adjoint eval complete
+			SFREE(lam);
+			SFREE(b_adj);
+			SFREE(brhs);
+			SFREE(djdrho_expl);
+			SFREE(djdrho_impl);
+
+		} // end Stress adjoint loop
 
         updateCO(coUpdated, vold, *nk, mt);
 
@@ -879,6 +953,23 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		for(k=0;k<*nforc;++k){xforcold[k]=xforcact[k];}
   		for(k=0;k<2**nload;++k){xloadold[k]=xloadact[k];}
   		for(k=0;k<7**nbody;k=k+7){xbodyold[k]=xbodyact[k];}
+
+		// All linear system calculations are complete, free terms
+    	SFREE(ad);
+		SFREE(au);
+
+    	if(iglob<0)
+		{
+			SFREE(adb);
+			SFREE(aub);
+		}
+
+		SFREE(eei);
+
+		if(*nener==1)
+		{
+			SFREE(stiini);SFREE(emeini);SFREE(enerini);
+		}
 
   		if(*ithermal==1)
 		{
