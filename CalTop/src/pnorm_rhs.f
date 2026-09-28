@@ -101,6 +101,8 @@
       real*8 MNtemp(6,30)
       real*8 TN(6,30)
       real*8 sige, sigeT
+      real*8 sigeT_tol
+      parameter (sigeT_tol = 1.d-30)
 !     
 
       intent(in) co,kon,ipkon,lakon,ne,v,
@@ -327,7 +329,7 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
                   e  = elas(1)
                   un = elas(2)
                   
-                  e = e*(rho_e**penal)
+                  e = e*(rho_eff**penal)
 
                   um = e/(2.d0*(1.d0+un))                  ! G
                   al = un*e/((1.d0+un)*(1.d0-2.d0*un))     ! lambda
@@ -556,10 +558,43 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
 
 ! ---          Construct the coeff
                !TESTMARK
-               if (sigeT .lt. 0.0 ) then
-                  coeff = 0
+               if (sigeT .lt. 0.d0 ) then
+                  coeff = 0.d0
+               elseif (sigeT .le. sigeT_tol) then
+                  coeff = 0.d0
                else
                   coeff = (sige**(pexp-1))/(sig0*dsqrt(sigeT))
+               endif
+
+               ! --- Catch NaN
+               if (coeff .ne. coeff) then
+
+                  write(*,*) '================================'
+                  write(*,*) 'NAN COEFF FOUND'
+                  write(*,*) 'element  = ',i
+                  write(*,*) 'pexp     = ',pexp
+                  write(*,*) 'rho      = ',rho_e
+                  write(*,*) 'rho_eff  = ',rho_eff
+                  write(*,*) 'sig0     = ',sig0
+                  write(*,*) 'relax    = ',eps_relax
+                  write(*,*) 'sigeT    = ',sigeT
+                  write(*,*) 'sige     = ',sige
+                  write(*,*) '================================'
+                  stop
+               endif
+               
+               ! ---Catch numerical blow-up
+               if (dabs(coeff) .gt. 1.d100) then
+
+                  write(*,*) 'VERY LARGE COEFF FOUND'
+                  write(*,*) 'element = ',i
+                  write(*,*) 'coeff   = ',coeff
+                  write(*,*) 'pexp    = ',pexp
+                  write(*,*) 'rho     = ',rho_e
+                  write(*,*) 'rho_eff = ',rho_eff
+                  write(*,*) 'sigeT   = ',sigeT
+                  write(*,*) 'sige    = ',sige
+                  stop
                endif
                !if (m .le. 5) then
                !   write(*,*) 'Elem', i,'rho=',rho_e,'vol=',xsj*weight,
