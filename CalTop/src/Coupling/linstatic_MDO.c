@@ -47,10 +47,12 @@ void updateCO(double *coUpdated, double *v, int nk, int mt)
 
 	// get num of threads declaration, if any
 	env = getenv("OMP_NUM_THREADS");
-    if(num_cpus==0){
+    if(num_cpus==0)
+	{
     	if (env)
       		num_cpus = atoi(env);
-    	if (num_cpus < 1) {
+    	if (num_cpus < 1) 
+		{
       		num_cpus=1;
     	}
     }
@@ -184,9 +186,6 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		/* temp adjoint flag*/
 		int get_adjoint = 0;
 
-
-
-
   		for(k=0;k<3;k++)
   		{
     		strcpy1(&jobnamef[k*132],&jobnamec[k*132],132);
@@ -259,9 +258,11 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		/* determining the global values to be used as boundary conditions
      	for a submodel */
 
-  		/* iglob=-1 if global results are from a *FREQUENCY calculation
-     	iglob=0 if no global results are used by boundary conditions
-     	iglob=1 if global results are from a *STATIC calculation */
+  		/*
+		iglob=-1	if global results are from a *FREQUENCY calculation
+     	iglob=0		if no global results are used by boundary conditions
+     	iglob=1		if global results are from a *STATIC calculation 
+		*/
 
   		getglobalresults(jobnamec,&integerglob,&doubleglob,nboun,iamboun,xboun,
 		   nload,sideload,iamload,&iglob,nforc,iamforc,xforc,
@@ -295,8 +296,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		}
 
   		/* assigning the body forces to the elements */
-
-  		if(*nbody>0)
+		if(*nbody>0)
   		{	
 			printf("Computing body forces...");
 			fflush(stdout);  
@@ -319,11 +319,13 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
         printf("Initializing static aeroelastic interface with %s and %s \n", preciceParticipantName, configFilename);
 		fflush(stdout);
 
-        Precice_Setup( configFilename, preciceParticipantName, &simulationData );
+        Precice_Setup(configFilename, preciceParticipantName, &simulationData );
 
         int counter = 0;
 
-		/* --- Main coupling loop --- */
+		/*==============================================================================*/
+		/*------------------------------- Main coupling loop ---------------------------*/
+		/*==============================================================================*/
         while (Precice_IsCouplingOngoing() )
         {
             counter = counter + 1;
@@ -698,11 +700,15 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					NNEW(enerini,double,mi[0]**ne);
 				}
 
+
+				// Move stress calculation after MDA loop exits
+
+				/*
 				printf("\n========================================\n");
 				printf("STRESS CALCULATION\n");
 				printf("========================================\n");
 				fflush(stdout);
-
+				
 				// Pass displacements (b) to results, compute stress, rhs adjoint and explicit terms. 
     			results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    		    elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
@@ -720,8 +726,9 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	    sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             	    mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		    islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            	    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, 1);
+            	    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, (*eval_PNORM == 1) ? 1 : 0);
 
+				*/
                 simulationData.fn = fn;
 
 			    /* ------------------------------------------------------------
@@ -829,7 +836,40 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     		if(strcmp1(&filab[522],"ENER")==0) SFREE(enern);
     	    if(strcmp1(&filab[2175],"CONT")==0) SFREE(cdn);
         } // MDO implicit loop ends here
-         
+
+		/*==============================================================================*/
+		/*------------------------------- END:Main coupling loop -----------------------*/
+		/*==============================================================================*/
+
+		// Compute stress at aeroealstic (MDA) equilibrium
+		printf("\n========================================\n");
+		printf("STRESS CALCULATION\n");
+		printf("========================================\n");
+		fflush(stdout);
+				
+		// Pass displacements (b) to results, compute stress, rhs adjoint and explicit terms. 
+    	results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+	    		elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
+	    		ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
+	    		prestr,iprestr,filab,eme,emn,een,iperturb,
+            	f,fn,nactdof,&iout,qa,vold,b,nodeboun,ndirboun,xbounact,nboun,ipompc,
+	    		nodempc,coefmpc,labmpc,nmpc,nmethod,cam,neq,veold,accold,&bet,
+            	&gam,&dtime,&time,ttime,plicon,nplicon,plkcon,nplkcon,
+	    		xstateini,xstiff,xstate,npmat_,epn,matname,mi,&ielas,&icmd,
+            	ncmat_,nstate_,stiini,vini,ikboun,ilboun,ener,enern,emeini,
+            	xstaten,eei,enerini,cocon,ncocon,set,nset,istartset,iendset,
+            	ialset,nprint,prlab,prset,qfx,qfn,trab,inotr,ntrans,fmpc,
+	    		nelemload,nload,ikmpc,ilmpc,istep,&iinc,springarea,&reltime,
+            	&ne0,thicke,shcon,nshcon,
+            	sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
+            	mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
+	    		islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
+            	inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, (*eval_PNORM == 1) ? 1 : 0);
+       
+		// Stress adjoint system
+				
+
+
         updateCO(coUpdated, vold, *nk, mt);
 
   		/* updating the loading at the end of the step;
