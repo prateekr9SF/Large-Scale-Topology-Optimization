@@ -179,8 +179,8 @@ c------ lambda^T * (K0 u)
 
 c------ accumulate implicit sensitivity
          djdrho(i) = djdrho(i)-dotlam !Implicit
-         expli1 = (sige**(pexp-1))*relax/(rho**2.d0) 
-         expli2 = (sige**(pexp-1))*vm*penal/(rho*sig0)
+         expli1 = (sige**(pexp-1))*relax/(rho_eff**2.d0) 
+         expli2 = (sige**(pexp-1))*vm*penal/(rho_eff*sig0)
          djdrho(i) = (djdrho(i)+expli1+expli2)
          !write(*,*),"IMP1",dotlam
          !now we have qbar*dkdrho*q
