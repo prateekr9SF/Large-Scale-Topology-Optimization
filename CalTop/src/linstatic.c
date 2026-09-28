@@ -456,7 +456,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 
   		/* determining the right hand side */
-
 		printf("Computing the Right Hand Side...");
 		fflush(stdout);
   		NNEW(b,double,*neq);
@@ -734,6 +733,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					printf("done\n");
 					fflush(stdout);
 				*/
+				// Resuse the factorized K to solve stress adjoint
 				pardiso_solve(b_adj,neq,&symmetryflag,&nrhs);
 
 				// Stress adjoint system solved, cleanup now
