@@ -142,9 +142,6 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		/* temp adjoint flag*/
 		int get_adjoint = 0;
 
-
-
-
   		for(k=0;k<3;k++)
   		{
     		strcpy1(&jobnamef[k*132],&jobnamec[k*132],132);
@@ -160,9 +157,12 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		/* determining the global values to be used as boundary conditions
      	for a submodel */
 
-  		/* iglob=-1 if global results are from a *FREQUENCY calculation
-     	iglob=0 if no global results are used by boundary conditions
-     	iglob=1 if global results are from a *STATIC calculation */
+  		/* 
+		iglob=-1	if global results are from a *FREQUENCY calculation
+     	iglob=0		if no global results are used by boundary conditions
+     	iglob=1		if global results are from a *STATIC calculation 
+		*/
+
 
   		getglobalresults(jobnamec,&integerglob,&doubleglob,nboun,iamboun,xboun,
 		   nload,sideload,iamload,&iglob,nforc,iamforc,xforc,
@@ -196,10 +196,10 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   		}
 
   		/* assigning the body forces to the elements */
-
-  		if(*nbody>0)
+		if(*nbody>0)
   		{	  
 			printf("Computing body forces...");
+			fflush(stdout);
       		ifreebody=*ne+1;
       		NNEW(ipobody,ITG,2*ifreebody**nbody);
 
@@ -696,7 +696,7 @@ void linstatic(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 			
 				double *b_adj = NULL;
-				NNEW(b_adj,double,*neq); // Adjoint variabels in equation space
+				NNEW(b_adj,double,*neq); // Adjoint variables in equation space
 				DMEMSET(b_adj,0,*neq,0.0);
 
 

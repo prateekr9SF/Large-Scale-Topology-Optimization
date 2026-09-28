@@ -570,7 +570,8 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                if (coeff .ne. coeff) then
 
                   write(*,*) '================================'
-                  write(*,*) 'NAN COEFF FOUND'
+                  write(*,*) 'P-NORM SENS RHS DIAGNOSTICS'
+                  write(*,*) 'RHS NAN COEFF FOUND'
                   write(*,*) 'element  = ',i
                   write(*,*) 'pexp     = ',pexp
                   write(*,*) 'rho      = ',rho_e
@@ -582,11 +583,11 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                   write(*,*) '================================'
                   stop
                endif
-               
+
                ! ---Catch numerical blow-up
                if (dabs(coeff) .gt. 1.d100) then
-
-                  write(*,*) 'VERY LARGE COEFF FOUND'
+                  write(*,*) 'P-NORM SENS RHS DIAGNOSTICS'
+                  write(*,*) 'RHS VERY LARGE COEFF FOUND'
                   write(*,*) 'element = ',i
                   write(*,*) 'coeff   = ',coeff
                   write(*,*) 'pexp    = ',pexp

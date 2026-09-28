@@ -1313,6 +1313,13 @@ while(istat>=0)
 
   //	FORTRAN(writeboun,(nodeboun,ndirboun,xboun,typeboun,&nboun));
 
+
+  // Set P-norm flag to true based on passed P-exponent 
+  if (pexp > 1.0) 
+  {
+    eval_PNORM = (iperturb[0] >= 2) ? 2 : 1;
+  }
+
   if(istat<0) break;
 
   /* first step of F.E analysis */
@@ -2054,7 +2061,7 @@ while(istat>=0)
              prset,&nener,trab,inotr,&ntrans,fmpc,cbody,ibody,xbody,&nbody,
 	     xbodyold,timepar,thicke,jobnamec,tieset,&ntie,&istep,&nmat,
 	     ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
-	     orname,rhoPhys,&pstiff, stx, &sigma0, &eps_relax, &rhomin, &pexp, &Pnorm, dPnorm_drho, &mat_dens, preciceParticipantName,configFilename, ikforc, ilforc);
+	     orname,rhoPhys,&pstiff, stx, &sigma0, &eps_relax, &rhomin, &pexp, &Pnorm, dPnorm_drho, &mat_dens, &eval_PNORM, preciceParticipantName,configFilename, ikforc, ilforc);
 
       endl = time(NULL);
 
