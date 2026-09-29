@@ -2061,7 +2061,7 @@ while(istat>=0)
              prset,&nener,trab,inotr,&ntrans,fmpc,cbody,ibody,xbody,&nbody,
 	     xbodyold,timepar,thicke,jobnamec,tieset,&ntie,&istep,&nmat,
 	     ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
-	     orname,rhoPhys,&pstiff, stx, &sigma0, &eps_relax, &rhomin, &pexp, &Pnorm, dPnorm_drho, &mat_dens, &eval_PNORM, preciceParticipantName,configFilename, ikforc, ilforc);
+	     orname,rhoPhys,&pstiff, stx, &sigma0, &eps_relax, &rhomin, &pexp, &Pnorm, dPnorm_drho, &mat_dens, preciceParticipantName,configFilename, ikforc, ilforc);
 
       endl = time(NULL);
 
