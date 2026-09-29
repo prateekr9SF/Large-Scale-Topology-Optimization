@@ -316,89 +316,45 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 
 
-
+		// MDA counter to diable refactorization of K
         int counter = 0;
 
-		// Assemble nd factorize K before MDA loop
+		// Allocate for K before MDA loop
+		printf("Allocating memory for stiffness matrix diagonal terms...");
+		fflush(stdout);
+  		NNEW(ad,double,*neq);
+		printf("done\n");
+
+		printf("Allocating memory for external force vector...");
+		fflush(stdout);
+  		NNEW(fext,double,*neq);
+		printf("done\n");
+		fflush(stdout);
+
+		printf("Allocating memory for stiffness matrix (upper) off-diagonal terms...");
+		fflush(stdout);
+      	NNEW(au,double,*nzs);
+		printf("done\n");
+		fflush(stdout);
+
+	
+		printf("Allocating memory for constitutive matrix...");
+		fflush(stdout);
+  		NNEW(xstiff,double,(long long)27*mi[0]**ne);
+		printf("done\n");
 
 
-		// Diagonal entries of stiffness matrix K
-			printf("Allocating memory for stiffness matrix diagonal terms...");
-			fflush(stdout);
-  		    NNEW(ad,double,*neq);
-			printf("done\n");
-
-			printf("Allocating memory for external force vector...");
-			fflush(stdout);
-  		    NNEW(fext,double,*neq);
-			printf("done\n");
-			fflush(stdout);
-
-			// Off-diagonal entries of stiffness matrix K
-			printf("Allocating memory for stiffness matrix (upper) off-diagonal terms...");
-			fflush(stdout);
-      		NNEW(au,double,*nzs);
-			printf("done\n");
-			fflush(stdout);
-
-			/* allocating a field for the stiffness matrix */
-			printf("Allocating memory for constitutive matrix...");
-			fflush(stdout);
-  		    NNEW(xstiff,double,(long long)27*mi[0]**ne);
-			printf("done\n");
-		
-			/*
-			fflush(stdout);
-
-			NNEW(ampli,double,*nam);
-
-  		    FORTRAN(tempload,(xforcold,xforc,xforcact,iamforc,nforc,xloadold,xload,
-	            xloadact,iamload,nload,ibody,xbody,nbody,xbodyold,xbodyact,
-	            t1old,t1,t1act,iamt1,nk,amta,
-	            namta,nam,ampli,&time,&reltime,ttime,&dtime,ithermal,nmethod,
-                xbounold,xboun,xbounact,iamboun,nboun,
-	            nodeboun,ndirboun,nodeforc,ndirforc,istep,&iinc,
-	            co,vold,itg,&ntg,amname,ikboun,ilboun,nelemload,sideload,mi,
-                ntrans,trab,inotr,veold,integerglob,doubleglob,tieset,istartset,
-                iendset,ialset,ntie,nmpc,ipompc,ikmpc,ilmpc,nodempc,coefmpc,
-                ipobody,iponoel,inoel,ipkon,kon,ielprop,prop,ielmat,
-                shcon,nshcon,rhcon,nrhcon,cocon,ncocon,ntmat_,lakon));
-
-				nmethodl = *nmethod;
-
-		  	mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
-	        ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
-	        nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
-	        nbody,cgr,ad,au,fext,nactdof,icol,jq,irow,neq,nzl,&nmethodl,
-	        ikmpc,ilmpc,ikboun,ilboun,
-	        elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
-	        ielorien,norien,orab,ntmat_,
-	        t0,t1act,ithermal,prestr,iprestr,vold,iperturb,sti,
-	        nzs,stx,adb,aub,iexpl,plicon,nplicon,plkcon,nplkcon,
-	        xstiff,npmat_,&dtime,matname,mi,
-            ncmat_,mass,&stiffness,&buckling,&rhsi,&intscheme,physcon,
-            shcon,nshcon,cocon,ncocon,ttime,&time,istep,&iinc,&coriolis,
-	        ibody,xloadold,&reltime,veold,springarea,nstate_,
-            xstateini,xstate,thicke,integerglob,doubleglob,
-	        tieset,istartset,iendset,ialset,ntie,&nasym,pslavsurf,
-	        pmastsurf,mortar,clearini,ielprop,prop,&ne0,fnext,&kscale,
-	        iponoel,inoel,&network,ntrans,inotr,trab,design,penal, mat_dens);
-			
-			SFREE(fext);
-			SFREE(ampli);
-			*/
-
-
-			/*---Adapter: Create the interfaces and initialize the coupling---*/
-        	printf("Initializing static aeroelastic interface with %s and %s \n", preciceParticipantName, configFilename);
-			fflush(stdout);
+		//---Adapter: Create the interfaces and initialize the coupling---//
+        printf("Initializing static aeroelastic interface with %s and %s \n", preciceParticipantName, configFilename);
+		fflush(stdout);
 
         Precice_Setup( configFilename, preciceParticipantName, &simulationData );
 
 		//=============================================================================//
 		// -------------------------- Main coupling loop ----------------------------- //
 		//=============================================================================//
-        while (Precice_IsCouplingOngoing())
+        
+		while (Precice_IsCouplingOngoing())
         {
             counter = counter + 1;
 
@@ -409,7 +365,6 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             Precice_ReadCouplingData(&simulationData);
 
   		    /* allocating a field for the instantaneous amplitude */
-
   		    NNEW(ampli,double,*nam);
 
   		    FORTRAN(tempload,(xforcold,xforc,xforcact,iamforc,nforc,xloadold,xload,
@@ -431,16 +386,6 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			printf("done\n");
 			fflush(stdout);
 
-		
-
-  		    /* allocating a field for the stiffness matrix */
-			/*	printf("Allocating memory for constitutive matrix...");
-			fflush(stdout);
-  		    NNEW(xstiff,double,(long long)27*mi[0]**ne);
-			printf("done\n");
-			fflush(stdout);
-			*/
-
   		    /* for a *STATIC,PERTURBATION analysis with submodel boundary
      	    conditions from a *FREQUENCY analysis iperturb[0]=1 has to be
      	    temporarily set to iperturb[0]=0 in order for f to be calculated in
@@ -457,6 +402,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		    NNEW(djdrho_expl, double, *ne);
   		    NNEW(fn,double,mt**nk);
 		    NNEW(brhs,double,mt**nk);
+
   		    //NNEW(stx,double,6*mi[0]**ne); Now passing stx as an input argument to linstatic
   		    NNEW(inum,ITG,*nk);
 
@@ -480,11 +426,9 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
     	    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl, Pnorm, 0);
 
 		    // NOTE: At this point xstiff is not penalized
-	
   		    SFREE(v);
 		    SFREE(fn);
 		    SFREE(brhs);
-		    //SFREE(stx); Now free stx in main driver
 		    SFREE(inum);
 		    SFREE(djdrho_expl);
   		    iout=1;
@@ -494,26 +438,8 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       		    iperturb[0]=iperturbsav;
   		    }
 
-  		    /* determining the system matrix and the external forces */
-
-		    // Diagonal entries of stiffness matrix K
-
-			/*
-			printf("Allocating memory for stiffness matrix diagonal terms...");
-			fflush(stdout);
-  		    NNEW(ad,double,*neq);
-			printf("done\n");
-
-			printf("Allocating memory for external force vector...");
-			fflush(stdout);
-  		    NNEW(fext,double,*neq);
-			printf("done\n");
-			fflush(stdout);
-			*/
-
   		    if(*nmethod==11)
 		    {
-
     		    /* determining the nodes and the degrees of freedom in those nodes
        		    belonging to the substructure */
 
@@ -548,8 +474,6 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
       		    }
 
       		    /* creating the right size au */
-
-
       		    NNEW(au,double,nzs[2]);
       		    rhsi=0;
 			    //      nmethodl=2;
@@ -564,23 +488,11 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  			    NNEW(aub,double,nzs[1]);
       		    }
   		    } // end if(imethod ==11)
-		    else
+		    else // linear static calculation 
 		    {   	
-			    /*############################################################################################*/
-			    /* linear static calculation */
-
 			    printf("Starting linstatic calculation...\n");
 				fflush(stdout);
 
-			    // Off-diagonal entries of stiffness matrix K
-				/*
-				printf("Allocating memory for stiffness matrix (upper) off-diagonal terms...");
-				fflush(stdout);
-      		    NNEW(au,double,*nzs);
-				printf("done\n");
-				fflush(stdout);
-
-				*/
       		    nmethodl=*nmethod;
 
       		    /* if submodel calculation with a global model obtained by
@@ -599,20 +511,17 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			printf("Updating f_ext\n");
 			fflush(stdout);
 
-			/*printf("Allocating memory for external force vector...");
-			fflush(stdout);
-  		    NNEW(fext,double,*neq);
-			printf("done\n");
-			fflush(stdout);
-			*/
+
 			double *ad_mda = NULL;
 			double *au_mda = NULL;
 
 			// Intermediate scratch matrices
+			printf("Allocating upper and diagonal K-matrix arrays...");
+			fflush(stdout);
 			NNEW(ad_mda,double,*neq);
 			NNEW(au_mda,double,*nzs);
 			NNEW(fext,double,*neq);
-
+			printf("done!\n");
   		    mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
 	        ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
 	        nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
@@ -639,28 +548,10 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			//SFREE(ad_mda);
 			//SFREE(au_mda);
 			
-			// Factor K here
+			// Factor K here and exit
 			if(*isolver==7)
 			{
 				#ifdef PARDISO
-
-				/* NOTE:
-					sigma = 0 for all linear elastic calculations
-					neq   = Stiffness matrix size
-					nzs   = Number of non-zeros in stiffness matrix
-					symmetryflag 	= 0 for linear-elastic system
-					inputformat 	= 0 for all linear-elastic systems
-					jq 				= not required for linear elastic systems
-					nrhs            = 1 for all linear elastic systems
-				*/					
-
-				/*
-				    printf("Caling PARDISO...\n");
-				    pardiso_main(ad_mda,au_mda,adb,aub,&sigma,b,icol,irow,neq,nzs,
-		   		    &symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
-					printf("Linear solution complete.\n");
-					fflush(stdout);
-				*/
 
 				/* ---------------------------------------------------------
  					* Factorize K only on first MDA iteration.
@@ -691,7 +582,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	printf("*ERROR in linstatic: the PARDISO library is not linked\n\n");
             	FORTRAN(stop,());
 				#endif
-            } // end pardiso factorization here
+            } // end K factorization 
 
 			SFREE(ad_mda);
 			SFREE(au_mda);
@@ -701,7 +592,11 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   		    if(nasym==1)
   		    {	
-				printf("WARNING: This will break MDA K-prefactor! Asembling mass matrix ?\n");
+				printf("\nERROR: nasym = %d\n", nasym);
+    			printf("K-prefactorization currently assumes a symmetric system.\n");
+    			fflush(stdout);
+    			FORTRAN(stop,());
+
 				fflush(stdout);
       		    RENEW(au,double,2*nzs[1]);
       		    symmetryflag=2;
@@ -726,13 +621,13 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		  	    ialset,ntie,&nasym,pslavsurf,pmastsurf,mortar,clearini,
 		  	    ielprop,prop,&ne0,&kscale,iponoel,inoel,&network));
   		    }
-  		    /* determining the right hand side */
 
+  		    // determining the right hand side //
 		    printf("Computing the Right Hand Side...");
 			fflush(stdout);
   		    NNEW(b,double,*neq);
 		
-		    double res_l2 = 0.0;   // ||b||_2
+		    double res_l2 = 0.0;
 
   		    for(k=0;k<*neq;++k)
   		    {
@@ -811,7 +706,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 					nrhs            = 1 for all linear elastic systems
 				    */					
 
-					/*
+					/* LEGACY operation
 				    printf("Caling PARDISO...\n");
 				    pardiso_main(ad_mda,au_mda,adb,aub,&sigma,b,icol,irow,neq,nzs,
 		   		    &symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
@@ -828,7 +723,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	    printf("*ERROR in linstatic: the PARDISO library is not linked\n\n");
             	    FORTRAN(stop,());
 				    #endif
-                } // end pardiso conditional here
+                } // end primal solution
 
                
 
@@ -839,6 +734,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				*/
     			/* calculating the stresses and storing */
     			/* the results in frd format for each valid eigenmode */
+
     			NNEW(v,double,mt**nk);
     			NNEW(fn,double,mt**nk);
 				NNEW(brhs,double,mt**nk);
@@ -881,7 +777,9 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	    sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             	    mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		    islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            	    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, 1);
+            	    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, 0); 
+				
+					// Note: Set last argument to zero since we don't want to compute P-norm terms here
 
                 simulationData.fn = fn;
 
@@ -996,6 +894,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		// -------------------------- End coupling loop ----------------------------- //
 		//=============================================================================//
         
+		// Clean up all PARDISO-related terms
 		pardiso_cleanup(neq,&symmetryflag);
 
 		SFREE(au);
