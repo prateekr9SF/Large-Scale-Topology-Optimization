@@ -398,6 +398,13 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                		icol,irow,neq,nzs,&symmetryflag,&inputformat,jq,&nzs[2]);
 
 			}
+
+		  		    /* allocating a field for the stiffness matrix */
+			printf("Allocating memory for constitutive matrix...");
+			fflush(stdout);
+  		    NNEW(xstiff,double,(long long)27*mi[0]**ne);
+			printf("done\n");
+			fflush(stdout);	
 		//=============================================================================//
 		// -------------------------- Main coupling loop ----------------------------- //
 		//=============================================================================//
@@ -428,18 +435,21 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                 shcon,nshcon,rhcon,nrhcon,cocon,ncocon,ntmat_,lakon));
 
   		    /* determining the internal forces and the stiffness coefficients */
-			printf("Allocating memory for force vector...");
+		/*	printf("Allocating memory for force vector...");
 			fflush(stdout);
   		    NNEW(f,double,*neq);
 			printf("done\n");
 			fflush(stdout);
 
+			*/
+
   		    /* allocating a field for the stiffness matrix */
-			printf("Allocating memory for constitutive matrix...");
+		/*	printf("Allocating memory for constitutive matrix...");
 			fflush(stdout);
   		    NNEW(xstiff,double,(long long)27*mi[0]**ne);
 			printf("done\n");
 			fflush(stdout);
+			*/
 
   		    /* for a *STATIC,PERTURBATION analysis with submodel boundary
      	    conditions from a *FREQUENCY analysis iperturb[0]=1 has to be
@@ -599,12 +609,12 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			printf("Updating f_ext\n");
 			fflush(stdout);
 
-			printf("Allocating memory for external force vector...");
+			/*printf("Allocating memory for external force vector...");
 			fflush(stdout);
   		    NNEW(fext,double,*neq);
 			printf("done\n");
 			fflush(stdout);
-
+			*/
 			double *ad_mda = NULL;
 			double *au_mda = NULL;
 
