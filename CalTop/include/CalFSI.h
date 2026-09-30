@@ -140,6 +140,10 @@ void write_converged_rhs(const char *filename,
                                 ITG neq);
 
 
+void read_converged_rhs(const char *filename,
+                        double *b,
+                        ITG neq);               
+
 void write_compliance_sensitivities(int ne,
 	const double *gradCompl,
 	const double *gradComplFiltered,

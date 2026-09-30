@@ -53,3 +53,63 @@ void write_converged_rhs(const char *filename,
     printf("RHS L2 norm         : %.10f\n", sqrt(rhs_norm_sq));
     fflush(stdout);
 }
+
+void read_converged_rhs(const char *filename,
+                        double *b,
+                        ITG neq)
+{
+    FILE *fp = fopen(filename, "r");
+
+    if (fp == NULL)
+    {
+        fprintf(stderr,
+                "ERROR: Could not open %s for reading.\n",
+                filename);
+        perror("fopen");
+        FORTRAN(stop,());
+    }
+
+    double rhs_norm_sq = 0.0;
+
+    for (ITG i = 0; i < neq; ++i)
+    {
+        if (fscanf(fp, "%lf", &b[i]) != 1)
+        {
+            fprintf(stderr,
+                    "ERROR: Failed reading %s at equation %d.\n",
+                    filename,
+                    (int)(i + 1));
+
+            fclose(fp);
+            FORTRAN(stop,());
+        }
+
+        rhs_norm_sq += b[i] * b[i];
+    }
+
+    /*
+     * Make sure the file does not contain more RHS entries
+     * than the current equation system expects.
+     */
+    double extra_value;
+
+    if (fscanf(fp, "%lf", &extra_value) == 1)
+    {
+        fprintf(stderr,
+                "ERROR: %s contains more than %d RHS entries.\n",
+                filename,
+                (int)neq);
+
+        fclose(fp);
+        FORTRAN(stop,());
+    }
+
+    fclose(fp);
+
+    printf("Structural RHS loaded from %s\n", filename);
+    printf("Number of equations : %d\n", (int)neq);
+    printf("RHS L2 norm         : %.10f\n",
+           sqrt(rhs_norm_sq));
+
+    fflush(stdout);
+}
