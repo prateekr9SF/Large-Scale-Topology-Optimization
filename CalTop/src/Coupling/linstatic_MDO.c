@@ -764,6 +764,8 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				printf("========================================\n");
 				fflush(stdout);
 
+				printf("Current eval PNORM flag: %d\n", *eval_PNORM);
+
 				// Pass displacements (b) to results, compute stress, rhs adjoint and explicit terms. 
     			results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    		    elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
@@ -781,7 +783,10 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             	    sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
             	    mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    		    islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
-            	    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, 0); 
+            	    inoel,nener,orname,&network,ipobody,xbodyact,ibody,typeboun, design, penal, sigma0, eps, rhomin, pexp, brhs, djdrho_expl,Pnorm, (*eval_PNORM == 1) ? 1 : 0);
+
+					
+					printf("Calculated Pnorm at MDA iter: %f\n", *Pnorm);
 				
 					// Note: Set last argument to zero since we don't want to compute P-norm terms here
 

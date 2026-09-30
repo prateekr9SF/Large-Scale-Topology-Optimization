@@ -2044,6 +2044,8 @@ while(istat>=0)
       printf("\n========================================\n");
       printf("LINEAR ELASTIC SOLUTION\n");
       printf("========================================\n");
+
+
   
 	    linstatic_MDO(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
 	     ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,ndirforc,xforc,
@@ -2067,42 +2069,6 @@ while(istat>=0)
 
 	    printf("\nTime taken for linstatic.c is %.8f seconds \n", 
 		  difftime(endl, startl));
-
-    if (eval_PNORM == 1)
-    {
-      #ifdef PROFILING_ON
-        TAU_PROFILE_START(t_filter_CalTop);
-      #endif
-
-      printf("Filtering element stress (P-norm) gradient ");
-      fflush(stdout);
-
-      /* Allocate memory for P-norm stress sensitivities */  
-      NNEW(dPnorm_drhoFiltered, double, ne_);
-      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
-
-      #ifdef PROFILING_ON
-        TAU_PROFILE_STOP(t_filter_CalTop);
-      #endif
-      
-      #ifdef PROFILING_ON
-        TAU_PROFILE_START(t_fileIO_CalTop);
-      #endif
-
-      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
-      if (rs != 0) 
-      {
-        printf("Unable to write P-norm sensitivities to disk!\n");
-        fflush(stdout);
-      }
-
-      #ifdef PROFILING_ON
-        TAU_PROFILE_STOP(t_fileIO_CalTop);
-      #endif
-      
-      SFREE(dPnorm_drhoFiltered);
-      printf("done \n");
-    }
 
       // Free this sens outside for now
       SFREE(dPnorm_drho);

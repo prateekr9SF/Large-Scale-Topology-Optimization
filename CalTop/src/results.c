@@ -349,10 +349,13 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
                 *Pnorm = pow(sumP, 1.0 / p);
             }
             else
-            {
+            {   
+                printf("Sump is either zero or less that zero\n");
                 *Pnorm = 0.0;
             }
         }  // end stress P-norm calculation
+
+        printf("Pnorm in reuslts.c: %f \n", *Pnorm);
 
 	    for(i=0;i<mt**nk;i++)
         {
