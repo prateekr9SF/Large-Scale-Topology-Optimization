@@ -102,7 +102,7 @@ static double eval_pnorm_J_fd(void)
 
 
 
-void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
+void results_MDA(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
        double *v,double *stn,ITG *inum,double *stx,double *elcon,ITG *nelcon,
        double *rhcon,ITG *nrhcon,double *alcon,ITG *nalcon,double *alzero,
        ITG *ielmat,ITG *ielorien,ITG *norien,double *orab,ITG *ntmat_,
@@ -377,42 +377,12 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         if (get_adjoint == 1)
         {
             // STEP 2: ASSEMBLE RHS FOR P-NORM ADJOINT
-            printf("Assembling RHS for stress adjoint using analytical solution...");
+            printf("Skipping RHS eval for stress adjoint => CalAdj");
             fflush(stdout);
 
-            //Allocate per-thread RHS blocks and the reduced RHS
-            NNEW(rhs1, double, num_cpus * mt * *nk);
+            // NOTE: brhs[] object is not populated in CalFSI
 
-            // Zero them (CalculiX NNEW doesn't zero by default)
-            for (size_t zz = 0; zz < (size_t)num_cpus * mt * *nk; ++zz) rhs1[zz] = 0.0;
 
-            // Spawn RHS threads
-            NNEW(ithread, ITG, num_cpus);
-
-            for (i = 0; i < num_cpus; ++i) 
-            {
-                ithread[i] = i;
-                pthread_create(&tid[i], NULL, (void *)pnormRHSmt, (void *)&ithread[i]);
-            }
-
-            for (i = 0; i < num_cpus; ++i) pthread_join(tid[i], NULL);
-            SFREE(ithread);
-
-            // Reduce per-thread blocks into brhs 
-            for (i = 0; i < mt * *nk; ++i) 
-            {
-                double acc = rhs1[i];
-                for (j = 1; j < num_cpus; ++j) 
-                {
-                    acc += rhs1[i + j * mt * *nk];
-                }
-                brhs[i] = acc;
-            }
-
-            //Done with per-thread storage
-	        SFREE(rhs1);
-            printf("done!\n");
-            fflush(stdout);
         }
 
         if (get_adjoint == 1)
