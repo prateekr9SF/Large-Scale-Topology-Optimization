@@ -2029,7 +2029,7 @@ while(istat>=0)
       printf("LINEAR ELASTIC SOLUTION \n");
       printf("========================================\n");
   
-	    linstatic(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
+	    linstatic_ADJ(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
 	      ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,ndirforc,xforc,
         &nforc, nelemload,sideload,xload,&nload,
 	      nactdof,&icol,jq,&irow,neq,&nzl,&nmethod,ikmpc,

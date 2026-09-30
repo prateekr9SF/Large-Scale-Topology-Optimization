@@ -640,6 +640,10 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			printf("done\n");
 			fflush(stdout);
 
+			// write current RHS (b) to disk for adjoint eval
+			write_converged_rhs("convergedRHS.dat", b, *neq);
+
+
 		    if(*nmethod!=0)
 	    	{
    			    /* linear static applications */
@@ -905,7 +909,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 			SFREE(adb);
 			SFREE(aub);
 		}
-        
+		
 		updateCO(coUpdated, vold, *nk, mt);
 
   		/* updating the loading at the end of the step;

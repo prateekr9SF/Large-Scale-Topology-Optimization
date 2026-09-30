@@ -33,6 +33,7 @@ double *aupardiso=NULL;
 /* double dparm[64];  not used */
 ITG nthread_mkl=0;
 /* char envMKL[32];   moved to pardiso.h */
+//char envMKL[32];
 
 /*
  * ----------------------------------------------------------------------

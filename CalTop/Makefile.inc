@@ -1084,6 +1084,8 @@ $(SRC_DIR)/Coupling/CCXHelpers.c \
 $(SRC_DIR)/Coupling/PreciceInterface.c \
 $(SRC_DIR)/Coupling/nonlingeo_MDO.c \
 $(SRC_DIR)/Coupling/calFSI_ADJ.c \
+$(SRC_DIR)/Coupling/MDA_rhs.c \
+$(SRC_DIR)/Coupling/linstatic_ADJ.c \
 
 
 
