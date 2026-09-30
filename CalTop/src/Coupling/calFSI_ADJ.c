@@ -602,25 +602,27 @@ int marker_count = 0;
 int found_surface = 0;
 int found_fixed = 0;
 
-/* Fine su2 mesh in CWD */
+
+/*
+// Fine su2 mesh in CWD //
 find_AD_su2_file(su2file);
 
 printf("Found SU2 mesh:\n");
 printf("%s\n\n", su2file);
 
-/* get all availbale markers  in the .su2 file */
+// get all availbale markers  in the .su2 file //
 marker_list = get_su2_markers(su2file, &marker_count);
 
-/* loop over all markers and call specific nam file generators */
+// loop over all markers and call specific nam file generators //
 for (int i = 0; i < marker_count; i++)
 {
   if (strcmp(marker_list[i], "surface") == 0)
   {
     found_surface = 1;
-    /* Extract .nam for traction nodes */
+    // Extract .nam for traction nodes //
     extract_marker(su2file,"surface","NSurface.nam");
 
-    /* Write skin element list for surface elements */
+    // Write skin element list for surface elements //
     extract_skin_elements(su2file, "surface", "skinElementList.nam");
   }
 
@@ -632,12 +634,12 @@ for (int i = 0; i < marker_count; i++)
 
   else if (strcmp(marker_list[i], "tank") == 0)
   {
-    /* Write skin element list for tank elements */
+    // Write skin element list for tank elements //
     extract_skin_elements(su2file, "tank", "tankElementList.nam");
   }
 }
 
-/* if marker surface is not found, exit */
+// if marker surface is not found, exit //
 if (!found_surface)
 {
   fprintf(stderr, "\nERROR: Required SU2 marker 'surface' was not found.\n"
@@ -654,7 +656,7 @@ if (!found_surface)
   FORTRAN(stop,());
 }
 
-/* if marker fixed is not found, exit */
+// if marker fixed is not found, exit //
 if (!found_fixed)
 {
   fprintf(stderr,
@@ -671,18 +673,18 @@ if (!found_fixed)
   FORTRAN(stop,());
 }
 
-/* Free marker list */
+// Free marker list //
 for (int i = 0; i < marker_count; i++)
 {
   free(marker_list[i]);
 }
   free(marker_list);
 
-/* get mesh.nam */
+// get mesh.nam //
 convert_volume_mesh(su2file);
 printf("\nExtracted CalTop/CalculiX mesh from SU2 mesh file\n\n");
 
-/* Move all mesh files to Solid*/
+// Move all mesh files to Solid//
 if (rename("mesh.nam", "Solid/mesh.nam") != 0)
 {
   perror("ERROR: Could not move mesh.nam to Solid/");
@@ -701,7 +703,7 @@ if (rename("NSurface.nam", "Solid/NSurface.nam") != 0)
   FORTRAN(stop,());
 }
 
-
+*/
 
 /* conservative estimate of the fields to be allocated */
 readinput(jobnamec,&inpc,&nline,&nset_,ipoinp,&inp,&ipoinpc,ithermal,&nuel_);
