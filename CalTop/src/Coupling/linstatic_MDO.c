@@ -765,7 +765,7 @@ void linstatic_MDO(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 				fflush(stdout);
 
 				// Pass displacements (b) to results, compute stress, rhs adjoint and explicit terms. 
-    			results(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
+    			results_MDA(co,nk,kon,ipkon,lakon,ne,v,stn,inum,stx,
 	    		    elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
 	    		    ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
 	    		    prestr,iprestr,filab,eme,emn,een,iperturb,
