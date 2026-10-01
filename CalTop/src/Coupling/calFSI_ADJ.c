@@ -1300,6 +1300,12 @@ while(istat>=0)
 
   if((abs(nmethod)!=1)||(iperturb[0]<2))icascade=0;
 
+  // Set P-norm flag to true based on passed P-exponent 
+  if (pexp > 1.0) 
+  {
+    eval_PNORM = (iperturb[0] >= 2) ? 2 : 1;
+  }
+
   //	FORTRAN(writeboun,(nodeboun,ndirboun,xboun,typeboun,&nboun));
 
   if(istat<0) break;
@@ -2023,6 +2029,8 @@ while(istat>=0)
 	      printf("        feasible; use NLGEOM on the *STEP card.");
 	      FORTRAN(stop,());
 	    }
+
+      printf("Current eval_PNORM value: %d \n", eval_PNORM);
     
       time_t startl, endl; 
 	    startl = time(NULL);
@@ -2056,6 +2064,7 @@ while(istat>=0)
 
       // NOTE: Filter, write and free stress array here to reduce memory signature
       /*--------------------------------------STRESS SENSITIVITY FILTERING AND I/O -----------------------------------*/
+      
 
       if (eval_PNORM == 1)
       {
