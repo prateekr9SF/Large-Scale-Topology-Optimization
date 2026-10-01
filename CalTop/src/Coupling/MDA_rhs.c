@@ -26,7 +26,7 @@ void write_converged_rhs(const char *filename,
          * Fixed-point notation:
          * one equation-space RHS value per line.
          */
-        if (fprintf(fp, "%.10f\n", b[i]) < 0)
+        if (fprintf(fp, "%.17f\n", b[i]) < 0)
         {
             fprintf(stderr,
                     "ERROR: Failed while writing %s at equation %d.\n",
