@@ -97,6 +97,10 @@
 #define ITGFORMAT "d"
 #endif
 
+
+void cleanup_filter_files(void);
+
+
 void write_compliance_sensitivities(int ne,
 	const double *gradCompl,
 	const double *gradComplFiltered,

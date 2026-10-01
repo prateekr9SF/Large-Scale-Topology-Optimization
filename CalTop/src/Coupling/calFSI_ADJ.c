@@ -2746,6 +2746,12 @@ while(istat>=0)
 
  } // end while(istat>=0)
 
+  printf("Removing filter files...");
+  fflush(stdout);
+  cleanup_filter_files();
+  printf("done!\n");
+  fflush(stdout);
+
   printf("De-allocate memory...");
 
   FORTRAN(closefile,());

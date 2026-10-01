@@ -1087,6 +1087,7 @@ $(SRC_DIR)/Coupling/calFSI_ADJ.c \
 $(SRC_DIR)/Coupling/MDA_rhs.c \
 $(SRC_DIR)/Coupling/linstatic_ADJ.c \
 $(SRC_DIR)/Coupling/results_MDA.c \
+$(SRC_DIR)/utils/cleanup.c \
 
 
 
