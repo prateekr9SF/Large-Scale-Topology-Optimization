@@ -2230,7 +2230,7 @@ while(istat>=0)
 
       NNEW(elCG,double,3*ne_);
 
-            NNEW(gradCompl,double,ne_);
+      NNEW(gradCompl,double,ne_);
 
       /* allocate memory for element complaince and initialize to zero */
       NNEW(elCompl,double,ne_);
@@ -2370,83 +2370,19 @@ while(istat>=0)
       /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/    
       
       /* Define variables for mass and center of gravity */
-      double M, cgx, cgy, cgz;
-
-      if (eval_CG == 1)
-      {
-        printf("\n========================================\n");
-        printf("SENSITIVITY EVALUATION (CG)\n");
-        printf("========================================\n");
-
-        printf("Evaluate and filter CG sensitivities...\n\n");
-        fflush(stdout);
-        /* Allocate memory for CG sensitivities */
-        dCGx = (double*)calloc(ne, sizeof(double));
-        dCGy = (double*)calloc(ne, sizeof(double));
-        dCGz = (double*)calloc(ne, sizeof(double));
-
-        /* Allocate memory for filteredCG sensitivities */
-        dCGxFiltered = (double*)calloc(ne, sizeof(double));
-        dCGyFiltered = (double*)calloc(ne, sizeof(double));
-        dCGzFiltered = (double*)calloc(ne, sizeof(double));
-
-
-        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
-                            &M, &cgx, &cgy, &cgz,
-                            dCGx, dCGy, dCGz, mat_dens, passiveIDs, numPassive);
+      double M, cgx, cgy, cgz
       
-
-        printf("\nFilter CG gradient");
-        filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
-        
-        fflush(stdout);
-
-        /* NOTE: We do not call filterOutPassiveElems_sens() for CG* sens
-          since compute_mass_cg_and_cg_sens() already filters out passive elements and sets
-          the sensitivity to zero */
-
-        printf("\nWriting CG sensitivities to disk...");
-        fflush(stdout);
-        
-
-        /* ... after you fill dCGx, dCGy, dCGz ... */
-        int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
-        if (rc != 0) 
-        {
-          printf("  Unable to write CG sensitivities to disk!\n");
-        }
-
-        printf("done!\n");
-        fflush(stdout);
-
-        free(dCGx);
-        free(dCGy);
-        free(dCGz);
-        free(dCGxFiltered);
-        free(dCGyFiltered);
-        free(dCGzFiltered);
-      
-        dCGx = NULL;
-        dCGy = NULL; 
-        dCGz = NULL; 
-        dCGxFiltered = NULL;
-        dCGyFiltered = NULL;
-        dCGzFiltered = NULL;
-      } // end eval_CG ==1
-
-      else
-      {
-        /* Compute the CG and mass without sensitivities */
-        printf("Evaluate CG..");
-        fflush(stdout);
-        compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
+      /* Compute the CG and mass without sensitivities */
+      printf("Evaluating Center of Gravity...");
+      fflush(stdout);
+      compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
       
-        printf("done \n");
-        fflush(stdout);
-        SFREE(elCG);
-      }
+      printf("done \n");
+      fflush(stdout);
+      SFREE(elCG);
+      
       /*---------------------------------------------------------------------------------------------------------------*/      
 
 
@@ -2465,7 +2401,7 @@ while(istat>=0)
       printf("Evaluate volume fraction sensitivities...");
       fflush(stdout);
 
-      // Time volume fraction senstitivity eval
+      //Volume fraction senstitivity eval
       volumeSens(ne,eleVol,passiveIDs,numPassive,volFracSens);
 
 
