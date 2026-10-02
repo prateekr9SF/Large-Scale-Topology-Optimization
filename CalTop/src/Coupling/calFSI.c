@@ -2266,11 +2266,8 @@ while(istat>=0)
     if(pSupplied!=0)
     {
 
-      printf("\n========================================\n");
-      printf("SENSITIVITY EVALUATION (COMPLIANCE)\n");
-      printf("========================================\n");
-      
-      printf("Allocating memory for sensitivities...");
+      printf("Evaluating compliance...\n");
+  
       fflush(stdout);
       /* allocate memory for compliance gradient and initialize to zero */
       NNEW(gradCompl,double,ne_);
@@ -2288,9 +2285,6 @@ while(istat>=0)
 
       /* allocate memory for center of gravity (x,y,z) of each element */
       NNEW(elCG,double,3*ne_);
-
-      printf("done! \n");
-      fflush(stdout);
 
       time_t starts, ends; 
 	    starts = time(NULL);
@@ -2334,8 +2328,6 @@ while(istat>=0)
       SFREE(gradComplFiltered);
 
       // Finish all compliance related ops
-
-  
       
       /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/    
       
@@ -2343,54 +2335,28 @@ while(istat>=0)
       double M, cgx, cgy, cgz;
       
       /* Compute the CG and mass without sensitivities */
-      printf("Evaluating Center of Gravity...");
+      printf("Evaluating Center of Gravity...\n");
       fflush(stdout);
       compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
       
-      printf("done \n");
-      fflush(stdout);
       SFREE(elCG);
       
-      /*---------------------------------------------------------------------------------------------------------------*/      
-
-
-      /*---------------------------------------------------------------------------------------------------------------*/
-      
-      
-      /*---------------------------------------------------------------------------------------------------------------*/
-
+      /*-------------------------------------------------------------------------------------------------------- ---*/      
       /*-------------------------------------VOLUME SENSITIVITY FILTERING AND I/O----------------------------------*/
-      printf("\n========================================\n");
-      printf("SENSITIVITY EVALUATION (VOLUME FRACTION)\n");
-      printf("========================================\n");
-      
-      FILE *elV_file;
+      printf("Evaluating volume fraction...\n");
 
-      printf("Evaluate volume fraction sensitivities...");
-      fflush(stdout);
-
-      //Volume fraction senstitivity eval
+      //We compute VF sens anyways but never output it
       volumeSens(ne,eleVol,passiveIDs,numPassive,volFracSens);
     
-      /* NOTE: We do not call filterOutPassiveElems_sens() for volFracSens
-      since volumeSens() already filters out passive elements and sets
-      theur sensitivity to zero */
-      
-
       SFREE(volFracSens);
   
 
       ends = time(NULL);
       
       
-      printf("\n========================================\n");
-      printf("OUTPUT\n");
-      printf("========================================\n");
-      fflush(stdout);
-  
-      printf("Writing objectives...");
+      printf("Writing scalar temrs...");
       fflush(stdout);
       write_objectives(ne, eleVol, rhoPhys, &compliance_sum, &M, &cgx, &cgy, &cgz, passiveIDs, numPassive, &Pnorm);
       printf("done!\n");
@@ -2410,7 +2376,7 @@ while(istat>=0)
 
       printf("====================================================\n");
       printf("\n");
-    } // end adjoint calculation
+    } // end P!=0 conditional
 
     /* Write deformed SU2 solid mesh file */
     printf("\nUpdaing solid .su2 file with aeroelastic nodal coordinates...\n");
@@ -2523,9 +2489,6 @@ while(istat>=0)
 
     } // end of pSupplied == 0
   
-
-
-     // end adjoint calculation
 
     /* NOTE: In the first iteration, the rhoPhys do not account for the skin.
              However, all sensitivities at the end of the first iteration 
