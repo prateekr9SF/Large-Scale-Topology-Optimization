@@ -14,7 +14,7 @@ n_omp=4
 
 penalty = 5
 rmin = 0.012
-volfrac=0.75
+volfrac=0.11
 nDV_struct = 674115
 
 nnz = 3000
@@ -31,7 +31,7 @@ sigYield = 500*(10**6) # Yield stress for Al
 FOS = 2.5              # Factor of Safety
 sigmax = sigYield/FOS  # Max. allowable stress (sigma_l)
 pexp = 10              # P-Norm exponent
-sigrelax = 0.001       # Epsilon relaxation
+sigrelax = 0.01       # Epsilon relaxation
 
 with open("density.dat", "w") as file:
     file.write("__X__")
@@ -85,7 +85,7 @@ evalFun1.addData("UCRMW.inp")
 
 
 # SENSITIVITY ANALYSIS ---------------------------------------------#
-evalSens = ExternalRun("SENS",f"calFSI_ADJ.exe "f"-i UCRMW_adj "f"-p {penalty} "f"-r {rmin} "f"-f {nnz} "f"--pexp {pexp} "f"--sigmin {sigmax} "f"--sigrelax {sigrelax} "f"-precice-particiapant Calculix",True)
+evalSens = ExternalRun("SENS", f"OMP_NUM_THREADS={n_omp} "f"calFSI_ADJ.exe "f"-i UCRMW_adj "f"-p {penalty} "f"-r {rmin} "f"-f {nnz} "f"--pexp {pexp} "f"--sigmin {sigmax} "f"--sigrelax {sigrelax} "f"-precice-particiapant Calculix",True)
 evalSens.addConfig(Elastic_ConfigMaster)
 evalSens.addData("DIRECT/convergedRHS.dat")
 evalSens.addData("DIRECT/Solid/skinElementList.nam")
@@ -156,32 +156,33 @@ volumeFraction.addGradientEvalStep(evalSens)
 #----------------------------------------------------#
 
 # Stress constraint ---------------------------------$
-#Stress = Function("Stress","Direct/objectives.csv",TableReader(0,9,(1,0),(None,None),","))
+Stress = Function("Stress","DIRECT/Solid/objectives.csv",TableReader(0,9,(1,0),(None,None),","))
+Stress.addValueEvalStep(evalFun1)
 
-#Stress.addInputVariable(rho,"Direct/stress_sens.csv",TableReader(None,0,(1,0),(None,None),","))
+Stress.addInputVariable(rho,"SENS/stress_sens.csv",TableReader(None,0,(1,0),(None,None),","))
+Stress.addGradientEvalStep(evalSens)
 
-#Stress.addValueEvalStep(evalFun1)
 
 
-ncon = 3
+ncon = 4
 driver = IpoptDriver()
 
 # Minimize compliance
 driver.addObjective("min", Compliance, 1)
 
-# Subject to upper bound on CL @ 0.4
+# Subject to upper bound on CL @ 0.4 (2)
 cl_limit_upper = 0.4
 driver.addUpperBound(lift,cl_limit_upper)
 
-# Subject to lower bound on CL @ 0.2
+# Subject to lower bound on CL @ 0.2 (3)
 cl_limit_lower = 0.2
 driver.addLowerBound(lift,cl_limit_lower)
 
-# Subject to fixed volumefraction
+# Subject to fixed volumefraction (4)
 driver.addUpperBound(volumeFraction, volfrac)
 
-# Subject to P-norm gradient
-#driver.addUpperBound(Stress,1,1)
+# Subject to P-norm gradient (5)
+driver.addUpperBound(Stress,1,1)
 
 optIter = 0
 
