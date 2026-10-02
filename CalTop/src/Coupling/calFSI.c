@@ -2285,13 +2285,6 @@ while(istat>=0)
       /* allocate memory for element volume fraction sensitivity */
       NNEW(volFracSens,double,ne_);
 
-      double *volFracSensFiltered = NULL;
-      /* allocate memeory for filtered element volume fraction sensitivity */
-      NNEW(volFracSensFiltered,double, ne_);
-
-      /* allocate memory for filtered compliance gradient and initialize to zero */
-      NNEW(gradComplFiltered,double,ne_);  //allocate memory to gradcompliance, initialize to 0
-
 
       /* allocate memory for center of gravity (x,y,z) of each element */
       NNEW(elCG,double,3*ne_);
@@ -2333,31 +2326,8 @@ while(istat>=0)
       // Insert compliance filtering here ->
       double compliance_sum=0;
 
-
-      printf("Filter compliance gradient ");
-      fflush(stdout);
-      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
-      printf("done! \n");
-      fflush(stdout);
-      
-      if (numPassive > 0)
-      {
-        /* set the filtered compliance sens of passive elements to 0 */
-        printf("Setting compliance sensitivities for skin elements to 0 ...");
-        fflush(stdout);
-        filterOutPassiveElems_sens(gradComplFiltered, ne, passiveIDs, numPassive);
-        printf("done\n");
-        fflush(stdout);
-      }
-      
-      FILE *gradC;
-      printf("Writing compliance sensitivities...");
-      fflush(stdout);
-
-      write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
-      fflush(stdout);
-
-      printf("done!\n");
+      // Compute structural compliance
+      getCompliance(ne,elComp, &compliance_sum);
 
       SFREE(gradCompl);
       SFREE(elCompl);
@@ -2403,25 +2373,14 @@ while(istat>=0)
 
       //Volume fraction senstitivity eval
       volumeSens(ne,eleVol,passiveIDs,numPassive,volFracSens);
-
-
-      printf("Filter volume fraction gradient ");
-      fflush(stdout);
-      filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
     
       /* NOTE: We do not call filterOutPassiveElems_sens() for volFracSens
       since volumeSens() already filters out passive elements and sets
       theur sensitivity to zero */
       
 
-      printf("\nWriting volume sensitivities...");
-      fflush(stdout);
-      write_volume_sensitivities(ne, eleVol, rhoPhys, volFracSensFiltered);
-      printf("done!\n");
-      fflush(stdout);
-
       SFREE(volFracSens);
-      SFREE(volFracSensFiltered);
+  
 
       ends = time(NULL);
       
