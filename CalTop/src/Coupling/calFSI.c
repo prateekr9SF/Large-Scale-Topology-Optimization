@@ -2327,7 +2327,7 @@ while(istat>=0)
       double compliance_sum=0;
 
       // Compute structural compliance
-      getCompliance(ne,elComp, &compliance_sum);
+      getCompliance(ne,elCompl, &compliance_sum);
 
       SFREE(gradCompl);
       SFREE(elCompl);
@@ -2340,7 +2340,7 @@ while(istat>=0)
       /*---------------------------------C.G SENSITIVITY FILTERING AND I/O ----------------------------------------*/    
       
       /* Define variables for mass and center of gravity */
-      double M, cgx, cgy, cgz
+      double M, cgx, cgy, cgz;
       
       /* Compute the CG and mass without sensitivities */
       printf("Evaluating Center of Gravity...");
