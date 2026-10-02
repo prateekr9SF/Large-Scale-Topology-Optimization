@@ -2379,7 +2379,7 @@ while(istat>=0)
     } // end P!=0 conditional
 
     /* Write deformed SU2 solid mesh file */
-    printf("\nUpdaing solid .su2 file with aeroelastic nodal coordinates...\n");
+    printf("\nUpdating solid .su2 file with aeroelastic nodal coordinates...\n");
     fflush(stdout);
     write_deformed_su2(nk, vold);
     fflush(stdout);

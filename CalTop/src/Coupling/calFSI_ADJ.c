@@ -2059,7 +2059,7 @@ while(istat>=0)
 
       endl = time(NULL);
 
-	    printf("\n Time taken for linstatic.c is %.8f seconds \n", 
+	    printf("\nTime taken for linstatic.c is %.8f seconds \n", 
 		  difftime(endl, startl)); 
 
       // NOTE: Filter, write and free stress array here to reduce memory signature

@@ -660,7 +660,7 @@ void sensitivity(double *co, int *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                     printf("THIS IS THE ELESE CONDITION FOR eigen FREQUENCY\n");
                 } //end ifieigenfrequency!=0
 
-                printf("Evaluating element-wise compliance sensitivity...\n");
+                printf("\nEvaluating element-wise compliance sensitivity...\n");
                 fflush(stdout);
                 /* mafillsmmain_se -> mafillsmse -> e_c3d_se() */
                 mafillsmmain_se(co,nk,kon,ipkon,lakon,ne,nodeboun,
