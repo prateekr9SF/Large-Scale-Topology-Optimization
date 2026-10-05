@@ -336,6 +336,15 @@ int main(int argc,char *argv[])
 
   int *passiveIDs = NULL;
   int numPassive = 0; /** < initialize number of passive elements to zero */
+
+  int *skinPassiveIDs = NULL;
+  int numSkinPassive = 0;
+
+  // Separate hard-point sets for post-processing //
+  int *slatPassiveIDs = NULL;
+  int numSlatPassive = 0;
+
+
   int eval_CG = 0; /** < CG evaluation flag  */
   int eval_PNORM = 0; /** < PNORM evaluation flag */
 
@@ -1239,7 +1248,10 @@ while(istat>=0)
       printf("File skinElementList.nam found -> Setting skin definition. \n");
       fflush(stdout);
 
-      passiveIDs = passiveElements("skinElementList.nam", &numPassive);
+      passiveIDs = passiveElements("skinElementList.nam", &numSkinPassive);
+
+      // Preserve number of skin elements
+      numPassive = numSkinPassive;
 
       printf("Read %d passive elements.\n", numPassive);
       fflush(stdout);
@@ -1275,8 +1287,8 @@ while(istat>=0)
   }
   else
   {
-    int numSlatPassive = 0;
-    int *slatPassiveIDs = NULL;
+    //int numSlatPassive = 0;
+    //int *slatPassiveIDs = NULL;  These are now declared globally
 
     printf("File slatElementList.nam found -> "
            "Setting slat hard-point definition.\n");
@@ -1363,7 +1375,7 @@ while(istat>=0)
 
     fflush(stdout);
 
-    free(slatPassiveIDs);
+    free(slatPassiveIDs); // Free later so that we can write to .vtu
 }
 
 printf("\n");
@@ -2610,23 +2622,77 @@ printf("\n");
 
     if (numPassive > 0)
     {
-      /* write output fields for passive elements */
-      printf("  \nWriting output fields for active and passive elements ...");
+      printf("\nWriting output fields...");
       fflush(stdout);
-      tecplot_vtu_passive(nk, ne, co, kon, ipkon, lakon, mi[0], vold, stx, rhoPhys, passiveIDs, numPassive);
-      tecplot_vtu_active(nk, ne, co, kon, ipkon, lakon, mi[0], vold, stx, rhoPhys, passiveIDs, numPassive);
+
+    /*
+     * Write SKIN elements only.
+     *
+     * The first numSkinPassive entries of passiveIDs
+     * correspond to skinElementList.nam.
+     */
+      if (numSkinPassive > 0)
+      {
+        tecplot_vtu_passive(
+            nk, ne,
+            co, kon, ipkon, lakon,
+            mi[0],
+            vold, stx, rhoPhys,
+            passiveIDs,
+            numSkinPassive,
+            "elastic_Field_skin.vtu"
+        );
+      }
+
+      /*
+      * Write SLAT hard-point elements only.
+      */
+      if (numSlatPassive > 0)
+      {
+        tecplot_vtu_passive(
+            nk, ne,
+            co, kon, ipkon, lakon,
+            mi[0],
+            vold, stx, rhoPhys,
+            slatPassiveIDs,
+            numSlatPassive,
+            "elastic_Field_slats.vtu"
+        );
+      }
+      /*
+      * Write ACTIVE elements.
+      *
+      * IMPORTANT:
+      * passiveIDs contains the union of skin + slat,
+      * so both are excluded from the active domain.
+      */
+      tecplot_vtu_active(
+        nk, ne,
+        co, kon, ipkon, lakon,
+        mi[0],
+        vold, stx, rhoPhys,
+        passiveIDs,
+        numPassive
+      );
+
       printf("done\n");
       fflush(stdout);
     }
-    else
-    {
-      /* Write elastic fields to a vtu file */
-      printf("\nWriting output fields...");
-      fflush(stdout);
-      tecplot_vtu(nk, ne, co, kon, ipkon, lakon, mi[0], vold, stx, rhoPhys);
-      printf("done!\n\n");
-      fflush(stdout);
-    }
+  else
+  {
+    printf("\nWriting output fields...");
+    fflush(stdout);
+
+    tecplot_vtu(
+        nk, ne,
+        co, kon, ipkon, lakon,
+        mi[0],
+        vold, stx, rhoPhys
+    );
+
+    printf("done!\n\n");
+    fflush(stdout);
+}
 
     SFREE(nactdof);
     SFREE(icol);

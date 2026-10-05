@@ -319,11 +319,14 @@ void tecplot_vtu_passive(int nk, int ne,
                          double *co, int *kon, int *ipkon,
                          char *lakon, int mi0,
                          double *v, double *stx, double *rhoPhy,
-                         int *passiveIDs, int numPassive)
+                         int *passiveIDs, int numPassive, const char *filename)
 {
-    FILE *fp = fopen("elastic_Field_passive.vtu", "w");
-    if (fp == NULL) {
-        perror("Error opening file");
+
+    FILE *fp = fopen(filename, "w");
+
+    if (fp == NULL)
+    {
+        perror(filename);
         return;
     }
 
