@@ -96,6 +96,8 @@
 #endif
 
 
+void extract_slat_hardpoints(const char *su2file, const char *output_file);
+
 void linstatic_ADJ(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	     ITG *ne,
 	     ITG *nodeboun, ITG *ndirboun, double *xboun, ITG *nboun,

@@ -1077,6 +1077,7 @@ $(SRC_DIR)/output/write_CGSens.c \
 $(SRC_DIR)/filter/filterSens_bin_mt_s_group.c \
 $(SRC_DIR)/output/write_StressSens.c \
 $(SRC_DIR)/preProcess/su2_preprocess.c \
+$(SRC_DIR)/preProcess/extract_slat_hardpoints.c \
 $(SRC_DIR)/adjoint_eq_2_node.c \
 $(SRC_DIR)/Coupling/linstatic_MDO.c \
 $(SRC_DIR)/Coupling/calFSI.c \

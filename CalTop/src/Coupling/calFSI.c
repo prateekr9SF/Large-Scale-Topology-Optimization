@@ -601,6 +601,9 @@ if (SU2_MESH)
   printf("Found SU2 mesh:\n");
   printf("%s\n\n", su2file);
 
+  // Extract slat hard points
+  extract_slat_hardpoints(su2file,"slatElementList.nam");
+
   /* get all availbale markers  in the .su2 file */
   marker_list = get_su2_markers(su2file, &marker_count);
 
@@ -664,19 +667,19 @@ if (SU2_MESH)
     FORTRAN(stop,());
   }
 
-  /* Free marker list */
+  // Free marker list 
   for (int i = 0; i < marker_count; i++)
   {
     free(marker_list[i]);
   }
   free(marker_list);
 
-  /* get mesh.nam */
+  // get mesh.nam 
   convert_volume_mesh(su2file);
   printf("\nExtracted CalTop/CalculiX mesh from SU2 mesh file\n\n");
 
 
-  /* Move all mesh files to Solid*/
+  // Move all mesh files to Solid
   if (rename("mesh.nam", "Solid/mesh.nam") != 0)
   {
     perror("ERROR: Could not move mesh.nam to Solid/");
@@ -1225,18 +1228,22 @@ while(istat>=0)
     printf("\n========================================\n");
     printf("PASSIVE DOMAIN DEFINITION \n");
     printf("========================================\n");
+
     if (stat("skinElementList.nam", &buffer) != 0) 
     {
       printf("File 'skinElementList.nam' not found -> skin surface will not be defined \n");
     } 
     else
-    /* Read the element indicies from skinElementList.nam */ 
+    // Read the element indicies from skinElementList.nam */ 
     {
       printf("File skinElementList.nam found -> Setting skin definition. \n");
       fflush(stdout);
+
       passiveIDs = passiveElements("skinElementList.nam", &numPassive);
+
       printf("Read %d passive elements.\n", numPassive);
       fflush(stdout);
+
       printf("First five skin element IDs => \n");
       for (int i = 0; i < 5; i++) 
       {
@@ -1256,6 +1263,110 @@ while(istat>=0)
 
     }
     printf("\n");
+
+    /* ============================================================
+   Add slat hard-point elements to passive domain
+   ============================================================ */
+
+  if (stat("slatElementList.nam", &buffer) != 0)
+  {
+    printf("File 'slatElementList.nam' not found -> "
+           "slat hard points will not be defined.\n");
+  }
+  else
+  {
+    int numSlatPassive = 0;
+    int *slatPassiveIDs = NULL;
+
+    printf("File slatElementList.nam found -> "
+           "Setting slat hard-point definition.\n");
+    fflush(stdout);
+
+    /* Read slat hard-point element IDs */
+    slatPassiveIDs = passiveElements("slatElementList.nam",&numSlatPassive);
+
+    if (slatPassiveIDs == NULL)
+    {
+        fprintf(stderr,
+                "ERROR: Could not read slatElementList.nam\n");
+        FORTRAN(stop,());
+    }
+
+    printf("Read %d slat hard-point elements.\n", numSlatPassive);
+
+
+    /* --------------------------------------------------------
+       Allocate enough space for the worst case:
+       no overlap between skin and slat elements
+       -------------------------------------------------------- */
+
+    int *tmp = realloc(passiveIDs,(numPassive + numSlatPassive) * sizeof(int));
+
+    if (tmp == NULL)
+    {
+        fprintf(stderr,
+                "ERROR: Could not reallocate passiveIDs.\n");
+
+        free(slatPassiveIDs);
+        free(passiveIDs);
+
+        FORTRAN(stop,());
+    }
+
+    passiveIDs = tmp;
+
+    /* --------------------------------------------------------
+       Append only slat IDs that are not already passive
+       -------------------------------------------------------- */
+
+    int numSlatAdded = 0;
+    int numSlatDuplicate = 0;
+
+    for (int i = 0; i < numSlatPassive; i++)
+    {
+        int id = slatPassiveIDs[i];
+        int alreadyPassive = 0;
+
+        /*
+         * Search existing passive IDs.
+         *
+         * numPassive increases only when a new ID is added,
+         * so this also catches duplicate IDs within the slat
+         * list itself.
+         */
+        for (int j = 0; j < numPassive; j++)
+        {
+            if (passiveIDs[j] == id)
+            {
+                alreadyPassive = 1;
+                break;
+            }
+        }
+
+        if (!alreadyPassive)
+        {
+            passiveIDs[numPassive] = id;
+            numPassive++;
+            numSlatAdded++;
+        }
+        else
+        {
+            numSlatDuplicate++;
+        }
+    }
+
+    printf("Slat hard-point elements added : %d\n",numSlatAdded);
+
+    printf("Already passive / duplicates   : %d\n",numSlatDuplicate);
+
+    printf("Total passive elements         : %d\n",numPassive);
+
+    fflush(stdout);
+
+    free(slatPassiveIDs);
+}
+
+printf("\n");
 
   /* Read element desitiies from .dat file, if absent, initialize the design to one */    
   rho(design,ne);
