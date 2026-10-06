@@ -326,12 +326,18 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             /* p-norm variables reduced across threads */
             double sumP = 0.0;  // Accumulated numerator
             double sumV = 0.0;  // Accumulated denominator
+            double maxPhi = 0.0; // Accumulated max. Phi
 
             for (int t = 0; t < num_cpus; ++t)
             {
                 size_t idx = (size_t)t *4;
                 sumP += qa1[idx + 2];   // thread's g_sump
-                sumV += qa1[idx + 3];   // thread's g_vol -> needed for p-mean
+               // sumV += qa1[idx + 3];   // thread's g_vol -> needed for p-mean
+
+                if (qa1[idx + 3] > maxPhi)
+                {
+                    maxPhi = qa1[idx + 3];
+                }
 
                 /* restore CCX defaults so downstream code doesnt misinterpret */
                 qa1[idx + 2] = -1.0;   /* qa(3) */
@@ -353,6 +359,11 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
                 printf("Sump is either zero or less that zero\n");
                 *Pnorm = 0.0;
             }
+
+            printf("P-norm (p = %.0f) : %.12e\n", p, *Pnorm);
+            printf("Maximum Phi       : %.12e\n", maxPhi);
+            printf("Pnorm / Max Phi   : %.12e\n", (maxPhi > 0.0) ? (*Pnorm / maxPhi) : 0.0);
+            fflush(stdout);
         }  // end stress P-norm calculation
 
        // printf("Pnorm in reuslts.c: %f \n", *Pnorm);

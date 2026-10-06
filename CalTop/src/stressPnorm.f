@@ -79,7 +79,7 @@
 
 !     p-norm variables 
       real*8 sx, sy, sz, txy, txz, tyz, vm, vm2, wgt
-      real*8 g_sump, g_vol, pexp, vm_sum
+      real*8 g_sump, g_vol, pexp, vm_sum, phi_max
       real*8 rho_e, rho_min, rho_eff, rho_p, eps_relax, sig0, phi
 ! 
 
@@ -112,6 +112,7 @@
       g_sump = 0.d0
       g_vol  = 0.d0
       !pexp = 4.d0     ! choose your global p
+      phi_max = 0.d0  ! tracks the thread-local max. phi
 
 
 
@@ -362,12 +363,16 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
          phi = (vm / sig0) + eps_relax - (eps_relax / rho_eff)
          if (phi .lt. 0.d0) phi = 0.d0
          g_sump = g_sump + (phi**pexp)
+         if (phi .gt. phi_max) then
+            phi_max = phi
+         endif
       enddo   ! <--- end of loop over all elements
 !
 
 !
 
       qa(3) = g_sump
+      qa(4) = phi_max
 
 
 ! ------------------------
