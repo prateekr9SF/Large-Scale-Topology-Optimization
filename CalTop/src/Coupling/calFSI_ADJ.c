@@ -2555,7 +2555,7 @@ while(istat>=0)
     {
       /* write output fields for passive elements */
       printf("  \nWriting output fields for active and passive elements ...");
-      tecplot_vtu_passive(nk, ne, co, kon, ipkon, lakon, mi[0], vold, stx, rhoPhys, passiveIDs, numPassive);
+      tecplot_vtu_passive(nk, ne, co, kon, ipkon, lakon, mi[0], vold, stx, rhoPhys, passiveIDs, numPassive,"elastic_Field_passive.vtu");
       tecplot_vtu_active(nk, ne, co, kon, ipkon, lakon, mi[0], vold, stx, rhoPhys, passiveIDs, numPassive);
       printf("done\n");
     }

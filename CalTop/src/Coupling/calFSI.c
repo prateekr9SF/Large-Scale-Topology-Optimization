@@ -1375,10 +1375,8 @@ while(istat>=0)
 
     fflush(stdout);
 
-    free(slatPassiveIDs); // Free later so that we can write to .vtu
+    //free(slatPassiveIDs); // Free later so that we can write to .vtu
 }
-
-printf("\n");
 
   /* Read element desitiies from .dat file, if absent, initialize the design to one */    
   rho(design,ne);
@@ -2611,6 +2609,8 @@ printf("\n");
       SFREE(eleVol);
 
     } // end of pSupplied == 0
+
+
   
 
     /* NOTE: In the first iteration, the rhoPhys do not account for the skin.

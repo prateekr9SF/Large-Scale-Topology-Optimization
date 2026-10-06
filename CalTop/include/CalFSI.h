@@ -173,7 +173,7 @@ void rho(double *design,int ne);
 
 void tecplot_vtu(int nk, int ne, double *co, int *kon, int *ipkon, char *lakon, int mi0, double *v, double *stx, double *rhoPhy);
 
-void tecplot_vtu_passive(int nk, int ne, double *co, int *kon, int *ipkon, char *lakon, int mi0, double *v, double *stx, double *rhoPhy, int *passiveIDS, int numPassive);
+void tecplot_vtu_passive(int nk, int ne, double *co, int *kon, int *ipkon, char *lakon, int mi0, double *v, double *stx, double *rhoPhy, int *passiveIDS, int numPassive, const char *filename);
 
 void tecplot_vtu_active(int nk, int ne, double *co, int *kon, int *ipkon, char *lakon, int mi0, double *v, double *stx, double *rhoPhy, int *passiveIDS, int numPassive);
 
