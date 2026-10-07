@@ -98,6 +98,8 @@
 #endif
 
 
+void addPassiveComponent(const char *filename,const char *description,int **passiveIDs,int *numPassive,int **componentIDs,int *numComponent);
+
 void cleanup_filter_files(void);
 
 

@@ -598,10 +598,16 @@ int *slatPassiveIDs = NULL; /** < Slat elementID array */
 int numSlatPassive = 0;
 
 int *flapPassiveIDs = NULL; /** < Flat elementID array */
-int numFlatPassive = 0;
+int numFlapPassive = 0;
 
 int *tankPassiveIDs = NULL; /** < Tank elementID array */
 int numTankPassive = 0;
+
+int *tank1PassiveIDs = NULL; /** < Tank1 elementID array */
+int numTank1Passive = 0;
+
+int *tank2PassiveIDs = NULL; /** < Tank2 elementID array */
+int numTank2Passive = 0;
 
 
 if (SU2_MESH)
@@ -1267,10 +1273,32 @@ while(istat>=0)
       printf("File skinElementList.nam found -> Setting skin definition. \n");
       fflush(stdout);
 
-      passiveIDs = passiveElements("skinElementList.nam", &numSkinPassive);
+      skinPassiveIDs = passiveElements("skinElementList.nam", &numSkinPassive);
+
+      if (skinPassiveIDs == NULL)
+      {
+        fprintf(stderr,"ERROR: Could not read skinElementList.nam\n");
+        FORTRAN(stop,());
+      }
+
 
       // Preserve number of skin elements
       numPassive = numSkinPassive;
+
+      passiveIDs = malloc(numPassive * sizeof(int));
+
+      if (passiveIDs == NULL)
+      {
+        fprintf(stderr,"ERROR: Could not allocate passiveIDs.\n");
+        free(skinPassiveIDs);
+        FORTRAN(stop,());
+      }
+
+      // Append passiveIDS with skin elementIDS
+      for (int i = 0; i < numSkinPassive; i++)
+      {
+        passiveIDs[i] = skinPassiveIDs[i];
+      }
 
       printf("Read %d passive elements.\n", numPassive);
       fflush(stdout);
@@ -1294,101 +1322,22 @@ while(istat>=0)
     }
     printf("\n");
 
-    /* ============================================================
-    Add slat hard-point elements to passive domain
-    ============================================================ */
+    // Add slat hard-point elements to passive domain
+    addPassiveComponent("slatElementList.nam","Slat",&passiveIDs,&numPassive,&slatPassiveIDs,&numSlatPassive);
 
-    if (stat("slatElementList.nam", &buffer) != 0)
-    {
-      printf("File 'slatElementList.nam' not found -> "
-           "slat hard points will not be defined.\n");
-    }
-    else
-    {
-      printf("File slatElementList.nam found -> "
-           "Setting slat hard-point definition.\n");
-      fflush(stdout);
+    // Add flap hard-point elements to passive domain
+    addPassiveComponent("flapElementList.nam","Flap",&passiveIDs,&numPassive,&flapPassiveIDs,&numFlapPassive);
 
-      // Read slat hard-point element IDs
-      slatPassiveIDs = passiveElements("slatElementList.nam",&numSlatPassive);
+    // Add tank1 elements to passive domain
+    addPassiveComponent("tank1ElementList.nam","tank1",&passiveIDs,&numPassive,&tank1PassiveIDs,&numTank1Passive);
 
-      if (slatPassiveIDs == NULL)
-      {
-        fprintf(stderr,"ERROR: Could not read slatElementList.nam\n");FORTRAN(stop,());
-      }
+    // Add tank2 elements to passive domain
+    addPassiveComponent("tank2ElementList.nam","tank2",&passiveIDs,&numPassive,&tank2PassiveIDs,&numTank2Passive);
 
-      printf("Read %d slat hard-point elements.\n", numSlatPassive);
+    // Add tank elements to passive domain
+    addPassiveComponent("tankElementList.nam","tank",&passiveIDs,&numPassive,&tankPassiveIDs,&numTankPassive);
 
-
-      /* --------------------------------------------------------
-        Allocate enough space for the worst case:
-        no overlap between skin and slat elements
-      -------------------------------------------------------- */
-
-      int *tmp = realloc(passiveIDs,(numPassive + numSlatPassive) * sizeof(int));
-
-      if (tmp == NULL)
-      {
-        fprintf(stderr,
-                "ERROR: Could not reallocate passiveIDs.\n");
-
-        free(slatPassiveIDs);
-        free(passiveIDs);
-
-        FORTRAN(stop,());
-      }
-
-      passiveIDs = tmp;
-
-      /* --------------------------------------------------------
-       Append only slat IDs that are not already passive
-        -------------------------------------------------------- */
-
-      int numSlatAdded = 0;
-      int numSlatDuplicate = 0;
-
-      for (int i = 0; i < numSlatPassive; i++)
-      {
-        int id = slatPassiveIDs[i];
-        int alreadyPassive = 0;
-
-        /*
-         * Search existing passive IDs.
-         *
-         * numPassive increases only when a new ID is added,
-         * so this also catches duplicate IDs within the slat
-         * list itself.
-         */
-        for (int j = 0; j < numPassive; j++)
-        {
-          if (passiveIDs[j] == id)
-          {
-              alreadyPassive = 1;
-              break;
-          }
-        }
-
-        if (!alreadyPassive)
-        {
-            passiveIDs[numPassive] = id;
-            numPassive++;
-            numSlatAdded++;
-        }
-        else
-        {
-            numSlatDuplicate++;
-        }
-      }
-
-      printf("Slat hard-point elements added : %d\n",numSlatAdded);
-
-      printf("Already passive / duplicates   : %d\n",numSlatDuplicate);
-
-      printf("Total passive elements         : %d\n",numPassive);
-
-      fflush(stdout); 
-    }
-
+    
   /* Read element desitiies from .dat file, if absent, initialize the design to one */    
   rho(design,ne);
 
@@ -2649,14 +2598,14 @@ while(istat>=0)
             co, kon, ipkon, lakon,
             mi[0],
             vold, stx, rhoPhys,
-            passiveIDs,
+            skinPassiveIDs,
             numSkinPassive,
             "elastic_Field_skin.vtu"
         );
       }
 
       /*
-      * Write SLAT hard-point elements only.
+      * Write SLAT hard-point elements.
       */
       if (numSlatPassive > 0)
       {
@@ -2668,6 +2617,67 @@ while(istat>=0)
             slatPassiveIDs,
             numSlatPassive,
             "elastic_Field_slats.vtu"
+        );
+      }
+
+      /*
+      * Write FLAP hard-point elements.
+      */
+      if (numFlapPassive > 0)
+      {
+        tecplot_vtu_passive(
+            nk, ne,
+            co, kon, ipkon, lakon,
+            mi[0],
+            vold, stx, rhoPhys,
+            flapPassiveIDs,
+            numFlapPassive,
+            "elastic_Field_flaps.vtu"
+        );
+      }
+      /*
+      * Write TANK elements.
+      */
+      if (numTankPassive > 0)
+      {
+        tecplot_vtu_passive(
+            nk, ne,
+            co, kon, ipkon, lakon,
+            mi[0],
+            vold, stx, rhoPhys,
+            tankPassiveIDs,
+            numTankPassive,
+            "elastic_Field_tank.vtu"
+        );
+      }
+      /*
+      * Write TANK1 elements.
+      */
+      if (numTank1Passive > 0)
+      {
+        tecplot_vtu_passive(
+            nk, ne,
+            co, kon, ipkon, lakon,
+            mi[0],
+            vold, stx, rhoPhys,
+            tank1PassiveIDs,
+            numTank1Passive,
+            "elastic_Field_tank1.vtu"
+        );
+      }
+      /*
+      * Write TANK2 elements.
+      */
+      if (numTank2Passive > 0)
+      {
+        tecplot_vtu_passive(
+            nk, ne,
+            co, kon, ipkon, lakon,
+            mi[0],
+            vold, stx, rhoPhys,
+            tank2PassiveIDs,
+            numTank2Passive,
+            "elastic_Field_tank2.vtu"
         );
       }
       /*

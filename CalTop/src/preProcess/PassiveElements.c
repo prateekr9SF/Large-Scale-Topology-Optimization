@@ -7,19 +7,17 @@
 
 
 
-
-void addPassiveElements(const char *filename,
-                        const char *description,
-                        int **passiveIDs,
-                        int *numPassive)
+void addPassiveComponent(const char *filename,
+                         const char *description,
+                         int **passiveIDs,
+                         int *numPassive,
+                         int **componentIDs,
+                         int *numComponent)
 {
     struct stat buffer;
 
-    int *newPassiveIDs = NULL;
-    int numNewPassive = 0;
-
     /* --------------------------------------------------------
-       Check whether element list exists
+       Check whether component element list exists
        -------------------------------------------------------- */
 
     if (stat(filename, &buffer) != 0)
@@ -27,6 +25,9 @@ void addPassiveElements(const char *filename,
         printf("File '%s' not found -> "
                "%s will not be defined.\n",
                filename, description);
+
+        *componentIDs = NULL;
+        *numComponent = 0;
 
         return;
     }
@@ -38,13 +39,16 @@ void addPassiveElements(const char *filename,
     fflush(stdout);
 
     /* --------------------------------------------------------
-       Read passive element IDs
+       Read component element IDs
+
+       This array is retained so that it can be used later
+       for component-specific VTU output.
        -------------------------------------------------------- */
 
-    newPassiveIDs = passiveElements(filename,
-                                    &numNewPassive);
+    *componentIDs = passiveElements(filename,
+                                    numComponent);
 
-    if (newPassiveIDs == NULL)
+    if (*componentIDs == NULL)
     {
         fprintf(stderr,
                 "ERROR: Could not read %s\n",
@@ -54,15 +58,14 @@ void addPassiveElements(const char *filename,
     }
 
     printf("Read %d %s elements.\n",
-           numNewPassive, description);
+           *numComponent, description);
 
     /* --------------------------------------------------------
-       Allocate enough space for worst case:
-       no overlap with existing passive elements
+       Expand global passive array for worst case
        -------------------------------------------------------- */
 
     int *tmp = realloc(*passiveIDs,
-                       (*numPassive + numNewPassive)
+                       (*numPassive + *numComponent)
                        * sizeof(int));
 
     if (tmp == NULL)
@@ -72,32 +75,23 @@ void addPassiveElements(const char *filename,
                 "while adding %s.\n",
                 description);
 
-        free(newPassiveIDs);
-        free(*passiveIDs);
-
         FORTRAN(stop,());
     }
 
     *passiveIDs = tmp;
 
     /* --------------------------------------------------------
-       Add only IDs that are not already passive
+       Add only unique IDs to global passive domain
        -------------------------------------------------------- */
 
     int numAdded = 0;
     int numDuplicate = 0;
 
-    for (int i = 0; i < numNewPassive; i++)
+    for (int i = 0; i < *numComponent; i++)
     {
-        int id = newPassiveIDs[i];
+        int id = (*componentIDs)[i];
         int alreadyPassive = 0;
 
-        /*
-         * Search existing passive IDs.
-         *
-         * numPassive increases when a new ID is added,
-         * so duplicates within the new list are also detected.
-         */
         for (int j = 0; j < *numPassive; j++)
         {
             if ((*passiveIDs)[j] == id)
@@ -124,16 +118,14 @@ void addPassiveElements(const char *filename,
        Summary
        -------------------------------------------------------- */
 
-    printf("%s elements added           : %d\n",
+    printf("%s elements added to passive : %d\n",
            description, numAdded);
 
-    printf("Already passive / duplicates   : %d\n",
+    printf("Already passive / duplicates  : %d\n",
            numDuplicate);
 
-    printf("Total passive elements         : %d\n",
+    printf("Total passive elements        : %d\n",
            *numPassive);
 
     fflush(stdout);
-
-    free(newPassiveIDs);
 }
