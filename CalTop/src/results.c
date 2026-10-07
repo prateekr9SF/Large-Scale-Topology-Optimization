@@ -359,12 +359,15 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
                 printf("Sump is either zero or less that zero\n");
                 *Pnorm = 0.0;
             }
-
+            
             printf("P-norm (p = %.0f) : %.12e\n", p, *Pnorm);
             printf("Maximum Phi       : %.12e\n", maxPhi);
             printf("Pnorm / Max Phi   : %.12e\n", (maxPhi > 0.0) ? (*Pnorm / maxPhi) : 0.0);
             fflush(stdout);
+
         }  // end stress P-norm calculation
+
+
 
        // printf("Pnorm in reuslts.c: %f \n", *Pnorm);
 
