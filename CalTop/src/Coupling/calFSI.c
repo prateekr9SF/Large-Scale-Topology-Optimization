@@ -334,17 +334,6 @@ int main(int argc,char *argv[])
   double *dPnorm_drho = NULL; /**< Stress P-norm sensitivity array */
   double *dPnorm_drhoFiltered = NULL; /**< Stress P-norm sensitivity (filtered) array */
 
-  int *passiveIDs = NULL;
-  int numPassive = 0; /** < initialize number of passive elements to zero */
-
-  int *skinPassiveIDs = NULL;
-  int numSkinPassive = 0;
-
-  // Separate hard-point sets for post-processing //
-  int *slatPassiveIDs = NULL;
-  int numSlatPassive = 0;
-
-
   int eval_CG = 0; /** < CG evaluation flag  */
   int eval_PNORM = 0; /** < PNORM evaluation flag */
 
@@ -597,6 +586,24 @@ printf("************************************************************\n\n");
 printf("Original FEA source code: CalculiX by Guido Dhondt\n");
 printf("************************************************************\n\n");
 
+/* Note: For TopOpt, passiveIDS include skin, flaps, slats and tank elementIDs */
+
+int *passiveIDs = NULL; /** < Passive elementID array */
+int numPassive = 0;
+
+int *skinPassiveIDs = NULL; /** < Skin elementID array */
+int numSkinPassive = 0;
+
+int *slatPassiveIDs = NULL; /** < Slat elementID array */
+int numSlatPassive = 0;
+
+int *flapPassiveIDs = NULL; /** < Flat elementID array */
+int numFlatPassive = 0;
+
+int *tankPassiveIDs = NULL; /** < Tank elementID array */
+int numTankPassive = 0;
+
+
 if (SU2_MESH)
 {
   char ** marker_list;
@@ -604,7 +611,7 @@ if (SU2_MESH)
   int found_surface = 0;
   int found_fixed = 0;
 
-  /* Fine su2 mesh in CWD */
+  /// Find SU2 mesh in PWD
   find_su2_file(su2file);
 
   printf("Found SU2 mesh:\n");
@@ -613,19 +620,19 @@ if (SU2_MESH)
   // Extract slat hard points
   extract_slat_hardpoints(su2file,"slatElementList.nam");
 
-  /* get all availbale markers  in the .su2 file */
+  // get all availbale markers in the *.su2 file
   marker_list = get_su2_markers(su2file, &marker_count);
 
-  /* loop over all markers and call specific nam file generators */
+  // loop over all markers and call specific nam file generators
   for (int i = 0; i < marker_count; i++)
   {
     if (strcmp(marker_list[i], "surface") == 0)
     {
       found_surface = 1;
-      /* Extract .nam for traction nodes */
+      // Extract .nam for traction nodes
       extract_marker(su2file,"surface","NSurface.nam");
 
-      /* Write skin element list for surface elements */
+      // Write skin element list for surface elements 
       extract_skin_elements(su2file, "surface", "skinElementList.nam");
     }
 
@@ -635,9 +642,21 @@ if (SU2_MESH)
       extract_marker(su2file,"fixed","Nfix1.nam");
     }
 
+    else if (strcmp(marker_list[i], "tank1") == 0)
+    {
+      // Write skin element list for tank elements
+      extract_skin_elements(su2file, "tank1", "tank1ElementList.nam");
+    }
+
+    else if (strcmp(marker_list[i], "tank2") == 0)
+    {
+      // Write skin element list for tank elements 
+      extract_skin_elements(su2file, "tank2", "tank2ElementList.nam");
+    }
+
     else if (strcmp(marker_list[i], "tank") == 0)
     {
-      /* Write skin element list for tank elements */
+      // Write skin element list for tank elements 
       extract_skin_elements(su2file, "tank", "tankElementList.nam");
     }
   }
@@ -659,7 +678,7 @@ if (SU2_MESH)
     FORTRAN(stop,());
   }
 
-  /* if marker fixed is not found, exit */
+  // if marker fixed is not found, exit 
   if (!found_fixed)
   {
     fprintf(stderr,
@@ -713,7 +732,7 @@ istat=0;
 iprestr=0;
 kode=0;
 
-/* default solver */
+// default solver 
 
 #if defined(SGI)
  isolver=4;
@@ -1272,50 +1291,44 @@ while(istat>=0)
       {
         printf("Passive Element ID: %d\n", passiveIDs[i]);
       }
-
     }
     printf("\n");
 
     /* ============================================================
-   Add slat hard-point elements to passive domain
-   ============================================================ */
+    Add slat hard-point elements to passive domain
+    ============================================================ */
 
-  if (stat("slatElementList.nam", &buffer) != 0)
-  {
-    printf("File 'slatElementList.nam' not found -> "
+    if (stat("slatElementList.nam", &buffer) != 0)
+    {
+      printf("File 'slatElementList.nam' not found -> "
            "slat hard points will not be defined.\n");
-  }
-  else
-  {
-    //int numSlatPassive = 0;
-    //int *slatPassiveIDs = NULL;  These are now declared globally
-
-    printf("File slatElementList.nam found -> "
-           "Setting slat hard-point definition.\n");
-    fflush(stdout);
-
-    /* Read slat hard-point element IDs */
-    slatPassiveIDs = passiveElements("slatElementList.nam",&numSlatPassive);
-
-    if (slatPassiveIDs == NULL)
-    {
-        fprintf(stderr,
-                "ERROR: Could not read slatElementList.nam\n");
-        FORTRAN(stop,());
     }
-
-    printf("Read %d slat hard-point elements.\n", numSlatPassive);
-
-
-    /* --------------------------------------------------------
-       Allocate enough space for the worst case:
-       no overlap between skin and slat elements
-       -------------------------------------------------------- */
-
-    int *tmp = realloc(passiveIDs,(numPassive + numSlatPassive) * sizeof(int));
-
-    if (tmp == NULL)
+    else
     {
+      printf("File slatElementList.nam found -> "
+           "Setting slat hard-point definition.\n");
+      fflush(stdout);
+
+      // Read slat hard-point element IDs
+      slatPassiveIDs = passiveElements("slatElementList.nam",&numSlatPassive);
+
+      if (slatPassiveIDs == NULL)
+      {
+        fprintf(stderr,"ERROR: Could not read slatElementList.nam\n");FORTRAN(stop,());
+      }
+
+      printf("Read %d slat hard-point elements.\n", numSlatPassive);
+
+
+      /* --------------------------------------------------------
+        Allocate enough space for the worst case:
+        no overlap between skin and slat elements
+      -------------------------------------------------------- */
+
+      int *tmp = realloc(passiveIDs,(numPassive + numSlatPassive) * sizeof(int));
+
+      if (tmp == NULL)
+      {
         fprintf(stderr,
                 "ERROR: Could not reallocate passiveIDs.\n");
 
@@ -1323,19 +1336,19 @@ while(istat>=0)
         free(passiveIDs);
 
         FORTRAN(stop,());
-    }
+      }
 
-    passiveIDs = tmp;
+      passiveIDs = tmp;
 
-    /* --------------------------------------------------------
+      /* --------------------------------------------------------
        Append only slat IDs that are not already passive
-       -------------------------------------------------------- */
+        -------------------------------------------------------- */
 
-    int numSlatAdded = 0;
-    int numSlatDuplicate = 0;
+      int numSlatAdded = 0;
+      int numSlatDuplicate = 0;
 
-    for (int i = 0; i < numSlatPassive; i++)
-    {
+      for (int i = 0; i < numSlatPassive; i++)
+      {
         int id = slatPassiveIDs[i];
         int alreadyPassive = 0;
 
@@ -1348,11 +1361,11 @@ while(istat>=0)
          */
         for (int j = 0; j < numPassive; j++)
         {
-            if (passiveIDs[j] == id)
-            {
-                alreadyPassive = 1;
-                break;
-            }
+          if (passiveIDs[j] == id)
+          {
+              alreadyPassive = 1;
+              break;
+          }
         }
 
         if (!alreadyPassive)
@@ -1365,18 +1378,16 @@ while(istat>=0)
         {
             numSlatDuplicate++;
         }
+      }
+
+      printf("Slat hard-point elements added : %d\n",numSlatAdded);
+
+      printf("Already passive / duplicates   : %d\n",numSlatDuplicate);
+
+      printf("Total passive elements         : %d\n",numPassive);
+
+      fflush(stdout); 
     }
-
-    printf("Slat hard-point elements added : %d\n",numSlatAdded);
-
-    printf("Already passive / duplicates   : %d\n",numSlatDuplicate);
-
-    printf("Total passive elements         : %d\n",numPassive);
-
-    fflush(stdout);
-
-    //free(slatPassiveIDs); // Free later so that we can write to .vtu
-}
 
   /* Read element desitiies from .dat file, if absent, initialize the design to one */    
   rho(design,ne);
