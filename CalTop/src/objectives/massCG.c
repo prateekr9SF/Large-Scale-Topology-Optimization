@@ -335,3 +335,23 @@ void compute_mass(
     
     free(is_skin);
 }
+
+
+double component_mass(size_t ne,const double *eleVol,double mat_dens,const int *elementIDs,int numElements)
+{
+  double mass = 0.0;
+
+  if (elementIDs == NULL || numElements <= 0)
+    return 0.0;
+
+  #pragma omp parallel for reduction(+:mass)
+  for (int i = 0; i < numElements; i++)
+  {
+      int id = elementIDs[i] - 1;
+
+      if (id >= 0 && (size_t)id < ne)
+          mass += mat_dens * eleVol[id];
+  }
+
+  return mass;
+}

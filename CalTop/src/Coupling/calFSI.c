@@ -2422,6 +2422,21 @@ while(istat>=0)
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
       
+
+      printf("\n========================================\n");
+      printf(" PASSIVE COMPONENT MASSES\n");
+      printf("========================================\n");
+
+      printf("Tank1 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, tank1PassiveIDs, numTank1Passive));
+
+      printf("Tank2 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,tank2PassiveIDs, numTank2Passive));
+
+      printf("Flap mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens,flapPassiveIDs, numFlapPassive));
+
+      printf("Slat mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens, slatPassiveIDs, numSlatPassive));
+
+      printf("========================================\n");                      
+
       SFREE(elCG);
       
       /*-------------------------------------------------------------------------------------------------------- ---*/      
@@ -2520,6 +2535,20 @@ while(istat>=0)
         compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
+
+      printf("\n========================================\n");
+      printf(" PASSIVE COMPONENT MASSES\n");
+      printf("========================================\n");
+
+      printf("Tank1 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, tank1PassiveIDs, numTank1Passive));
+
+      printf("Tank2 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,tank2PassiveIDs, numTank2Passive));
+
+      printf("Flap mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens,flapPassiveIDs, numFlapPassive));
+
+      printf("Slat mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens, slatPassiveIDs, numSlatPassive));
+
+      printf("========================================\n");   
         SFREE(elCG);
       /*---------------------------------------------------------------------------------------------------------------*/      
 

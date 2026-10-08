@@ -140,6 +140,8 @@ void compute_mass_cg_and_cg_sens(size_t ne, const double *eleVol, const double *
 
 void compute_mass(size_t ne, const double *eleVol, const double *rhoPhys, const double mat_dens, int *passiveIDs, int numPassive);
 
+double component_mass(size_t ne,const double *eleVol,double mat_dens,const int *elementIDs,int numElements);
+
 
 void assembleFilter(double *FilterMatrixs, int *rowFilters, int *colFilters,
                 int *filternnzElems, int *drow, int *dcol, double *dval,
