@@ -624,7 +624,7 @@ if (SU2_MESH)
   printf("%s\n\n", su2file);
 
   // Extract slat hard points
-  extract_slat_hardpoints(su2file,"slatElementList.nam");
+  //extract_slat_hardpoints(su2file,"slatElementList.nam");
 
   // get all availbale markers in the *.su2 file
   marker_list = get_su2_markers(su2file, &marker_count);
