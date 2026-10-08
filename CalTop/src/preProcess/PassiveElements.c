@@ -129,3 +129,25 @@ void addPassiveComponent(const char *filename,
 
     fflush(stdout);
 }
+
+void writePassiveElements(const int *passiveIDs, int numPassive)
+{
+    FILE *fp = fopen("passiveElementList.nam", "w");
+
+    if (fp == NULL)
+    {
+        perror("ERROR: Could not create passiveElementList.nam");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < numPassive; i++)
+    {
+        fprintf(fp, "%d\n", passiveIDs[i]);
+    }
+
+    fclose(fp);
+
+    printf("passiveElementList.nam written with %d passive elements.\n",
+           numPassive);
+    fflush(stdout);
+}

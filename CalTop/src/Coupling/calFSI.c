@@ -1337,6 +1337,9 @@ while(istat>=0)
     // Add tank elements to passive domain
     addPassiveComponent("tankElementList.nam","tank",&passiveIDs,&numPassive,&tankPassiveIDs,&numTankPassive);
 
+
+    // Write the uniquse element IDs of all passive elements to disk for filter matrix exclusion
+    writePassiveElements(passiveIDs, numPassive);
     
   /* Read element desitiies from .dat file, if absent, initialize the design to one */    
   rho(design,ne);
@@ -2426,6 +2429,8 @@ while(istat>=0)
       printf("\n========================================\n");
       printf(" PASSIVE COMPONENT MASSES\n");
       printf("========================================\n");
+
+      printf("Skin mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, skinPassiveIDs, numSkinPassive));
 
       printf("Tank1 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, tank1PassiveIDs, numTank1Passive));
 
