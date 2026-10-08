@@ -19,6 +19,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "CalculiX.h"
+#include "CalFSI.h"
 #include <string.h>
 
 #include <math.h>

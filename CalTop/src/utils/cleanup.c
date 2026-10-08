@@ -1,3 +1,5 @@
+#include 'CalculiX.h'
+
 void cleanup_filter_files(void)
 {
     const char *files[] = {
