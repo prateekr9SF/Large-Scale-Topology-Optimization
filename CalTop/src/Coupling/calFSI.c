@@ -609,6 +609,9 @@ int numTank1Passive = 0;
 int *tank2PassiveIDs = NULL; /** < Tank2 elementID array */
 int numTank2Passive = 0;
 
+int *cabinPassiveIDs = NULL; /** < Cabin elementID array */
+int numCabinPassive = 0;
+
 
 if (SU2_MESH)
 {
@@ -664,6 +667,12 @@ if (SU2_MESH)
     {
       // Write skin element list for tank elements 
       extract_skin_elements(su2file, "tank", "tankElementList.nam");
+    }
+
+    else if (strcmp(marker_list[i], "cabin") == 0)
+    {
+      // Write skin element list for cabin elements 
+      extract_skin_elements(su2file, "cabin", "cabinElementList.nam");
     }
   }
 
@@ -1337,6 +1346,8 @@ while(istat>=0)
     // Add tank elements to passive domain
     addPassiveComponent("tankElementList.nam","tank",&passiveIDs,&numPassive,&tankPassiveIDs,&numTankPassive);
 
+    // Add tank elements to passive domain
+    addPassiveComponent("cabinElementList.nam","cabin",&passiveIDs,&numPassive,&cabinPassiveIDs,&numCabinPassive);
 
     // Write the uniquse element IDs of all passive elements to disk for filter matrix exclusion
     writePassiveElements(passiveIDs, numPassive);
@@ -2436,6 +2447,8 @@ while(istat>=0)
 
       printf("Tank2 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,tank2PassiveIDs, numTank2Passive));
 
+      printf("Cabin mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,cabinPassiveIDs, numCabinPassive));
+
       printf("Flap mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens,flapPassiveIDs, numFlapPassive));
 
       printf("Slat mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens, slatPassiveIDs, numSlatPassive));
@@ -2550,6 +2563,8 @@ while(istat>=0)
       printf("Tank1 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, tank1PassiveIDs, numTank1Passive));
 
       printf("Tank2 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,tank2PassiveIDs, numTank2Passive));
+      
+      printf("Cabin mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,cabinPassiveIDs, numCabinPassive));
 
       printf("Flap mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens,flapPassiveIDs, numFlapPassive));
 
