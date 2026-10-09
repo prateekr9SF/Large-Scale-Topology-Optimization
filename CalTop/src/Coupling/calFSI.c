@@ -2563,7 +2563,7 @@ while(istat>=0)
       printf("Tank1 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, tank1PassiveIDs, numTank1Passive));
 
       printf("Tank2 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,tank2PassiveIDs, numTank2Passive));
-      
+
       printf("Cabin mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,cabinPassiveIDs, numCabinPassive));
 
       printf("Flap mass  : %.3f kg\n",component_mass(ne, eleVol, mat_dens,flapPassiveIDs, numFlapPassive));
@@ -2729,6 +2729,22 @@ while(istat>=0)
             tank2PassiveIDs,
             numTank2Passive,
             "elastic_Field_tank2.vtu"
+        );
+      }
+
+      /*
+      * Write Cabin elements.
+      */
+      if (numCabinPassive > 0)
+      {
+        tecplot_vtu_passive(
+            nk, ne,
+            co, kon, ipkon, lakon,
+            mi[0],
+            vold, stx, rhoPhys,
+            cabinPassiveIDs,
+            numCabinPassive,
+            "elastic_Field_cabin.vtu"
         );
       }
       /*
