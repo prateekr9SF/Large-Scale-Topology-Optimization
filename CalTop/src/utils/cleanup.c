@@ -1,4 +1,4 @@
-#include 'CalculiX.h'
+#include "CalculiX.h"
 
 void cleanup_filter_files(void)
 {
