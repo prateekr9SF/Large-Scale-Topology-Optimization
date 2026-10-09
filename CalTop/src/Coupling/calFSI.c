@@ -2545,6 +2545,8 @@ while(istat>=0)
       printf(" PASSIVE COMPONENT MASSES\n");
       printf("========================================\n");
 
+      printf("Skin mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, skinPassiveIDs, numSkinPassive));
+
       printf("Tank1 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens, tank1PassiveIDs, numTank1Passive));
 
       printf("Tank2 mass : %.3f kg\n",component_mass(ne, eleVol, mat_dens,tank2PassiveIDs, numTank2Passive));
