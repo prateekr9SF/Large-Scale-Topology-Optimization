@@ -120,6 +120,8 @@
 !     Loop over all elements starting from nea...neb
       do m=nea,neb
 !
+         mattyp=1
+!
          if(list.eq.1) then
             i=ilist(m)
          else
@@ -151,14 +153,15 @@
 !
          indexe=ipkon(i)
 
-!        Set number of nodes for C3D4 element
-         if(lakonl(4:4).eq.'4') then
+!        Set number of nodes and integration pts for C3D4 and C3D10
+         if(lakonl(4:5).eq.'10') then
+            nope=10
+            mint3d=4  ! Four integration points per C3D10 element
+         elseif(lakonl(4:4).eq.'4') then
             nope=4
-         endif
-
-!        Set number integration points for C3D4
-         if(lakonl(4:4).eq.'4') then
             mint3d=1  ! One integration point per each C3D4 element
+         else
+            cycle
          endif
 
 !        Gather nodal displacements
@@ -177,7 +180,12 @@
          do jj=1,mint3d
 
             ! Get integration weight for this element
-            if(lakonl(4:4).eq.'4') then
+            if(lakonl(4:5).eq.'10') then
+               xi=gauss3d5(1,jj)
+               et=gauss3d5(2,jj)
+               ze=gauss3d5(3,jj)
+               weight=weight3d5(jj)
+            elseif(lakonl(4:4).eq.'4') then
                xi=gauss3d4(1,jj)
                et=gauss3d4(2,jj)
                ze=gauss3d4(3,jj)
@@ -187,6 +195,8 @@
             ! Compute shape func values
             if(nope.eq.4) then
                call shape4tet(xi,et,ze,xl,xsj,shp,iflag)
+            elseif(nope.eq.10) then
+               call shape10tet(xi,et,ze,xl,xsj,shp,iflag)
             endif
 
 !
@@ -285,6 +295,11 @@ c                  write(*,*) 'vnoeie',i,konl(m1),(vkl(m2,k),k=1,3)
               ! Pass rho_p to linel.f through mechmodel.f
 !              write(*,*) 'Done!'
             endif
+!
+!           no prestress: beta must be zero (linel_simp subtracts it)
+            do m1=1,6
+               beta(m1)=0.d0
+            enddo
 !
 !           calculating the local stiffness and stress
 !           Constitutive law

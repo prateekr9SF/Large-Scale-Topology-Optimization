@@ -50,6 +50,24 @@
 !               12:sensitivity
 
 */
+/* penalized Cauchy stress of the output increment -> driver array (.vtu) */
+static void nlgeo_copy_stx_vtu(double *stx_vtu, double *stx, ITG *ne,
+                               ITG *mi, double *design, double *penal,
+                               double *rhomin)
+{
+    ITG e, j, n = 6*mi[0];
+    if (stx_vtu == NULL) return;
+    for (e = 0; e < *ne; e++)
+    {
+        double r = design[e];
+        if (r < 0.0) r = 0.0;
+        if (r > 1.0) r = 1.0;
+        if (r < *rhomin) r = *rhomin;
+        double sc = pow(r, *penal);
+        for (j = 0; j < n; j++) stx_vtu[(size_t)n*e + j] = sc*stx[(size_t)n*e + j];
+    }
+}
+
 void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	     ITG *ne, 
 	     ITG *nodeboun, ITG *ndirboun, double *xboun, ITG *nboun, 
@@ -98,7 +116,8 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	     ITG *network,char *orname,double *vel,ITG *nef,
 	     double *velo,double *veloo, double *design,double *penal,
 		 double *sigma0, double *eps_relax, double *rhomin,
-         double *pexp, double *Pnorm, double *dPnorm_drho, int *eval_PNORM, double *mat_dens){
+         double *pexp, double *Pnorm, double *dPnorm_drho, int *eval_PNORM, double *mat_dens,
+         double *stx_vtu){
 
   char description[13]="            ",*lakon=NULL,jobnamef[396]="",
       *sideface=NULL,*labmpc=NULL,*lakonf=NULL,
@@ -2218,8 +2237,16 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  else if(*isolver==7){
 #ifdef PARDISO
 	      if(*ithermal<2){
-		  pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,&neq[0],&nzs[0],
+		  if(g_useNK&&isensitivity&&(*nmethod!=4)){
+		      /* Newton-Krylov: current K_T solved by FGMRES on the
+		         last factor; refactor only if FGMRES fails */
+		      pardiso_factor_solve(ad,au,adb,aub,&sigma,b,icol,irow,
+			       &neq[0],&nzs[0],&symmetryflag,&inputformat,
+			       jq,&nzs[2],&nrhs);
+		  }else{
+		      pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,&neq[0],&nzs[0],
 			       &symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
+		  }
 	      }else if((*ithermal==2)&&(uncoupled)){
 		  n1=neq[1]-neq[0];
 		  n2=nzs[1]-nzs[0];
@@ -2802,9 +2829,11 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
               mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	      islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
               inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun,
-			  design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm, (*eval_PNORM == 2) ? 1 : 0); 
+			  design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm,0); 
       
       memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
+      nlgeo_copy_stx_vtu(stx_vtu,stx,ne,mi,design,penal,rhomin);
+
 
       iout=0;
       if(*iexpl<=1) icmd=0;
@@ -2906,9 +2935,11 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
             inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun,
-			design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm, (*eval_PNORM== 2) ? 1 : 0); 
+			design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm,0); 
     
     memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
+      nlgeo_copy_stx_vtu(stx_vtu,stx,ne,mi,design,penal,rhomin);
+
 
     iout=0;
     if(*iexpl<=1) icmd=0;
@@ -2962,6 +2993,149 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   }
     
+#ifdef PARDISO
+  /* converged K_T, factored once (--NK: stored, solved by FGMRES) and
+     kept for the adjoint solves (P-norm below, compliance in
+     sensitivity()); also written to .stm */
+  if(isensitivity&&(*isolver==7)&&(*ithermal<2)&&(*iexpl<=1)&&
+     (*nmethod!=4)&&(idamping==0)&&(nasym==0)){
+      NNEW(ad,double,neq[1]);
+      NNEW(au,double,nzs[1]);
+      mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
+		  ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
+		  nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
+		  nbody,cgr,ad,au,fext,nactdof,icol,jq,irow,neq,nzl,
+		  nmethod,ikmpc,ilmpc,ikboun,ilboun,
+		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
+		  ielmat,ielorien,norien,orab,ntmat_,
+		  t0,t1act,ithermal,prestr,iprestr,vold,iperturb,sti,
+		  nzs,stx,adb,aub,iexpl,plicon,nplicon,plkcon,nplkcon,
+		  xstiff,npmat_,&dtime,matname,mi,
+                  ncmat_,mass,&stiffness,&buckling,&rhsi,&intscheme,
+                  physcon,shcon,nshcon,cocon,ncocon,ttime,&time,istep,&iinc,
+		  &coriolis,ibody,xloadold,&reltime,veold,springarea,nstate_,
+                  xstateini,xstate,thicke,integerglob,doubleglob,
+		  tieset,istartset,iendset,ialset,ntie,&nasym,pslavsurf,
+		  pmastsurf,mortar,clearini,ielprop,prop,&ne0,fnext,&kscale,
+		  iponoel,inoel,network,ntrans,inotr,trab, design,penal,mat_dens);
+      memcpy(&adcpy[0],&ad[0],sizeof(double)*neq[1]);
+      memcpy(&aucpy[0],&au[0],sizeof(double)*nzs[1]);
+      if(g_useNK){
+	  pardiso_set_matrix(ad,au,adb,aub,&sigma,icol,irow,&neq[0],&nzs[0],
+			     &symmetryflag,&inputformat,jq,&nzs[2]);
+      }else{
+	  pardiso_release();
+	  pardiso_factor(ad,au,adb,aub,&sigma,icol,irow,&neq[0],&nzs[0],
+			 &symmetryflag,&inputformat,jq,&nzs[2]);
+      }
+      SFREE(ad);SFREE(au);
+  }
+#endif
+
+  /*********************************************************/
+  /*   stress P-norm and its adjoint sensitivity (NLGEOM)   */
+  /*   Cauchy stress, converged state vold; mirrors the      */
+  /*   linear path in linstatic.c                            */
+  /*********************************************************/
+
+  if(*eval_PNORM==2){
+#ifdef PARDISO
+      if(!pardiso_factor_alive()){
+	  printf("*ERROR in nonlingeo: the NLGEOM P-norm adjoint needs the\n");
+	  printf("       converged K_T factor: a design tieset (sensitivity\n");
+	  printf("       step), the PARDISO solver and a symmetric static K_T.\n\n");
+	  FORTRAN(stop,());
+      }
+
+      printf("\n========================================\n");
+      printf("STRESS P-NORM (NLGEOM, CAUCHY)\n");
+      printf("========================================\n");
+
+      /* 1) P-norm value and nodal adjoint RHS at the converged state.
+            results() with get_adjoint=3 only runs the P-norm threads;
+            scratch arrays keep stx, fn, f and qa of the analysis intact */
+      {
+	  double *v_p=NULL,*fn_p=NULL,*stn_p=NULL,*stx_p=NULL,*f_p=NULL,
+	      qa_p[4]={0.,0.,-1.,0.};
+	  ITG *inum_p=NULL,iout_p=-1,icmd_p=3;
+
+	  NNEW(v_p,double,mt**nk);
+	  memcpy(&v_p[0],&vold[0],sizeof(double)*mt**nk);
+	  NNEW(fn_p,double,mt**nk);
+	  NNEW(stn_p,double,6**nk);
+	  NNEW(stx_p,double,6*mi[0]**ne);
+	  NNEW(f_p,double,neq[1]);
+	  NNEW(inum_p,ITG,*nk);
+	  DMEMSET(brhs,0,mt**nk,0.);
+
+	  results(co,nk,kon,ipkon,lakon,ne,v_p,stn_p,inum_p,stx_p,
+		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
+		  ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
+		  prestr,iprestr,filab,eme,NULL,NULL,iperturb,
+		  f_p,fn_p,nactdof,&iout_p,qa_p,vold,b,nodeboun,
+		  ndirboun,xbounact,nboun,ipompc,
+		  nodempc,coefmpc,labmpc,nmpc,nmethod,cam,&neq[1],veold,accold,
+		  &bet,&gam,&dtime,&time,ttime,plicon,nplicon,plkcon,nplkcon,
+		  xstateini,xstiff,xstate,npmat_,NULL,matname,mi,&ielas,&icmd_p,
+		  ncmat_,nstate_,stiini,vini,ikboun,ilboun,ener,NULL,emeini,
+		  NULL,eei,enerini,cocon,ncocon,set,nset,istartset,iendset,
+		  ialset,nprint,prlab,prset,qfx,qfn,trab,inotr,ntrans,fmpc,
+		  nelemload,nload,ikmpc,ilmpc,istep,&iinc,springarea,
+		  &reltime,&ne0,thicke,shcon,nshcon,
+		  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
+		  mortar,islavact,NULL,islavnode,nslavnode,ntie,clearini,
+		  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
+		  inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun,
+		  design,penal,sigma0,eps_relax,rhomin,pexp,brhs,
+		  djdrho_explicit,Pnorm,3);
+
+	  SFREE(v_p);SFREE(fn_p);SFREE(stn_p);SFREE(stx_p);SFREE(f_p);
+	  SFREE(inum_p);
+      }
+      printf(" P-norm (Cauchy) = %.15e\n",*Pnorm);
+
+      /* 2) nodal RHS -> equation space (no MPCs), as in linstatic.c */
+      {
+	  double *b_adj=NULL,*lam=NULL,*djdrho_impl=NULL,PnormMult;
+	  ITG nea_loc=1,neb_loc=*ne,list_loc=0,*ilist_loc=NULL,idir,idof;
+
+	  NNEW(b_adj,double,neq[0]);
+	  for(i=0;i<*nk;++i){
+	      for(idir=1;idir<=3;++idir){
+		  idof=nactdof[idir+i*mt]-1;
+		  if(idof>=0) b_adj[idof]=brhs[idir+i*mt];
+	      }
+	  }
+
+	  /* 3) adjoint solve K_T lambda = dJ/du on the kept factor
+	        (same matrix the compliance adjoint uses; no new factorization) */
+	  pardiso_solve(b_adj,&neq[0],&symmetryflag,&nrhs);
+
+	  /* equation space -> nodal field */
+	  NNEW(lam,double,mt**nk);
+	  adjoint_eq_2_node(nk,nactdof,nboun,nodeboun,ndirboun,typeboun,
+			    mi,lam,b_adj);
+
+	  /* 4) implicit + explicit sensitivity per element */
+	  NNEW(djdrho_impl,double,*ne);
+	  FORTRAN(pnorm_implicit_nl,(co,kon,ipkon,lakon,ne,mi,
+		  xstiff,vold,lam,design,penal,pexp,eps_relax,sigma0,
+		  &nea_loc,&neb_loc,&list_loc,ilist_loc,djdrho_impl));
+
+	  /* 5) P^(1-p) prefactor */
+	  PnormMult=(*Pnorm>0.) ? *Pnorm/pow(*Pnorm,*pexp) : 0.;
+	  for(i=0;i<*ne;++i){
+	      dPnorm_drho[i]=PnormMult*djdrho_impl[i];
+	  }
+
+	  SFREE(b_adj);SFREE(lam);SFREE(djdrho_impl);
+      }
+#else
+      printf("*ERROR in nonlingeo: the NLGEOM P-norm adjoint needs PARDISO\n\n");
+      FORTRAN(stop,());
+#endif
+  }
+
   /* writing out the latest stiffness matrix for a subsequent
      sensitivity analysis */
 

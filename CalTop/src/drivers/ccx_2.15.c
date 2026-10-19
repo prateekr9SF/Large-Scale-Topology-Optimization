@@ -32,6 +32,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "CalculiX.h"
+#ifdef PARDISO
+#include "pardiso.h"
+#endif
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h> 
@@ -397,7 +400,7 @@ int main(int argc,char *argv[])
   if(argc==1)
   { 
     /* Inadequate input arguments */
-    printf("Usage: Flags: -i jobname -p PENALTY -r RADIUS -f FILTERNNZ --pexp PNORM EXPONENT --sigmin SIGMA MINIMUM --sigrelax STRESS RELAXATION --cg_eval YES\n");
+    printf("Usage: Flags: -i jobname -p PENALTY -r RADIUS -f FILTERNNZ --pexp PNORM EXPONENT --sigmin SIGMA MINIMUM --sigrelax STRESS RELAXATION --cg_eval YES --NK False\n");
     FORTRAN(stop,());
   }
 
@@ -510,6 +513,26 @@ else
           (strcmp1(argv[i+1],"YES")==0 || strcmp1(argv[i+1],"yes")==0))
       {
         eval_CG = 1;
+      }
+      break;
+    }
+  }
+
+  /* Newton-Krylov for the NLGEOM sensitivity solves (default: PARDISO direct) */
+  for(i=1; i<argc; i++)
+  {
+    if(strcmp(argv[i],"--NK")==0)
+    {
+      if (i+1 < argc &&
+          (strcmp(argv[i+1],"true")==0 || strcmp(argv[i+1],"True")==0 ||
+           strcmp(argv[i+1],"TRUE")==0))
+      {
+#ifdef PARDISO
+        g_useNK = 1;
+        printf(" Newton solver: Newton-Krylov (PARDISO factor as preconditioner)\n\n");
+#else
+        printf(" *WARNING: --NK needs PARDISO; ignored\n\n");
+#endif
       }
       break;
     }
@@ -2057,10 +2080,32 @@ while(istat>=0)
            &ifacecount,typeboun,&islavsurf,&pslavsurf,&clearini,&nmat,
            xmodal,&iaxial,&inext,&nprop,&network,orname,vel,&nef,
            velo,veloo,rhoPhys,&pstiff,
-           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens);
+           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens,
+           stx);
 
     memmpc_=mpcinfo[0]; mpcfree=mpcinfo[1];
     icascade=mpcinfo[2]; maxlenmpc=mpcinfo[3];
+
+    if (eval_PNORM == 2)
+    {
+      printf("Filtering element stress (P-norm) gradient...");
+      fflush(stdout);
+
+      NNEW(dPnorm_drhoFiltered, double, ne_);
+      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
+      if (rs != 0)
+      {
+        printf("Unable to write P-norm sensitivities to disk!\n");
+        fflush(stdout);
+      }
+
+      SFREE(dPnorm_drhoFiltered);
+      printf("done \n");
+    }
+
+    SFREE(dPnorm_drho);
 
     for(i=0;i<3;i++) nzsprevstep[i]=nzs[i];
 
@@ -2803,6 +2848,10 @@ while(istat>=0)
   }
 
  } // end while(istat>=0)
+
+#ifdef PARDISO
+  pardiso_release();   /* K_T factor kept for the adjoint solves */
+#endif
 
   printf("Removing filter files...");
   fflush(stdout);

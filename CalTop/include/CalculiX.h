@@ -3537,7 +3537,8 @@ void nonlingeo(double **co,ITG *nk,ITG **konp,ITG **ipkonp,char **lakonp,
 	     ITG *network,char *orname,double *vel,ITG *nef,
 	     double *velo,double *veloo, double *design,double *penal,
             double *sigma0, double *eps_relax, double *rhomin,
-            double *pexp, double *Pnorm, double *dPnorm_drho, int *eval_PNORM, double *mat_dens);
+            double *pexp, double *Pnorm, double *dPnorm_drho, int *eval_PNORM, double *mat_dens,
+            double *stx_vtu);
 
 void FORTRAN(nonlinmpc,(double *co,double *vold,ITG *ipompc,ITG *nodempc,
 		   double *coefmpc,char *labmpc,ITG *nmpc,ITG *ikboun,
@@ -4268,6 +4269,70 @@ void *stresssimpmt(ITG *i);
 void *pnormRHSmt(ITG *i);
 
 void *pnorm_explicitmt(ITG *i);
+
+void FORTRAN(stresspnorm_nl,(double *co,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
+          double *v,double *stx,double *elcon,ITG *nelcon,double *rhcon,
+          ITG *nrhcon,double *alcon,ITG *nalcon,double *alzero,ITG *ielmat,
+          ITG *ielorien,ITG *norien,double *orab,ITG *ntmat_,double *t0,
+          double *t1,ITG *ithermal,double *prestr,ITG *iprestr,double *eme,
+          ITG *iperturb,double *fn,ITG *iout,double *qa,double *vold,
+          ITG *nmethod,double *veold,double *dtime,double *time,
+          double *ttime,double *plicon,ITG *nplicon,double *plkcon,
+          ITG *nplkcon,double *xstateini,double *xstiff,double *xstate,
+          ITG *npmat_,char *matname,ITG *mi,ITG *ielas,ITG *icmd,ITG *ncmat_,
+          ITG *nstate_,double *stiini,double *vini,double *ener,double *eei,
+          double *enerini,ITG *istep,ITG *iinc,double *springarea,
+          double *reltime,ITG *calcul_fn,ITG *calcul_qa,ITG *calcul_cauchy,
+	  ITG *iener,ITG *ikin,ITG *nal,ITG *ne0,double *thicke,
+	  double *emeini,double *pslavsurf,double *pmastsurf,ITG *mortar,
+	  double *clearini,ITG *nea,ITG *neb,ITG *ielprop,double *prop,
+	  ITG *kscale,ITG *list,ITG *ilist, double* design, double* penal, double *sigma0, double *eps,
+	  double * rhomin, double *pexp));
+
+void FORTRAN(pnorm_rhs_nl,(double *co,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
+          double *v,double *stx,double *elcon,ITG *nelcon,double *rhcon,
+          ITG *nrhcon,double *alcon,ITG *nalcon,double *alzero,ITG *ielmat,
+          ITG *ielorien,ITG *norien,double *orab,ITG *ntmat_,double *t0,
+          double *t1,ITG *ithermal,double *prestr,ITG *iprestr,double *eme,
+          ITG *iperturb,double *fn,ITG *iout,double *qa,double *vold,
+          ITG *nmethod,double *veold,double *dtime,double *time,
+          double *ttime,double *plicon,ITG *nplicon,double *plkcon,
+          ITG *nplkcon,double *xstateini,double *xstiff,double *xstate,
+          ITG *npmat_,char *matname,ITG *mi,ITG *ielas,ITG *icmd,ITG *ncmat_,
+          ITG *nstate_,double *stiini,double *vini,double *ener,double *eei,
+          double *enerini,ITG *istep,ITG *iinc,double *springarea,
+          double *reltime,ITG *calcul_fn,ITG *calcul_qa,ITG *calcul_cauchy,
+	  ITG *iener,ITG *ikin,ITG *nal,ITG *ne0,double *thicke,
+	  double *emeini,double *pslavsurf,double *pmastsurf,ITG *mortar,
+	  double *clearini,ITG *nea,ITG *neb,ITG *ielprop,double *prop,
+	  ITG *kscale,ITG *list,ITG *ilist, double *rhs, double* design, double* penal, double *sigma0, double *eps,
+	  double * rhomin, double *pexp, double *alpha));
+
+void FORTRAN(pnorm_implicit_nl,
+( double *co,        /* 3*nk */
+  ITG    *kon,       /* connectivity */
+  ITG    *ipkon,     /* elem -> kon pointer */
+  char   *lakon,     /* element type char*8 per elem */
+  ITG    *ne,        /* #elements */
+  ITG    *mi,        /* CCX size array */
+  double *xstiff,    /* (27,mi(1),ne) packed D */
+  double *v,         /* primal nodal field */
+  double *lam,       /* adjoint nodal field */
+  double *design,    /* element densities */
+  double *penal,     /* SIMP exponent (by ref) */
+  double *pexp,      /* exponential value for Pnorm*/
+  double *relax,     /* relaxation factor for pnorm*/
+  double *sig0,      /* minimum stress allowable */ 
+  ITG    *nea,       /* start element index */
+  ITG    *neb,       /* end element index */
+  ITG    *list,      /* 0: all, 1: use ilist */
+  ITG    *ilist,     /* optional selection list */
+  double *djdrho     /* output sensitivity per element */
+));
+
+void *stresspnormnlmt(ITG *i);
+
+void *pnormRHSnlmt(ITG *i);
 
 void *resultsmechmtstr(ITG *i);
 

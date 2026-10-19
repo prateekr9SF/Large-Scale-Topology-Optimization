@@ -626,11 +626,19 @@ void sensitivity(double *co, int *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                     if(*isolver==7)
                     {
                         #ifdef PARDISO
-                        pardiso_factor(ad,au,adb,aub,&sigma,icol,irow,
-                            &neq[1],&nzs[1],&symmetryflag,&inputformat,
-                            jq,&nzs[2]);
-                        pardiso_solve(fint,&neq[1],&symmetryflag,&nrhs);
-                        pardiso_cleanup(&neq[1],&symmetryflag);
+                        if(pardiso_factor_alive())
+                        {
+                            /* converged K_T kept by nonlingeo */
+                            pardiso_solve(fint,&neq[1],&symmetryflag,&nrhs);
+                        }
+                        else
+                        {
+                            pardiso_factor(ad,au,adb,aub,&sigma,icol,irow,
+                                &neq[1],&nzs[1],&symmetryflag,&inputformat,
+                                jq,&nzs[2]);
+                            pardiso_solve(fint,&neq[1],&symmetryflag,&nrhs);
+                            pardiso_cleanup(&neq[1],&symmetryflag);
+                        }
                         #endif
                     }
                     else if(*isolver==0)
