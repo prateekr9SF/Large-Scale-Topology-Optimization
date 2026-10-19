@@ -310,7 +310,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             fflush(stdout);
         }
 
-        if (get_adjoint == 1)
+        if ((get_adjoint == 1)||(get_adjoint == 3))
         {
             // STEP 1: Compute VM stress and aggregate (P-NORM) for Rho = 1 
             printf("Evaluating von Misses stress for the structure\n");
@@ -318,7 +318,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 	        for(i=0; i<num_cpus; i++)  
             {
 	            ithread[i]=i;
-	            pthread_create(&tid[i], NULL, (void *)stresspnormmt, (void *)&ithread[i]);
+	            if (get_adjoint == 3)
+	                pthread_create(&tid[i], NULL, (void *)stresspnormnlmt, (void *)&ithread[i]);
+	            else
+	                pthread_create(&tid[i], NULL, (void *)stresspnormmt, (void *)&ithread[i]);
 	        }
 
 	        for(i=0; i<num_cpus; i++)  pthread_join(tid[i], NULL);
@@ -388,7 +391,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
         SFREE(ithread);
 
         /******************************P-NORM ADJOINT RHS CALCULATION***************************************/
-        if (get_adjoint == 1)
+        if ((get_adjoint == 1)||(get_adjoint == 3))
         {
             // STEP 2: ASSEMBLE RHS FOR P-NORM ADJOINT
             printf("Assembling RHS for stress adjoint using analytical solution...");
@@ -406,7 +409,10 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             for (i = 0; i < num_cpus; ++i) 
             {
                 ithread[i] = i;
-                pthread_create(&tid[i], NULL, (void *)pnormRHSmt, (void *)&ithread[i]);
+                if (get_adjoint == 3)
+                    pthread_create(&tid[i], NULL, (void *)pnormRHSnlmt, (void *)&ithread[i]);
+                else
+                    pthread_create(&tid[i], NULL, (void *)pnormRHSmt, (void *)&ithread[i]);
             }
 
             for (i = 0; i < num_cpus; ++i) pthread_join(tid[i], NULL);
@@ -429,7 +435,7 @@ void results(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
             fflush(stdout);
         }
 
-        if (get_adjoint == 1)
+        if ((get_adjoint == 1)||(get_adjoint == 3))
         {
             SFREE(neapar);
             SFREE(nebpar);   
@@ -881,6 +887,64 @@ void *pnormRHSmt(ITG *i)
     &nea,&neb,&list1,ilist1));
     */
     FORTRAN(pnorm_rhs,(co1,kon1,ipkon1,lakon1,ne1,v1,
+          stx1,elcon1,nelcon1,rhcon1,nrhcon1,alcon1,nalcon1,alzero1,
+          ielmat1,ielorien1,norien1,orab1,ntmat1_,t01,t11,ithermal1,prestr1,
+          iprestr1,eme1,iperturb1,&fn1[indexfn],iout1,&qa1[indexqa],vold1,
+          nmethod1,
+          veold1,dtime1,time1,ttime1,plicon1,nplicon1,plkcon1,nplkcon1,
+          xstateini1,xstiff1,xstate1,npmat1_,matname1,mi1,ielas1,icmd1,
+          ncmat1_,nstate1_,stiini1,vini1,ener1,eei1,enerini1,istep1,iinc1,
+          springarea1,reltime1,&calcul_fn1,&calcul_qa1,&calcul_cauchy1,nener1,
+	  &ikin1,&nal[indexnal],ne01,thicke1,emeini1,
+	  pslavsurf1,pmastsurf1,mortar1,clearini1,&nea,&neb,ielprop1,prop1,
+	  kscale1,&list1,ilist1, &rhs1[indexrhs], design1, penal1, sigma01, eps1, rhomin1, pexp1, &alpha1));
+    return NULL;
+}
+
+void *stresspnormnlmt(ITG *i)
+{
+    ITG indexfn,indexqa,indexnal,nea,neb,list1=0,*ilist1=NULL;
+
+    indexfn=*i*mt1**nk1;
+    indexqa=*i*4;
+    indexnal=*i;
+
+    nea=neapar[*i]+1;
+    neb=nebpar[*i]+1;
+
+    qa1[indexqa + 0] = 0.0;
+    qa1[indexqa + 1] = 0.0;
+    qa1[indexqa + 2] = 0.0;
+    qa1[indexqa + 3] = 0.0;
+
+    FORTRAN(stresspnorm_nl,(co1,kon1,ipkon1,lakon1,ne1,v1,
+          stx1,elcon1,nelcon1,rhcon1,nrhcon1,alcon1,nalcon1,alzero1,
+          ielmat1,ielorien1,norien1,orab1,ntmat1_,t01,t11,ithermal1,prestr1,
+          iprestr1,eme1,iperturb1,&fn1[indexfn],iout1,&qa1[indexqa],vold1,
+          nmethod1,
+          veold1,dtime1,time1,ttime1,plicon1,nplicon1,plkcon1,nplkcon1,
+          xstateini1,xstiff1,xstate1,npmat1_,matname1,mi1,ielas1,icmd1,
+          ncmat1_,nstate1_,stiini1,vini1,ener1,eei1,enerini1,istep1,iinc1,
+          springarea1,reltime1,&calcul_fn1,&calcul_qa1,&calcul_cauchy1,nener1,
+	  &ikin1,&nal[indexnal],ne01,thicke1,emeini1,
+	  pslavsurf1,pmastsurf1,mortar1,clearini1,&nea,&neb,ielprop1,prop1,
+	  kscale1,&list1,ilist1, design1, penal1, sigma01, eps1, rhomin1, pexp1));
+    return NULL;
+}
+
+void *pnormRHSnlmt(ITG *i)
+{
+    ITG indexfn,indexqa,indexnal,indexrhs,nea,neb,list1=0,*ilist1=NULL;
+
+    indexfn  = *i * mt1 * *nk1;
+    indexqa  = *i * 4;
+    indexnal = *i;
+    indexrhs = *i * mt1 * *nk1;
+
+    nea = neapar[*i] + 1;
+    neb = nebpar[*i] + 1;
+
+    FORTRAN(pnorm_rhs_nl,(co1,kon1,ipkon1,lakon1,ne1,v1,
           stx1,elcon1,nelcon1,rhcon1,nrhcon1,alcon1,nalcon1,alzero1,
           ielmat1,ielorien1,norien1,orab1,ntmat1_,t01,t11,ithermal1,prestr1,
           iprestr1,eme1,iperturb1,&fn1[indexfn],iout1,&qa1[indexqa],vold1,

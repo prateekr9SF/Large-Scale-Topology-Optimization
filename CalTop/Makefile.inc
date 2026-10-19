@@ -883,6 +883,7 @@ $(SRC_DIR)/pnorm_rhs.f \
 $(SRC_DIR)/pnorm_explicit.f \
 $(SRC_DIR)/pnorm_implicit.f \
 $(SRC_DIR)/pnorm_value_from_stx.f \
+$(SRC_DIR)/stresspnorm_nl.f \
 $(SRC_DIR)/mechmodel_simp.f \
 $(SRC_DIR)/linel_simp.f \
 $(SRC_DIR)/resultsiniAdjoint.f \

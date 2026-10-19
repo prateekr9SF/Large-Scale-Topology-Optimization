@@ -30,6 +30,10 @@ void pardiso_solve(double *b,ITG *neq,ITG *symmetryflag,ITG *nrhs);
 
 void pardiso_cleanup(ITG *neq,ITG *symmetryflag);
 
+ITG pardiso_factor_alive(void);
+
+void pardiso_release(void);
+
 void FORTRAN(pardiso,(long long *pt,ITG *maxfct,ITG *mnum,ITG *mtype,ITG *phase,
                    ITG *neq,double *aupardiso,ITG *pointers,ITG *irowpardiso,
                    ITG *perm,ITG *nrhs,ITG *iparm,ITG *msglvl,double *b,

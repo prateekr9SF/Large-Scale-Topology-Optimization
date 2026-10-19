@@ -32,6 +32,9 @@ long long pt[64];
 double *aupardiso=NULL;
 /* double dparm[64];  not used */
 ITG nthread_mkl=0;
+
+/* factor kept by pardiso_factor until pardiso_cleanup */
+static ITG factor_alive=0,alive_neq=0,alive_symmetryflag=0;
 /* char envMKL[32];   moved to pardiso.h */
 //char envMKL[32];
 
@@ -405,6 +408,10 @@ void pardiso_factor(double *ad, double *au, double *adb, double *aub,
 			   pointers,icolpardiso,perm,&nrhs,iparm,&msglvl,
                    b,x,&error));
 
+  		factor_alive=1;
+  		alive_neq=*neq;
+  		alive_symmetryflag=*symmetryflag;
+
 	//	#ifdef PROFILING_ON
     //    	TAU_PROFILE_STOP(t_pardiso_factor);
     //	#endif
@@ -540,11 +547,25 @@ void pardiso_cleanup(ITG *neq,ITG *symmetryflag)
   SFREE(aupardiso);
   SFREE(pointers);
 
+  factor_alive=0;
+
 //    #ifdef PROFILING_ON
 //        TAU_PROFILE_STOP(t_pardiso_cleanup);
 //    #endif
 
   return;
+}
+
+/* 1 if a factorization from pardiso_factor is still held */
+ITG pardiso_factor_alive(void)
+{
+  return factor_alive;
+}
+
+/* release the held factorization, if any */
+void pardiso_release(void)
+{
+  if(factor_alive) pardiso_cleanup(&alive_neq,&alive_symmetryflag);
 }
 
 /*

@@ -32,6 +32,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "CalculiX.h"
+#ifdef PARDISO
+#include "pardiso.h"
+#endif
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h> 
@@ -2057,10 +2060,32 @@ while(istat>=0)
            &ifacecount,typeboun,&islavsurf,&pslavsurf,&clearini,&nmat,
            xmodal,&iaxial,&inext,&nprop,&network,orname,vel,&nef,
            velo,veloo,rhoPhys,&pstiff,
-           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens);
+           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens,
+           stx);
 
     memmpc_=mpcinfo[0]; mpcfree=mpcinfo[1];
     icascade=mpcinfo[2]; maxlenmpc=mpcinfo[3];
+
+    if (eval_PNORM == 2)
+    {
+      printf("Filtering element stress (P-norm) gradient...");
+      fflush(stdout);
+
+      NNEW(dPnorm_drhoFiltered, double, ne_);
+      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
+      if (rs != 0)
+      {
+        printf("Unable to write P-norm sensitivities to disk!\n");
+        fflush(stdout);
+      }
+
+      SFREE(dPnorm_drhoFiltered);
+      printf("done \n");
+    }
+
+    SFREE(dPnorm_drho);
 
     for(i=0;i<3;i++) nzsprevstep[i]=nzs[i];
 
@@ -2803,6 +2828,10 @@ while(istat>=0)
   }
 
  } // end while(istat>=0)
+
+#ifdef PARDISO
+  pardiso_release();   /* K_T factor kept for the adjoint solves */
+#endif
 
   printf("Removing filter files...");
   fflush(stdout);

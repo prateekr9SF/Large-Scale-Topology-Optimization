@@ -1,0 +1,52 @@
+**Block file for optimization
+*INCLUDE, INPUT=/home/prateek/Documents/MBB/Mesh/MBB_20MM_C3D4.nam
+** Node set Nfix1 has DOF 1(X), DOF 2(Y), DOF 3(Z) fixed
+*BOUNDARY
+Fix,1
+Fix,2
+Fix,3
+Fix,4
+Fix,5
+Fix,6
+
+*BOUNDARY
+Roller,1
+Roller,2
+**Add material named EL with elastic properties
+*MATERIAL,NAME=EL
+*ELASTIC
+660000000,0.333
+
+** Apply material EL to element set EALL
+*SOLID SECTION, ELSET=EALL, MATERIAL=EL
+
+** Design variable definition
+*NSET, NSET=DES
+1
+
+*DESIGNVARIABLES, TYPE=COORDINATE
+DES
+
+*SOLID SECTION, ELSET=EALL, MATERIAL=EL
+*STEP
+*STATIC
+**Begin setup for static analysis
+
+** Define concentrated load on <nodeset>, <dof>, <magnitude>
+*CLOAD
+Load, 3, 238.095
+*END STEP
+s
+
+*NODE FILE
+ U
+***EL FILE
+** S, E
+*END STEP
+
+
+*STEP
+*SENSITIVITY
+*OBJECTIVE
+STRAINENERGY
+*END STEP
