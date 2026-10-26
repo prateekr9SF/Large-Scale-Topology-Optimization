@@ -15,6 +15,11 @@
 #include <TAU.h>
 #endif
 
+#define PROGRESS_WIDTH 40
+#define PROGRESS_INTERVAL 100
+
+static pthread_mutex_t progress_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 typedef struct {
     int id, ne, begin, end, excludePassive;
     const int *passive;
@@ -40,8 +45,38 @@ static int copy_shard(FILE *out, const char *name)
 
     if (ferror(in)) { perror("read CSR shard"); fclose(in); return -1; }
     if (fclose(in) != 0) return -1;
-    if (remove(name) != 0) { perror("remove shard"); return -1; }
+
+    // Delete the temporary files only after the final outputs have been closed
+    //if (remove(name) != 0) { perror("remove shard"); return -1; }
     return 0;
+}
+
+static void print_csr_progress(int thread_id, int done, int total)
+{
+    if (total <= 0) return;
+
+    double percent = 100.0 * (double)done / (double)total;
+    int filled = (int)(PROGRESS_WIDTH * percent / 100.0);
+
+    pthread_mutex_lock(&progress_mutex);
+
+    //fprintf(stderr, "\rThread %2d [", thread_id);
+
+    fprintf(stderr, "\033[%d;1H\033[2KThread %2d [",
+        thread_id + 1, thread_id);
+
+    for (int k = 0; k < PROGRESS_WIDTH; ++k)
+        fputc(k < filled ? '#' : ' ', stderr);
+
+    fprintf(stderr, "] %6.2f%% (%d/%d)",
+            percent, done, total);
+
+    if (done == total)
+        fprintf(stderr, " - completed\n");
+
+    fflush(stderr);
+
+    pthread_mutex_unlock(&progress_mutex);
 }
 
 static void *csr_worker(void *p) 
@@ -102,6 +137,15 @@ static void *csr_worker(void *p)
         }
         a->counts[i] = (ITG)count;
         a->sums[i] = sum;
+
+        int completed = i - a->begin + 1;
+        int total = a->end - a->begin;
+
+        if (completed % PROGRESS_INTERVAL == 0 ||completed == total)
+        {
+            print_csr_progress(a->id, completed, total);
+        }
+
     }
 done:
     if (fc && fclose(fc) != 0) a->failed = 1;
@@ -139,10 +183,19 @@ void densityfilterFast_bin_mt_csr(double *co, ITG *nk, ITG **konp, ITG **ipkonp,
         int id = passiveIDs[p] - 1;
         if (id >= 0 && id < n) passive[id] = 1;
     }
+
     ITG ne0 = *ne;
     double time = timepar[1];
     NNEW(centroid, double, 3 * (size_t)n);
     mafillsmmain_filter(co, nk, *konp, *ipkonp, *lakonp, ne, ttime, &time, mortar, &ne0, centroid);
+
+    fprintf(stderr, "\033[2J\033[H");
+
+    for (int t = 0; t < nt; ++t)
+        fprintf(stderr, "\n");
+
+    fflush(stderr);
+
     int started = 0;
     for (int t = 0; t < nt; ++t) {
         args[t] = (CSRWorker){ .id=t, .ne=n, .begin=(int)((int64_t)n*t/nt),
@@ -161,6 +214,9 @@ void densityfilterFast_bin_mt_csr(double *co, ITG *nk, ITG **konp, ITG **ipkonp,
         pthread_join(threads[t], NULL);
         failed |= args[t].failed;
     }
+    fprintf(stderr, "\033[%d;1H\n", nt + 2);
+    fflush(stderr);
+    
     if (failed) { fprintf(stderr, "CSR assembly failed; shards retained for diagnosis\n"); exit(EXIT_FAILURE); }
     rowptr[0] = 0;
     for (int i = 0; i < n; ++i) {
