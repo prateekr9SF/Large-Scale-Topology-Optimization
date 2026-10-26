@@ -1844,13 +1844,50 @@ while(istat>=0)
     NNEW(designFiltered, double, ne_);
     printf("Filtering element densities...");
     fflush(stdout);
+    // COO-based density filtering
     filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems,
                                   &ne, &fnnzassumed, &qfilter, filternnz);
+
+    // CSR-based density filtering
+    //printf("Applying CSR-based filtering...");
+    //filterDensity_buffered_bin_mt_csr(design,designFiltered,filternnzElems,&ne,&fnnzassumed,&qfilter,filternnz);
+    //printf("Done!\n");
     /* Enforce rhomin floor to prevent division by zero */
     for(i=0; i<ne_; i++)
     {
       if(designFiltered[i] < rhomin) designFiltered[i] = rhomin;
     }
+
+    /* Write filtered element densities to binary file */
+    FILE *fp = fopen("densityFiltered.bin", "wb");
+
+    if (fp == NULL)
+    {
+      perror("Error opening densityFiltered.bin");
+      exit(EXIT_FAILURE);
+    }
+
+    size_t nwritten = fwrite(
+    designFiltered,
+    sizeof(double),
+    (size_t)ne_,
+    fp);
+
+    if (nwritten != (size_t)ne_)
+  {
+    fprintf(stderr, "Error writing filtered densities\n");
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
+
+  if (fclose(fp) != 0)
+  {
+    perror("Error closing densityFiltered.bin");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("Wrote %d filtered element densities to densityFiltered.bin\n", (int)ne_);
+
 
     rhoPhys = designFiltered;
     printf("Density filtering complete!\n");

@@ -1065,6 +1065,7 @@ $(SRC_DIR)/filter/makeDistanceMatrix.c \
 $(SRC_DIR)/filter/expand_filter.c \
 $(SRC_DIR)/utils.c \
 $(SRC_DIR)/filter/filterDensity_bin_mt.c \
+$(SRC_DIR)/filter/filterDensity_csr_mt.c \
 $(SRC_DIR)/filter/densityfilterFast.c \
 $(SRC_DIR)/filter/assembleDensityFilter_txt_mt.c \
 $(SRC_DIR)/filter/assembleDensityFilter_bin_mt.c \

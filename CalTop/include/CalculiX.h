@@ -2345,11 +2345,19 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
                           ITG *mortar, double *rmin, ITG *filternnz,
                           ITG *filternnzElems, ITG itertop, ITG *fnnzassumed, ITG *passiveIDs, ITG numPassive, ITG excludePassive); 
 
+
+
 void densityfilterFast_bin_mt_csr(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
                               ITG *ne, double *ttime, double *timepar, ITG *mortar,
                               double *rmin, ITG *filternnz, ITG *filternnzElems,
                               ITG itertop, ITG *fnnzassumed,
                               int *passiveIDs, int numPassive, int excludePassive);
+
+
+void filterDensity_buffered_bin_mt_csr(double *Vector, double *VectorFiltered,
+                                       int *filternnzElems, int *ne_ptr,
+                                       int *fnnzassumed_ptr, double *q_ptr,
+                                       int filternnz_total);
 
 void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,ITG *filternnzElem,ITG *rowFilter, ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q, ITG filternnz);
 
