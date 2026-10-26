@@ -2005,7 +2005,12 @@ while(istat>=0)
 
       /* Allocate memory for P-norm stress sensitivities */  
       NNEW(dPnorm_drhoFiltered, double, ne_);
-      filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+      // Legacy COO-based filtering
+      //filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+      // CSR-based transpose sensitivity filtering
+      filterSensitivity_bin_buffered_mts_csr(dPnorm_drho,dPnorm_drhoFiltered,ne,filternnz);
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_filter_CalTop);
