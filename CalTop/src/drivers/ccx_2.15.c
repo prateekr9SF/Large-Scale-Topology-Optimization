@@ -1845,13 +1845,13 @@ while(istat>=0)
     printf("Filtering element densities...");
     fflush(stdout);
     // COO-based density filtering
-    filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems,
-                                  &ne, &fnnzassumed, &qfilter, filternnz);
+    //filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems,
+    //                              &ne, &fnnzassumed, &qfilter, filternnz);
 
     // CSR-based density filtering
-    //printf("Applying CSR-based filtering...");
-    //filterDensity_buffered_bin_mt_csr(design,designFiltered,filternnzElems,&ne,&fnnzassumed,&qfilter,filternnz);
-    //printf("Done!\n");
+    printf("Applying CSR-based filtering...");
+    filterDensity_buffered_bin_mt_csr(design,designFiltered,filternnzElems,&ne,&fnnzassumed,&qfilter,filternnz);
+    printf("Done!\n");
     /* Enforce rhomin floor to prevent division by zero */
     for(i=0; i<ne_; i++)
     {
