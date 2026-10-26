@@ -1819,14 +1819,14 @@ while(istat>=0)
         NNEW(filternnzElems, ITG, ne_);
 
       
-       // densityfilterFast(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
-       //           &rmin,&filternnz,filternnzElems,itertop,&fnnzassumed);
+      // COO-based filter matrix assembly (Legacy)
+      //densityfilterFast_bin_mt(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
+      //            &rmin,&filternnz,filternnzElems,itertop,&fnnzassumed,passiveIDs, numPassive, excludePassive);
 
-      //densityfilterFast_dat_mt(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
-      //            &rmin,&filternnz,filternnzElems,itertop,&fnnzassumed);
-
-      densityfilterFast_bin_mt(co,&nk,&kon,&ipkon,&lakon,&ne,&ttime,timepar,&mortar,
-                  &rmin,&filternnz,filternnzElems,itertop,&fnnzassumed,passiveIDs, numPassive, excludePassive);
+      // CSR-based filter matrix assembly (beta)
+      densityfilterFast_bin_mt_csr(co, &nk, &kon, &ipkon, &lakon,
+                              &ne, &ttime, timepar, &mortar,
+                              &rmin, &filternnz, filternnzElems,itertop, &fnnzassumed,passiveIDs, numPassive, excludePassive);
 
       for(i=0;i<3;i++)
       {

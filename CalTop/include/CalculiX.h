@@ -2345,6 +2345,12 @@ void densityfilterFast_bin_mt(double *co, ITG *nk, ITG **konp, ITG **ipkonp, cha
                           ITG *mortar, double *rmin, ITG *filternnz,
                           ITG *filternnzElems, ITG itertop, ITG *fnnzassumed, ITG *passiveIDs, ITG numPassive, ITG excludePassive); 
 
+void densityfilterFast_bin_mt_csr(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
+                              ITG *ne, double *ttime, double *timepar, ITG *mortar,
+                              double *rmin, ITG *filternnz, ITG *filternnzElems,
+                              ITG itertop, ITG *fnnzassumed,
+                              int *passiveIDs, int numPassive, int excludePassive);
+
 void filterVector(ITG **ipkonp,double *Vector, double *VectorFiltered,double *FilterMatrix,ITG *filternnzElem,ITG *rowFilter, ITG *colFilter,ITG *ne,double *ttime, double *timepar, ITG *fnnzassumed, double *q, ITG filternnz);
 
 void filterSensitivity_buffered_mt(const double *df_dxtilde,double *df_dx, int ne,long long nnz_total);

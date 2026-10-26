@@ -1068,6 +1068,7 @@ $(SRC_DIR)/filter/filterDensity_bin_mt.c \
 $(SRC_DIR)/filter/densityfilterFast.c \
 $(SRC_DIR)/filter/assembleDensityFilter_txt_mt.c \
 $(SRC_DIR)/filter/assembleDensityFilter_bin_mt.c \
+$(SRC_DIR)/filter/assembleDensityFilter_csr_mt.c \
 $(SRC_DIR)/filter/filterSens_mt.c \
 $(SRC_DIR)/filter/filterSens_dat_mt_s.c \
 $(SRC_DIR)/filter/filterSens_bin_mt_s.c \
