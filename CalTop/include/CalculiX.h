@@ -2366,6 +2366,9 @@ void filterSensitivity_buffered_mt(const double *df_dxtilde,double *df_dx, int n
 
 void filterSensitivity_bin_buffered_mts3(const double *dCGx,const double *dCGy,const double *dCGz,double *dCGxFiltered,double *dCGyFiltered,double *dCGzFiltered,int ne, long long nnz_total);
 
+void filterSensitivity_bin_buffered_mts_csr(const double *SensIn, double *SensOut, int ne,long long nnz_total);
+
+void filterSensitivity_bin_buffered_mts3_csr(const double *dCGx, const double *dCGy, const double *dCGz,double *dCGxFiltered, double *dCGyFiltered, double *dCGzFiltered,int ne, long long nnz_total);
 /**
  * @brief Counts the number of lines in a given text file.
  *

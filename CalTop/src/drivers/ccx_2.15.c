@@ -35,6 +35,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h> 
+#include <omp.h>
 
 #ifdef CALCULIX_MPI
 ITG myid = 0, nproc = 0;
@@ -2006,11 +2007,18 @@ while(istat>=0)
       /* Allocate memory for P-norm stress sensitivities */  
       NNEW(dPnorm_drhoFiltered, double, ne_);
 
+      double t_start = omp_get_wtime();
+
       // Legacy COO-based filtering
       //filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
 
       // CSR-based transpose sensitivity filtering
       filterSensitivity_bin_buffered_mts_csr(dPnorm_drho,dPnorm_drhoFiltered,ne,filternnz);
+
+      double t_end = omp_get_wtime();
+
+      printf("Compliance sensitivity filtering time: %.6f seconds\n",
+       t_end - t_start);
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_filter_CalTop);
@@ -2341,7 +2349,15 @@ while(istat>=0)
 
       printf("Filter compliance gradient ");
       fflush(stdout);
-      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+
+    
+      // Legacy COO-based sensitivity filtering
+      //filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+        
+    
+      // CSR-based sensitivity filtering 
+      filterSensitivity_bin_buffered_mts_csr(gradCompl, gradComplFiltered, ne, filternnz);
+
       printf("done! \n");
       fflush(stdout);
       
@@ -2424,8 +2440,13 @@ while(istat>=0)
         #endif
 
         printf("\nFilter CG gradient");
-        filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+        // Legacy COO-based grouped sensitivity filtering
+        //filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+
+        // CSR-based grouped sensitivity filtering
+        filterSensitivity_bin_buffered_mts3_csr(dCGx, dCGy, dCGz,dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
         
+
         fflush(stdout);
 
         #ifdef PROFILING_ON
@@ -2519,7 +2540,13 @@ while(istat>=0)
 
       printf("Filter volume fraction gradient ");
       fflush(stdout);
-      filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
+
+
+      // Legacy COO-based sensitivity filtering
+      //filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
+
+      // CSR-based sensitivity filtering
+      filterSensitivity_bin_buffered_mts_csr(volFracSens, volFracSensFiltered, ne, filternnz);
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_filter_CalTop);

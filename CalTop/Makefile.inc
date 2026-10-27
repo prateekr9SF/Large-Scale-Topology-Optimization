@@ -1073,10 +1073,12 @@ $(SRC_DIR)/filter/assembleDensityFilter_csr_mt.c \
 $(SRC_DIR)/filter/filterSens_mt.c \
 $(SRC_DIR)/filter/filterSens_dat_mt_s.c \
 $(SRC_DIR)/filter/filterSens_bin_mt_s.c \
+$(SRC_DIR)/filter/filterSens_bin_mt_csr.c \
 $(SRC_DIR)/objectives/massCG.c \
 $(SRC_DIR)/objectives/compliance.c \
 $(SRC_DIR)/output/write_CGSens.c \
 $(SRC_DIR)/filter/filterSens_bin_mt_s_group.c \
+$(SRC_DIR)/filter/filterSens_bin_mt_csr_group.c \
 $(SRC_DIR)/output/write_StressSens.c \
 $(SRC_DIR)/preProcess/su2_preprocess.c \
 $(SRC_DIR)/preProcess/extract_slat_hardpoints.c \
