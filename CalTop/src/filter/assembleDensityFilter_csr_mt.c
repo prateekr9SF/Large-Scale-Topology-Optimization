@@ -225,10 +225,19 @@ void densityfilterFast_bin_mt_csr(double *co, ITG *nk, ITG **konp, ITG **ipkonp,
         }
         rowptr[i+1] = rowptr[i] + (int64_t)filternnzElems[i];
     }
+    /* The CSR files, not the legacy ITG output, are authoritative for nnz.
+     * Never narrow a value that exceeds the current ITG range.
+     * CSR consumers must read row_ptr[ne] and must not use filternnz as nnz.
+     */
     if (sizeof(ITG) == 4 && rowptr[n] > INT32_MAX) {
-        fprintf(stderr, "CSR nnz=%" PRId64 " exceeds 32-bit ITG; use a 64-bit build\n", rowptr[n]); exit(EXIT_FAILURE);
+        *filternnz = (ITG)0;  /* Sentinel: nnz must be read from row_ptr.bin. */
+        fprintf(stderr,
+                "CSR nnz=%" PRId64 " exceeds 32-bit ITG; "
+                "legacy filternnz set to 0 (CSR readers use row_ptr.bin)\n",
+                rowptr[n]);
+    } else {
+        *filternnz = (ITG)rowptr[n];
     }
-    *filternnz = (ITG)rowptr[n];
     FILE *fr = fopen("row_ptr.bin", "wb");
     FILE *fc = fopen("col_idx.bin", "wb");
     FILE *fv = fopen("dval.bin", "wb");
