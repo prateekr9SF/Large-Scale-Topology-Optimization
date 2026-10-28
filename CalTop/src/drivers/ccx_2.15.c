@@ -1845,21 +1845,29 @@ while(istat>=0)
     NNEW(designFiltered, double, ne_);
     printf("Filtering element densities...");
     fflush(stdout);
-    // COO-based density filtering
+
+    // LEGACY COO-based density filtering
     //filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems,
     //                              &ne, &fnnzassumed, &qfilter, filternnz);
 
+    double t_start_rhoFilt = omp_get_wtime();
+
     // CSR-based density filtering
-    printf("Applying CSR-based filtering...");
     filterDensity_buffered_bin_mt_csr(design,designFiltered,filternnzElems,&ne,&fnnzassumed,&qfilter,filternnz);
-    printf("Done!\n");
+    
+    double t_end_rhoFilt = omp_get_wtime();
+
+    printf("Density filtering time: %.6f seconds \n", t_end_rhoFilt - t_start_rhoFilt);
+
     /* Enforce rhomin floor to prevent division by zero */
     for(i=0; i<ne_; i++)
     {
       if(designFiltered[i] < rhomin) designFiltered[i] = rhomin;
     }
 
-    /* Write filtered element densities to binary file */
+    /* DEBUG: Write filtered densities to disk ==>
+
+    // Write filtered element densities to binary file 
     FILE *fp = fopen("densityFiltered.bin", "wb");
 
     if (fp == NULL)
@@ -1868,26 +1876,25 @@ while(istat>=0)
       exit(EXIT_FAILURE);
     }
 
-    size_t nwritten = fwrite(
-    designFiltered,
-    sizeof(double),
-    (size_t)ne_,
-    fp);
+    // Check for file size consistency
+    size_t nwritten = fwrite(designFiltered,sizeof(double),(size_t)ne_,fp);
 
     if (nwritten != (size_t)ne_)
-  {
-    fprintf(stderr, "Error writing filtered densities\n");
-    fclose(fp);
-    exit(EXIT_FAILURE);
-  }
+    {
+      fprintf(stderr, "Error writing filtered densities\n");
+      fclose(fp);
+      exit(EXIT_FAILURE);
+    }
 
-  if (fclose(fp) != 0)
-  {
-    perror("Error closing densityFiltered.bin");
-    exit(EXIT_FAILURE);
-  }
+    if (fclose(fp) != 0)
+    {
+      perror("Error closing densityFiltered.bin");
+      exit(EXIT_FAILURE);
+    }
 
-  printf("Wrote %d filtered element densities to densityFiltered.bin\n", (int)ne_);
+    printf("Wrote %d filtered element densities to densityFiltered.bin\n", (int)ne_);
+
+    <== end debug phase */
 
 
     rhoPhys = designFiltered;
@@ -2009,7 +2016,7 @@ while(istat>=0)
 
       double t_start = omp_get_wtime();
 
-      // Legacy COO-based filtering
+      // LEGACY COO-based filtering
       //filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
 
       // CSR-based transpose sensitivity filtering
@@ -2017,8 +2024,7 @@ while(istat>=0)
 
       double t_end = omp_get_wtime();
 
-      printf("Compliance sensitivity filtering time: %.6f seconds\n",
-       t_end - t_start);
+      printf("P-Norm sensitivity filtering time: %.6f seconds\n", t_end - t_start);
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_filter_CalTop);
@@ -2354,11 +2360,14 @@ while(istat>=0)
       // Legacy COO-based sensitivity filtering
       //filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
         
-    
+      double t_start_complFilt = omp_get_wtime();
+
       // CSR-based sensitivity filtering 
       filterSensitivity_bin_buffered_mts_csr(gradCompl, gradComplFiltered, ne, filternnz);
+      
+      double t_end_complFilt = omp_get_wtime();
 
-      printf("done! \n");
+      printf("Compliance sensitivity filtering time: %.6f seconds\n", t_end_complFilt - t_start_complFilt);
       fflush(stdout);
       
       if (numPassive > 0)
@@ -2443,10 +2452,13 @@ while(istat>=0)
         // Legacy COO-based grouped sensitivity filtering
         //filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
 
+        double t_start_cgFilt = omp_get_wtime();
         // CSR-based grouped sensitivity filtering
         filterSensitivity_bin_buffered_mts3_csr(dCGx, dCGy, dCGz,dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
         
+        double t_end_cgFilt = omp_get_wtime();
 
+        printf("CG sensitivity filtering time: %.6f seconds\n", t_end_cgFilt - t_start_cgFilt);
         fflush(stdout);
 
         #ifdef PROFILING_ON
@@ -2545,8 +2557,14 @@ while(istat>=0)
       // Legacy COO-based sensitivity filtering
       //filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
 
+      double t_start_volFracFilt = omp_get_wtime();
       // CSR-based sensitivity filtering
       filterSensitivity_bin_buffered_mts_csr(volFracSens, volFracSensFiltered, ne, filternnz);
+
+      double t_end_volFracFilt = omp_get_wtime();
+
+      printf("Volume Fraction sensitivity filtering time: %.6f seconds\n", t_end_volFracFilt - t_start_volFracFilt);
+      fflush(stdout);
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_filter_CalTop);

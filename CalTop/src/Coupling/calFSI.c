@@ -2098,8 +2098,15 @@ while(istat>=0)
 
     /* apply the filter matrix on rho to get rhoPhys */ 
     printf("Filtering element densities...\n");
-    filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+
+    // Legacy COO-based density filtering 
+    //filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+
+    // CSR-based density filtering
+    filterDensity_buffered_bin_mt_csr(design,designFiltered,filternnzElems,&ne,&fnnzassumed,&qfilter,filternnz);
+
     printf("Done!");
+    fflush(stdout);
 
     /* Set physical element densities to */
     rhoPhys=designFiltered;
