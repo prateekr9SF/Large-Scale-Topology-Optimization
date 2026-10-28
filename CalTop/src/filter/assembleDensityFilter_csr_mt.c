@@ -46,8 +46,7 @@ static int copy_shard(FILE *out, const char *name)
     if (ferror(in)) { perror("read CSR shard"); fclose(in); return -1; }
     if (fclose(in) != 0) return -1;
 
-    // Delete the temporary files only after the final outputs have been closed
-    //if (remove(name) != 0) { perror("remove shard"); return -1; }
+    /* Shards are removed only after final CSR output files close successfully. */
     return 0;
 }
 
@@ -265,6 +264,14 @@ void densityfilterFast_bin_mt_csr(double *co, ITG *nk, ITG **konp, ITG **ipkonp,
     close_error |= fclose(fs); close_error |= fclose(fn);
     if (close_error) {
         perror("close CSR output"); exit(EXIT_FAILURE);
+    }
+    /* Final output files have been closed successfully; remove temporary shards. */
+    for (int t = 0; t < nt; ++t) {
+        char name[80];
+        snprintf(name, sizeof name, "csr_col_%d.tmp", t);
+        if (remove(name) != 0) perror("remove CSR column shard");
+        snprintf(name, sizeof name, "csr_val_%d.tmp", t);
+        if (remove(name) != 0) perror("remove CSR value shard");
     }
     printf("CSR filter assembled: ne=%d nnz=%" PRId64 " threads=%d\n", n, rowptr[n], nt);
     printf("Files: row_ptr.bin col_idx.bin dval.bin dsum.bin dnnz.bin\n");
