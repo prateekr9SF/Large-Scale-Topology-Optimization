@@ -1,273 +1,276 @@
-/* CalFilt: disk-backed CSR density filter assembly.
- * Zero-based CSR columns and row pointers. Requires CalculiX.h and pthreads.
- * Retains original O(ne^2) centroid search for controlled validation.
+/* CalTop: bounded-memory, pthread-parallel CSR transpose sensitivity filtering.
+ * CSR files (all zero-based): row_ptr.bin: int64_t[ne+1],
+ * col_idx.bin: int64_t[nnz], dval.bin: double[nnz],
+ * dsum.bin: double[ne].
+ *
+ * Compile as a separate source alongside the existing COO implementation.
+ * Uses POSIX fseeko for offsets larger than 2 GiB.
  */
+#define _FILE_OFFSET_BITS 64
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <math.h>
 #include <pthread.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
 #include <string.h>
-#include "CalculiX.h"
+#include <math.h>
 #ifdef PROFILING_ON
 #include <TAU.h>
 #endif
 
-#define PROGRESS_WIDTH 40
-#define PROGRESS_INTERVAL 100
-
-static pthread_mutex_t progress_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define CSR_CHUNK_ENTRIES 65536U
 
 typedef struct {
-    int id, ne, begin, end, excludePassive;
-    const int *passive;
-    const double *centroid;
-    double radius;
-    ITG maxNeighbors;
-    ITG *counts;
-    double *sums;
+    int id, begin, end, ne;
+    const int64_t *rowptr;
+    const double *input;
+    double *output;
     int failed;
-} CSRWorker;
+} CSRFilterWorker;
 
-static int copy_shard(FILE *out, const char *name) 
+static void csr_fatal(const char *msg)
 {
-    unsigned char buffer[1 << 20];
-    FILE *in = fopen(name, "rb");
-    if (!in) { perror(name); return -1; }
-    size_t n;
+    fprintf(stderr, "CSR sensitivity filter: %s\n", msg);
+    exit(EXIT_FAILURE);
+}
 
-    while ((n = fread(buffer, 1, sizeof buffer, in)) != 0) 
-    {
-        if (fwrite(buffer, 1, n, out) != n) { perror("write merged CSR"); fclose(in); return -1; }
+static int64_t csr_file_items(const char *name, size_t item_size)
+{
+    struct stat st;
+    if (stat(name, &st) != 0) { perror(name); exit(EXIT_FAILURE); }
+    if (st.st_size < 0 || (uint64_t)st.st_size % item_size != 0)
+        csr_fatal("invalid binary file size");
+    return (int64_t)((uint64_t)st.st_size / item_size);
+}
+
+static void csr_read_exact(const char *name, void *dst, size_t item_size, size_t n)
+{
+    FILE *f = fopen(name, "rb");
+    if (!f) { perror(name); exit(EXIT_FAILURE); }
+    if (fread(dst, item_size, n, f) != n) {
+        fprintf(stderr, "CSR sensitivity filter: short read of %s\n", name);
+        fclose(f); exit(EXIT_FAILURE);
     }
-
-    if (ferror(in)) { perror("read CSR shard"); fclose(in); return -1; }
-    if (fclose(in) != 0) return -1;
-
-    // Delete the temporary files only after the final outputs have been closed
-    //if (remove(name) != 0) { perror("remove shard"); return -1; }
-    return 0;
+    if (fclose(f) != 0) { perror(name); exit(EXIT_FAILURE); }
 }
 
-static void print_csr_progress(int thread_id, int done, int total)
+static void *csr_filter_worker(void *opaque)
 {
-    if (total <= 0) return;
-
-    double percent = 100.0 * (double)done / (double)total;
-    int filled = (int)(PROGRESS_WIDTH * percent / 100.0);
-
-    pthread_mutex_lock(&progress_mutex);
-
-    //fprintf(stderr, "\rThread %2d [", thread_id);
-
-    fprintf(stderr, "\033[%d;1H\033[2KThread %2d [",
-        thread_id + 1, thread_id);
-
-    for (int k = 0; k < PROGRESS_WIDTH; ++k)
-        fputc(k < filled ? '#' : ' ', stderr);
-
-    fprintf(stderr, "] %6.2f%% (%d/%d)",
-            percent, done, total);
-
-    if (done == total)
-        fprintf(stderr, " - completed\n");
-
-    fflush(stderr);
-
-    pthread_mutex_unlock(&progress_mutex);
-}
-
-static void *csr_worker(void *p) 
-{
-    CSRWorker *a = (CSRWorker *)p;
-
+    CSRFilterWorker *a = (CSRFilterWorker *)opaque;
 #ifdef PROFILING_ON
     TAU_REGISTER_THREAD();
-    TAU_PROFILE_TIMER(timer_filter_thread, "densityFilter_eval_CSR", "", TAU_USER);
-    TAU_PROFILE_START(timer_filter_thread);
+    TAU_PROFILE_TIMER(t_csr_worker, "CSR Sensitivity Filter Worker", "", TAU_USER);
+    TAU_PROFILE_START(t_csr_worker);
 #endif
+    FILE *fc = NULL, *fv = NULL;
+    int64_t *cols = NULL;
+    double *weights = NULL;
 
-    char colname[80], valname[80];
-    snprintf(colname, sizeof colname, "csr_col_%d.tmp", a->id);
-    snprintf(valname, sizeof valname, "csr_val_%d.tmp", a->id);
-    FILE *fc = fopen(colname, "wb"), *fv = fopen(valname, "wb");
-    if (!fc || !fv) { perror("open CSR shard"); a->failed = 1; goto done; }
-    for (int i = a->begin; i < a->end; ++i) {
-        int64_t count = 0;
-        double sum = 0.0;
-        if (a->excludePassive && a->passive[i]) {
-            int64_t j = i;
-            double w = 1.0;
-            if (fwrite(&j, sizeof j, 1, fc) != 1 || fwrite(&w, sizeof w, 1, fv) != 1) { a->failed = 1; break; }
-            count = 1;
-            sum = 1.0;
-        }
-        else
-        {
-            const double xi = a->centroid[3*(size_t)i];
-            const double yi = a->centroid[3*(size_t)i+1];
-            const double zi = a->centroid[3*(size_t)i+2];
-            
-            for (int j = 0; j < a->ne; ++j) 
-            {
-                if (a->excludePassive && a->passive[j]) continue;
-                double dx = xi - a->centroid[3*(size_t)j];
-                double dy = yi - a->centroid[3*(size_t)j+1];
-                double dz = zi - a->centroid[3*(size_t)j+2];
-                double dist2 = dx*dx + dy*dy + dz*dz;
-                if (dist2 > a->radius*a->radius) continue;
-
-                double w = a->radius - sqrt(dist2);
-                /* A zero-weight boundary neighbor is not a nonzero. */
-                if (w <= 0.0) continue;
-                int64_t col = j;
-                if (fwrite(&col, sizeof col, 1, fc) != 1 || fwrite(&w, sizeof w, 1, fv) != 1) { a->failed = 1; break; }
-                sum += w;
-                ++count;
-            }
-            if (a->failed) break;
-        }
-
-        if (count > a->maxNeighbors || count > INT_MAX) 
-        {
-            fprintf(stderr, "CSR row %d has %" PRId64 " neighbors; fnnzassumed=%lld\n", i+1, count, (long long)a->maxNeighbors);
-            a->failed = 1; break;
-        }
-        a->counts[i] = (ITG)count;
-        a->sums[i] = sum;
-
-        int completed = i - a->begin + 1;
-        int total = a->end - a->begin;
-
-        if (completed % PROGRESS_INTERVAL == 0 ||completed == total)
-        {
-            print_csr_progress(a->id, completed, total);
-        }
-
+    fc = fopen("col_idx.bin", "rb");
+    fv = fopen("dval.bin", "rb");
+    cols = (int64_t *)malloc(CSR_CHUNK_ENTRIES * sizeof(*cols));
+    weights = (double *)malloc(CSR_CHUNK_ENTRIES * sizeof(*weights));
+    if (!fc || !fv || !cols || !weights) {
+        fprintf(stderr, "CSR worker %d: unable to open files or allocate buffers\n", a->id);
+        a->failed = 1;
+        goto cleanup;
     }
-done:
+
+    /* Each worker reads a contiguous region of nonzeros and owns its output rows. */
+    int64_t first = a->rowptr[a->begin];
+    if ((uint64_t)first > (uint64_t)INT64_MAX / sizeof(int64_t)) {
+        a->failed = 1; goto cleanup;
+    }
+    off_t offset = (off_t)(first * (int64_t)sizeof(int64_t));
+    if ((int64_t)offset != first * (int64_t)sizeof(int64_t) ||
+        fseeko(fc, offset, SEEK_SET) != 0 ||
+        fseeko(fv, offset, SEEK_SET) != 0) {
+        fprintf(stderr, "CSR worker %d: seek failed\n", a->id);
+        a->failed = 1; goto cleanup;
+    }
+
+    size_t buffered = 0, pos = 0;
+    int64_t cursor = first;
+    const int64_t last = a->rowptr[a->end];
+
+    for (int i = a->begin; i < a->end; ++i) {
+        double sum = 0.0;
+        const int64_t row_end = a->rowptr[i+1];
+        while (cursor < row_end) {
+            if (pos == buffered) {
+                int64_t remain = last - cursor;
+                size_t take = (remain < (int64_t)CSR_CHUNK_ENTRIES)
+                              ? (size_t)remain : CSR_CHUNK_ENTRIES;
+                if (take == 0 || fread(cols, sizeof(*cols), take, fc) != take ||
+                    fread(weights, sizeof(*weights), take, fv) != take) {
+                    fprintf(stderr, "CSR worker %d: truncated CSR data near nnz=%" PRId64 "\n",
+                            a->id, cursor);
+                    a->failed = 1; goto cleanup;
+                }
+                buffered = take;
+                pos = 0;
+            }
+            size_t take = buffered - pos;
+            int64_t row_remaining = row_end - cursor;
+            if ((int64_t)take > row_remaining) take = (size_t)row_remaining;
+            for (size_t k = 0; k < take; ++k) {
+                int64_t j = cols[pos+k];
+                if (j < 0 || j >= a->ne || !isfinite(weights[pos+k])) {
+                    fprintf(stderr, "CSR worker %d: invalid column/weight at nnz=%" PRId64 "\n",
+                            a->id, cursor+(int64_t)k);
+                    a->failed = 1; goto cleanup;
+                }
+                sum += weights[pos+k] * a->input[(size_t)j];
+            }
+            pos += take;
+            cursor += (int64_t)take;
+        }
+        a->output[i] = sum;
+    }
+cleanup:
     if (fc && fclose(fc) != 0) a->failed = 1;
     if (fv && fclose(fv) != 0) a->failed = 1;
+    free(cols);
+    free(weights);
 #ifdef PROFILING_ON
-    TAU_PROFILE_STOP(timer_filter_thread);
+    TAU_PROFILE_STOP(t_csr_worker);
 #endif
     return NULL;
 }
 
-void densityfilterFast_bin_mt_csr(double *co, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
-                              ITG *ne, double *ttime, double *timepar, ITG *mortar,
-                              double *rmin, ITG *filternnz, ITG *filternnzElems,
-                              ITG itertop, ITG *fnnzassumed,
-                              int *passiveIDs, int numPassive, int excludePassive) {
-    (void)itertop;
-    if (*ne <= 0 || *rmin <= 0 || *fnnzassumed <= 0) {
-        fprintf(stderr, "Invalid CSR assembly parameters\n"); exit(EXIT_FAILURE);
+/* Compute H^T D^{-1} g = H D^{-1} g.
+ * Valid only because the assembled unnormalized H is symmetric.
+ * Keep the COO driver's int-based signature for initial validation.
+ */
+void filterSensitivity_buffered_bin_mt_csr(double *Vector, double *VectorFiltered,
+                                       int *filternnzElems, int *ne_ptr,
+                                       int *fnnzassumed_ptr, double *q_ptr,
+                                       int filternnz_total)
+{
+#ifdef PROFILING_ON
+    TAU_PROFILE_TIMER(t_csr_total, "CSR Sensitivity Filter: Total", "", TAU_USER);
+    TAU_PROFILE_START(t_csr_total);
+#endif
+    (void)filternnzElems;
+    (void)fnnzassumed_ptr;
+    (void)q_ptr; /* Use stored dval directly. */
+    (void)filternnz_total; /* Use row_ptr.bin's actual nnz count instead. */
+    if (!Vector || !VectorFiltered || !ne_ptr || *ne_ptr <= 0)
+        csr_fatal("invalid input arrays or ne");
+    if (Vector == VectorFiltered)
+        csr_fatal("input and output must not alias");
+    const int ne = *ne_ptr;
+    if (csr_file_items("row_ptr.bin", sizeof(int64_t)) != (int64_t)ne + 1 ||
+        csr_file_items("dsum.bin", sizeof(double)) != ne)
+        csr_fatal("row_ptr.bin or dsum.bin dimensions do not match ne");
+
+    int64_t *rowptr = malloc(((size_t)ne+1) * sizeof(*rowptr));
+    double *dsum = malloc((size_t)ne * sizeof(*dsum));
+    if (!rowptr || !dsum) csr_fatal("metadata allocation failed");
+    csr_read_exact("row_ptr.bin", rowptr, sizeof(*rowptr), (size_t)ne+1);
+    csr_read_exact("dsum.bin", dsum, sizeof(*dsum), (size_t)ne);
+
+    /* H is symmetric for the assembled centroid-distance filter.
+     * Apply D^{-1} to the input BEFORE multiplying by H.
+     */
+    double *scaled = malloc((size_t)ne * sizeof(*scaled));
+    if (!scaled) csr_fatal("scaled sensitivity allocation failed");
+    for (int i = 0; i < ne; ++i) {
+        if (!(dsum[i] > 0.0) || !isfinite(dsum[i]) || !isfinite(Vector[i]))
+            csr_fatal("invalid normalization or input sensitivity");
+        scaled[i] = Vector[i] / dsum[i];
     }
-    const int n = (int)*ne;
-    if ((ITG)n != *ne) { fprintf(stderr, "Element count exceeds int range\n"); exit(EXIT_FAILURE); }
-    int nt = 1;
+
+    if (rowptr[0] != 0) csr_fatal("row_ptr[0] is not zero");
+    for (int i = 0; i < ne; ++i) {
+        if (rowptr[i+1] <= rowptr[i])
+            csr_fatal("row pointers not strictly increasing (empty row)");
+    }
+    int64_t nnz = rowptr[ne];
+    if (csr_file_items("col_idx.bin", sizeof(int64_t)) != nnz ||
+        csr_file_items("dval.bin", sizeof(double)) != nnz)
+        csr_fatal("CSR column/weight file lengths do not match row_ptr[ne]");
+
+    int nt = 4;
     const char *env = getenv("OMP_NUM_THREADS");
-    if (env) nt = atoi(env);
-    if (nt < 1) nt = 1;
-    if (nt > n) nt = n;
-    int *passive = calloc((size_t)n, sizeof *passive);
-    double *centroid = NULL;
-    double *sums = calloc((size_t)n, sizeof *sums);
-    int64_t *rowptr = malloc(((size_t)n + 1) * sizeof *rowptr);
-    pthread_t *threads = calloc((size_t)nt, sizeof *threads);
-    CSRWorker *args = calloc((size_t)nt, sizeof *args);
-    if (!passive || !sums || !rowptr || !threads || !args) { perror("CSR allocation"); exit(EXIT_FAILURE); }
-    for (int p = 0; p < numPassive; ++p) {
-        int id = passiveIDs[p] - 1;
-        if (id >= 0 && id < n) passive[id] = 1;
+    if (env && *env) {
+        char *end = NULL;
+        long requested = strtol(env, &end, 10);
+        if (end != env && *end == '\0' && requested > 0 && requested <= INT_MAX)
+            nt = (int)requested;
     }
+    if (nt > ne) nt = ne;
 
-    ITG ne0 = *ne;
-    double time = timepar[1];
-    NNEW(centroid, double, 3 * (size_t)n);
-    mafillsmmain_filter(co, nk, *konp, *ipkonp, *lakonp, ne, ttime, &time, mortar, &ne0, centroid);
+    pthread_t *threads = calloc((size_t)nt, sizeof(*threads));
+    CSRFilterWorker *args = calloc((size_t)nt, sizeof(*args));
+    if (!threads || !args) csr_fatal("thread allocation failed");
 
-    fprintf(stderr, "\033[2J\033[H");
-
-    for (int t = 0; t < nt; ++t)
-        fprintf(stderr, "\n");
-
-    fflush(stderr);
+    /* Partition by nonzero count, not row count, to balance uneven sparsity. */
+    int *bounds = malloc(((size_t)nt+1) * sizeof(*bounds));
+    if (!bounds) csr_fatal("partition allocation failed");
+    bounds[0] = 0;
+    bounds[nt] = ne;
+    for (int t = 1; t < nt; ++t) {
+        int64_t target = (nnz / nt) * t + (nnz % nt) * t / nt;
+        int lo = bounds[t-1], hi = ne;
+        while (lo < hi) {
+            int mid = lo + (hi-lo)/2;
+            if (rowptr[mid] < target) lo = mid+1;
+            else hi = mid;
+        }
+        bounds[t] = lo;
+    }
 
     int started = 0;
     for (int t = 0; t < nt; ++t) {
-        args[t] = (CSRWorker){ .id=t, .ne=n, .begin=(int)((int64_t)n*t/nt),
-            .end=(int)((int64_t)n*(t+1)/nt), .excludePassive=excludePassive,
-            .passive=passive, .centroid=centroid, .radius=*rmin,
-            .maxNeighbors=*fnnzassumed, .counts=filternnzElems, .sums=sums };
-        if (pthread_create(&threads[t], NULL, csr_worker, &args[t]) != 0) {
-            fprintf(stderr, "pthread_create failed\n");
+        args[t] = (CSRFilterWorker){.id=t, .begin=bounds[t], .end=bounds[t+1],
+            .ne=ne, .rowptr=rowptr,
+            .input=scaled, .output=VectorFiltered, .failed=0};
+        int rc = pthread_create(&threads[t], NULL, csr_filter_worker, &args[t]);
+        if (rc != 0) {
+            fprintf(stderr, "CSR pthread_create: %s\n", strerror(rc));
             for (int j = 0; j < started; ++j) pthread_join(threads[j], NULL);
-            exit(EXIT_FAILURE);
+            csr_fatal("failed to create worker threads");
         }
         ++started;
     }
     int failed = 0;
     for (int t = 0; t < started; ++t) {
-        pthread_join(threads[t], NULL);
+        int rc = pthread_join(threads[t], NULL);
+        if (rc != 0) { fprintf(stderr, "CSR pthread_join: %s\n", strerror(rc)); failed = 1; }
         failed |= args[t].failed;
     }
-    fprintf(stderr, "\033[%d;1H\n", nt + 2);
-    fflush(stderr);
-    
-    if (failed) { fprintf(stderr, "CSR assembly failed; shards retained for diagnosis\n"); exit(EXIT_FAILURE); }
-    rowptr[0] = 0;
-    for (int i = 0; i < n; ++i) {
-        if ((int64_t)filternnzElems[i] > INT64_MAX - rowptr[i]) {
-            fprintf(stderr, "CSR nnz overflow\n"); exit(EXIT_FAILURE);
-        }
-        rowptr[i+1] = rowptr[i] + (int64_t)filternnzElems[i];
-    }
-    /* The CSR files, not the legacy ITG output, are authoritative for nnz.
-     * Never narrow a value that exceeds the current ITG range.
-     * CSR consumers must read row_ptr[ne] and must not use filternnz as nnz.
-     */
-    if (sizeof(ITG) == 4 && rowptr[n] > INT32_MAX) {
-        *filternnz = (ITG)0;  /* Sentinel: nnz must be read from row_ptr.bin. */
-        fprintf(stderr,
-                "CSR nnz=%" PRId64 " exceeds 32-bit ITG; "
-                "legacy filternnz set to 0 (CSR readers use row_ptr.bin)\n",
-                rowptr[n]);
-    } else {
-        *filternnz = (ITG)rowptr[n];
-    }
-    FILE *fr = fopen("row_ptr.bin", "wb");
-    FILE *fc = fopen("col_idx.bin", "wb");
-    FILE *fv = fopen("dval.bin", "wb");
-    FILE *fs = fopen("dsum.bin", "wb");
-    FILE *fn = fopen("dnnz.bin", "wb");
-    if (!fr || !fc || !fv || !fs || !fn) { perror("open CSR output"); exit(EXIT_FAILURE); }
-    if (fwrite(rowptr, sizeof *rowptr, (size_t)n+1, fr) != (size_t)n+1 ||
-        fwrite(sums, sizeof *sums, (size_t)n, fs) != (size_t)n) {
-        perror("write CSR metadata"); exit(EXIT_FAILURE);
-    }
-    /* Preserve the original dnnz.bin 32-bit integer layout. */
-    for (int i = 0; i < n; ++i) {
-        int32_t count = (int32_t)filternnzElems[i];
-        if (fwrite(&count, sizeof count, 1, fn) != 1) { perror("write dnnz.bin"); exit(EXIT_FAILURE); }
-    }
-    for (int t = 0; t < nt; ++t) {
-        char name[80];
-        snprintf(name, sizeof name, "csr_col_%d.tmp", t);
-        if (copy_shard(fc, name)) exit(EXIT_FAILURE);
-        snprintf(name, sizeof name, "csr_val_%d.tmp", t);
-        if (copy_shard(fv, name)) exit(EXIT_FAILURE);
-    }
-    int close_error = 0;
-    close_error |= fclose(fr); close_error |= fclose(fc); close_error |= fclose(fv);
-    close_error |= fclose(fs); close_error |= fclose(fn);
-    if (close_error) {
-        perror("close CSR output"); exit(EXIT_FAILURE);
-    }
-    printf("CSR filter assembled: ne=%d nnz=%" PRId64 " threads=%d\n", n, rowptr[n], nt);
-    printf("Files: row_ptr.bin col_idx.bin dval.bin dsum.bin dnnz.bin\n");
-    free(passive); free(sums); free(rowptr); free(threads); free(args);
-    SFREE(centroid);
+    free(bounds);
+    free(args);
+    free(threads);
+    free(dsum);
+    free(scaled);
+    free(rowptr);
+    if (failed) csr_fatal("worker failure");
+#ifdef PROFILING_ON
+    TAU_PROFILE_STOP(t_csr_total);
+#endif
+}
+
+/* Drop-in CSR replacement for the legacy COO stress sensitivity filter.
+ * SensIn  = dPnorm_drho (derivative w.r.t. physical densities)
+ * SensOut = dPnorm_drhoFiltered (derivative w.r.t. design densities)
+ * nnz_total is retained for compatibility; row_ptr[ne] is authoritative.
+ */
+void filterSensitivity_bin_buffered_mts_csr(const double *SensIn,
+                                            double *SensOut,
+                                            int ne,
+                                            long long nnz_total)
+{
+    int unused_nnz_assumed = 0;
+    double qfilter = 1.0;
+    (void)nnz_total;
+    filterSensitivity_buffered_bin_mt_csr((double *)SensIn, SensOut,
+                                          NULL, &ne, &unused_nnz_assumed,
+                                          &qfilter, 0);
 }
