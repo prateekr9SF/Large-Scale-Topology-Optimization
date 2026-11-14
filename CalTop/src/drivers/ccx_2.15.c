@@ -529,7 +529,6 @@ else
   pstiff=pSupplied;
 }
 
-//setenv("CCX_JOBNAME_GETJOBNAME",jobnamec,1);
 putenv("CCX_JOBNAME_GETJOBNAME=jobnamec");
 
 #ifdef BAM
@@ -608,8 +607,6 @@ FORTRAN(allocation,(&nload_,&nforc_,&nboun_,&nk_,&ne_,&nmpc_,&nset_,&nalset_,
 TAU_PROFILE_STOP(t_preProc_CalTop);
 #endif
 
-//printf("CG flag after allocation: %d\n", eval_CG);
-//printf("PNROM flag ater allocation %d\n", eval_PNORM);
 
 SFREE(set);
 SFREE(meminset);
@@ -1143,27 +1140,27 @@ while(istat>=0)
     }
     printf("\n");
 
-  /* Read element desitiies from .dat file, if absent, initialize the design to one */    
-  rho(design,ne);
+    /* Read element desitiies from .dat file, if absent, initialize the design to one */    
+    rho(design,ne);
 
-  if (numPassive > 1)
-  {
-    printf("Setting raw element densitities for skin elements to 1 ...");
-    /* Set the element density of passive elements to 1 */
-    filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
-    printf("done\n");
-  }
+    if (numPassive > 1)
+    {
+      printf("Setting raw element densitities for skin elements to 1 ...");
+      /* Set the element density of passive elements to 1 */
+      filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
+      printf("done\n");
+    }
 
-  #ifdef PROFILING_ON
-    TAU_PROFILE_STOP(t_preProc_CalTop);
-  #endif
+    #ifdef PROFILING_ON
+      TAU_PROFILE_STOP(t_preProc_CalTop);
+    #endif
 
-  /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
-  NNEW(stx,double,6*mi[0]*ne);
+    /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
+    NNEW(stx,double,6*mi[0]*ne);
 
 
 
-  #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
+    #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
   for(i=0;i!=nmat;++i)
   {
     calculix_registerExternalBehaviour(matname+80*i);

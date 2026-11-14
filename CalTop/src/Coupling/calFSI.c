@@ -667,6 +667,8 @@ if (SU2_MESH)
     {
       // Write skin element list for tank elements 
       extract_skin_elements(su2file, "tank", "tankElementList.nam");
+
+      extract_pressure_faces(su2file,"tank","tankPressure.dload", 4.0e5);
     }
 
     else if (strcmp(marker_list[i], "cabin") == 0)

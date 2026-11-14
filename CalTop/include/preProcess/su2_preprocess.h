@@ -171,4 +171,7 @@ void extract_skin_elements(char *su2file,
 void write_deformed_su2(int nk, double *v);
 
 
+size_t extract_pressure_faces(const char *su2file, const char *marker, const char *outfile, double pressure);
+
+
 #endif
