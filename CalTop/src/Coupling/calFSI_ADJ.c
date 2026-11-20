@@ -1994,7 +1994,13 @@ while(istat>=0)
 
     /* apply the filter matrix on rho to get rhoPhys */ 
     printf("Filtering element densities...\n");
-    filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+
+    // Legacy COO-based density filtering 
+    //filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems, &ne, &fnnzassumed, &qfilter, filternnz);
+
+    // CSR-based density filtering 
+    filterDensity_buffered_bin_mt_csr(design,designFiltered,filternnzElems,&ne,&fnnzassumed,&qfilter,filternnz);
+
     printf("done!");
     fflush(stdout);;
 
@@ -2074,7 +2080,13 @@ while(istat>=0)
         /* Allocate memory for P-norm stress sensitivities */
         // NOTE: P-norm sensitivity initialized and passed to linstatic() earlier
         NNEW(dPnorm_drhoFiltered, double, ne_);
-        filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+        // Legacy COO-based filtering 
+        //filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+
+        // CSR-based filtering
+        filterSensitivity_bin_buffered_mts_csr(dPnorm_drho,dPnorm_drhoFiltered,ne,filternnz);
+
 
         int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
         if (rs != 0) 
@@ -2345,7 +2357,14 @@ while(istat>=0)
 
       printf("Filter aeroelastic compliance gradient ");
       fflush(stdout);
-      filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+
+      // Legacy COO-based filtering  
+      //filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+      
+      // CSR-based filtering 
+      filterSensitivity_bin_buffered_mts_csr(gradCompl, gradComplFiltered, ne, filternnz);
+
+
       printf("done! \n");
       fflush(stdout);
 
@@ -2403,7 +2422,11 @@ while(istat>=0)
         
         printf("Filter CG senitivities...");
         fflush(stdout);
-        filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+        // Legacy COO-based densitivity filtering 
+        //filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+
+        // CSR-based sensitivity filtering 
+        filterSensitivity_bin_buffered_mts3_csr(dCGx, dCGy, dCGz,dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
         printf("done\n");
         fflush(stdout);
       
@@ -2470,7 +2493,12 @@ while(istat>=0)
 
       printf("Filter element volume gradient ");
       fflush(stdout);
-      filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
+      // Legacy COO-based sensitivity filtering 
+      //filterSensitivity_bin_buffered_mts(eleVol, eleVolFiltered, ne, filternnz);
+
+      filterSensitivity_bin_buffered_mts_csr(eleVol, eleVolFiltered, ne, filternnz);
+
+
       printf("done! \n");
       fflush(stdout);
 

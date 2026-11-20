@@ -1084,6 +1084,7 @@ $(SRC_DIR)/filter/filterSens_bin_mt_s_group.c \
 $(SRC_DIR)/filter/filterSens_bin_mt_csr_group.c \
 $(SRC_DIR)/output/write_StressSens.c \
 $(SRC_DIR)/preProcess/su2_preprocess.c \
+$(SRC_DIR)/preProcess/tank_pressure.c \
 $(SRC_DIR)/preProcess/extract_slat_hardpoints.c \
 $(SRC_DIR)/preProcess/PassiveElements.c \
 $(SRC_DIR)/adjoint_eq_2_node.c \
