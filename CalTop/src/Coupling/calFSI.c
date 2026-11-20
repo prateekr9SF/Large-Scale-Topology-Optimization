@@ -535,46 +535,20 @@ else
     }
   }
 
-  /* Newton-Krylov for the NLGEOM sensitivity solves (default: PARDISO direct) */
+  /* NLGEOM solver: CALTOP_SOLVER=nr|nk|bddc (environment); the former
+     --NK / --MG flags are ignored */
   for(i=1; i<argc; i++)
   {
-    if(strcmp(argv[i],"--NK")==0)
+    if(strcmp(argv[i],"--NK")==0||strcmp(argv[i],"--MG")==0)
     {
-      if (i+1 < argc &&
-          (strcmp(argv[i+1],"true")==0 || strcmp(argv[i+1],"True")==0 ||
-           strcmp(argv[i+1],"TRUE")==0))
-      {
-#ifdef PARDISO
-        g_useNK = 1;
-        printf(" Newton solver: Newton-Krylov (PARDISO factor as preconditioner)\n\n");
-#else
-        printf(" *WARNING: --NK needs PARDISO; ignored\n\n");
-#endif
-      }
+      printf(" *WARNING: %s is no longer used and is ignored; the solver is set with"
+             " CALTOP_SOLVER=nr|nk|bddc\n\n",argv[i]);
       break;
     }
   }
-
-  /* p-multigrid CG for the NLGEOM sensitivity solves (default: off) */
-  for(i=1; i<argc; i++)
-  {
-    if(strcmp(argv[i],"--MG")==0)
-    {
-      if (i+1 < argc &&
-          (strcmp(argv[i+1],"true")==0 || strcmp(argv[i+1],"True")==0 ||
-           strcmp(argv[i+1],"TRUE")==0))
-      {
 #ifdef PARDISO
-        g_useMG = 1;
-        printf(" Newton solver: p-multigrid CG (C3D10 -> C3D4, PARDISO"
-               " coarse solve)\n\n");
-#else
-        printf(" *WARNING: --MG needs PARDISO; ignored\n\n");
+  pardiso_select_solver();
 #endif
-      }
-      break;
-    }
-  }
 }
 
 

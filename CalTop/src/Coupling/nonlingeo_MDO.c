@@ -2347,7 +2347,7 @@ void nonlingeo_MDO(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakon
 					if(*nmethod==4) DMEMSET(fnext,0,mt**nk,0.);
 
 #ifdef PARDISO
-	if((iit==1)&&(nasym==0)&&bddc_want_rebuild()){
+	if((nasym==0)&&bddc_want_rebuild()){   /* next Newton iteration */
 	    /* CALTOP_SOLVER=bddc: new preconditioner matrix, the same assembly
 	       with the stresses set to zero: the material stiffness at the
 	       current displacements, without the geometric (stress) term, so
@@ -2766,14 +2766,8 @@ void nonlingeo_MDO(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakon
 						#ifdef PARDISO
 	      				if(*ithermal<2)
 						{
-		  					if((g_useNK||g_useMG)&&isensitivity&&(*nmethod!=4)){
-		  					    /* Newton-Krylov / p-multigrid / BDDC (CALTOP_SOLVER=bddc) */
-		  					    if(g_useMG){
-		  						pardiso_mg_mesh(kon,ipkon,lakon,ne,nactdof,mi,nk);
-		  						pardiso_mg_coords(co);
-		  						pardiso_mg_atol((qam[0]>1.e-10) ?
-		  								0.1*ctrl[18]*qam[0] : 0.);
-		  					    }
+		  					if((g_useNK||bddc_active())&&isensitivity&&(*nmethod!=4)){
+		  					    /* Newton-Krylov (CALTOP_SOLVER=nk) or BDDC (CALTOP_SOLVER=bddc) */
 		  					    pardiso_factor_solve(ad,au,adb,aub,&sigma,b,icol,irow,
 		  						     &neq[0],&nzs[0],&symmetryflag,&inputformat,
 		  						     jq,&nzs[2],&nrhs);
@@ -3849,6 +3843,37 @@ void nonlingeo_MDO(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakon
      (*nmethod!=4)&&(idamping==0)&&(nasym==0)){
       NNEW(ad,double,neq[1]);
       NNEW(au,double,nzs[1]);
+      /* CALTOP_SOLVER=bddc: rebuild the preconditioner once at the converged
+         configuration, so the adjoint solves never use a stale one */
+      if(bddc_active()){
+	    printf(" BDDC: rebuilding the preconditioner at the converged configuration for the adjoint solves\n");
+	    double *stiz=NULL,*adz=NULL,*auz=NULL,*fextz=NULL;
+	    NNEW(stiz,double,6*mi[0]**ne);
+	    NNEW(adz,double,neq[1]);
+	    NNEW(auz,double,nzs[1]);
+	    NNEW(fextz,double,neq[1]);
+	    bddc_capture_begin(*ne,ipkon,lakon);
+	    mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
+		  ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
+		  nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
+		  nbody,cgr,adz,auz,fextz,nactdof,icol,jq,irow,neq,nzl,
+		  nmethod,ikmpc,ilmpc,ikboun,ilboun,
+		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
+		  ielmat,ielorien,norien,orab,ntmat_,
+		  t0,t1act,ithermal,prestr,iprestr,vold,iperturb,stiz,
+		  nzs,stx,adb,aub,iexpl,plicon,nplicon,plkcon,nplkcon,
+		  xstiff,npmat_,&dtime,matname,mi,
+                  ncmat_,mass,&stiffness,&buckling,&rhsi,&intscheme,
+                  physcon,shcon,nshcon,cocon,ncocon,ttime,&time,istep,&iinc,
+		  &coriolis,ibody,xloadold,&reltime,veold,springarea,nstate_,
+                  xstateini,xstate,thicke,integerglob,doubleglob,
+		  tieset,istartset,iendset,ialset,ntie,&nasym,pslavsurf,
+		  pmastsurf,mortar,clearini,ielprop,prop,&ne0,fnext,&kscale,
+		  iponoel,inoel,network,ntrans,inotr,trab, design,penal,mat_dens);
+	    bddc_capture_end(kon,ipkon,*ne,nactdof,mi,*nk,co,neq[1]);
+	    bddc_rebuild();
+	    SFREE(stiz);SFREE(adz);SFREE(auz);SFREE(fextz);
+      }
       bddc_capture_begin(*ne,ipkon,lakon);
       mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
 		  ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
@@ -3870,12 +3895,7 @@ void nonlingeo_MDO(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakon
       bddc_capture_end(kon,ipkon,*ne,nactdof,mi,*nk,co,neq[1]);
       memcpy(&adcpy[0],&ad[0],sizeof(double)*neq[1]);
       memcpy(&aucpy[0],&au[0],sizeof(double)*nzs[1]);
-      if(g_useNK||g_useMG){
-	  if(g_useMG){
-	      pardiso_mg_mesh(kon,ipkon,lakon,ne,nactdof,mi,nk);
-	      pardiso_mg_coords(co);
-	      pardiso_mg_guess(vold);       /* start for the adjoint solves */
-	  }
+      if(g_useNK||bddc_active()){
 	  pardiso_store_factor(ad,au,adb,aub,&sigma,icol,irow,&neq[0],&nzs[0],
 			       &symmetryflag,&inputformat,jq,&nzs[2]);
       }else{
@@ -4328,7 +4348,7 @@ void nonlingeo_MDO(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakon
 	   " [time]   stiffness assembly (mafillsm)      %9.1f s  (%ld calls)\n"
 	   " [time]     of which summing thread copies   %9.1f s\n"
 	   " [time]   internal forces/stresses (results) %9.1f s  (%ld calls)\n"
-	   " [time]   linear solves (incl. MG setup)     %9.1f s  (%ld calls)\n"
+	   " [time]   linear solves                      %9.1f s  (%ld calls)\n"
 	   " [time]   everything else                    %9.1f s\n",
 	   tt,nl_tasm,nl_nasm,ct_t_asm_reduce-nl_tred0,nl_tres,nl_nres,nl_tsol,nl_nsol,
 	   tt-nl_tasm-nl_tres-nl_tsol);

@@ -9,11 +9,13 @@ int  bddc_active(void);
 void bddc_capture_begin(ITG ne, ITG *ipkon, char *lakon);
 void bddc_elem(ITG e, ITG nope, ITG ndof, double *sm);
 void bddc_capture_end(ITG *kon, ITG *ipkon, ITG ne, ITG *nactdof, ITG *mi, ITG nk, double *co, ITG neq);
-int  bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *au, ITG *jq, ITG *irow, const double *guess);
-/* preconditioner rebuild: bddc_want_rebuild() says a Newton solve needed more
-   than CALTOP_BDDC_REBUILD CG iterations; the caller then assembles the
-   matrix with the stresses set to zero inside bddc_capture_begin/end and
-   calls bddc_rebuild() */
+int  bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *au, ITG *jq, ITG *irow);
+/* preconditioner rebuild: the caller assembles the matrix with the stresses
+   set to zero inside bddc_capture_begin/end and calls bddc_rebuild(), (i) at
+   the next Newton iteration when bddc_want_rebuild() says a solve
+   needed more than CALTOP_BDDC_REBUILD CG iterations, (ii) once at the
+   converged configuration before the adjoint solves (if bddc_active()).
+   bddc_rebuild() releases the old preconditioner before the new set-up. */
 int  bddc_want_rebuild(void);
 void bddc_rebuild(void);
 

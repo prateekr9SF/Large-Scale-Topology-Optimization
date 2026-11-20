@@ -15,10 +15,13 @@
  *    computed on the ranks, each for its own elements (bddc_dist_asm,
  *    bddc_dist_res; "distributed element work" below). Element matrices
  *    stay on their rank; CalTop's global K and its structure are never built.
- *  - preconditioner: built once from the first (stress-free) matrix, PSD in
+ *  - preconditioner: built from the first (stress-free) matrix, PSD in
  *    every subdomain; CG on the current K_T for all Newton solves and the
- *    adjoints. Rebuilt from the material stiffness at the current
- *    configuration when a Newton solve needs > CALTOP_BDDC_REBUILD iterations.
+ *    adjoints. Rebuilt from the stress-free matrix at the current
+ *    configuration (i) at the next Newton iteration after a solve
+ *    needs more than CALTOP_BDDC_REBUILD iterations and (ii) once at the
+ *    converged configuration before the adjoint solves (nonlingeo.c). A
+ *    rebuild frees the old preconditioner first (new PC, pc_customize).
  *  - PETSc: KSPCG + PCBDDC (faces, corner selection, deluxe scaling, adaptive
  *    coarse space, threshold 5), MUMPS local solves; CALTOP_BDDC_OPTS adds
  *    options. CG stops after 500 iterations; a solve that stops there is
@@ -26,10 +29,11 @@
  *  - elements: C3D4, C3D10 or a mix (12x12 or 30x30 matrix per element).
  *  - no fallback: anything BDDC cannot do stops the run with *ERROR.
  *
- * Environment: CALTOP_SOLVER=bddc, CALTOP_BDDC_NP (24), CALTOP_MPIEXEC,
- * CALTOP_BDDC_TOL_ADJ (1e-5), CALTOP_MG_TOL (Newton, 1e-3),
- * CALTOP_BDDC_REBUILD (150, 0 = never), CALTOP_BDDC_OPTS,
- * CALTOP_BDDC_PROFILE=1 (per-rank setup table).
+ * Environment: CALTOP_SOLVER=bddc selects this solver (nr and nk are the
+ * PARDISO solvers, pardiso_select_solver), CALTOP_BDDC_NP (24), CALTOP_MPIEXEC,
+ * CALTOP_BDDC_TOL (Newton, 1e-3), CALTOP_BDDC_TOL_ADJ (adjoints, 1e-5),
+ * CALTOP_BDDC_REBUILD (150, 0 = never during Newton), CALTOP_BDDC_OPTS,
+ * CALTOP_BDDC_PROFILE=1 (coarse size and per-rank setup table).
  *
  * Build: make BDDC=1 links with -Wl,--exclude-libs,ALL. CalculiX bundles
  * reference BLAS/LAPACK (dgesv.f, dgmres.f); without the flag MUMPS and PETSc
@@ -50,6 +54,7 @@
 #include <time.h>
 #include <signal.h>
 #include <execinfo.h>
+#include <malloc.h>
 #include <omp.h>
 #include "CalculiX.h"
 #include "bddc.h"
@@ -131,6 +136,10 @@ static KSP      ksp = NULL;
 static Vec      vx = NULL, vb = NULL, vr = NULL;
 static int      pc_ready = 0;
 static Vec      bd_coords = NULL;             /* owned node coordinates (bs 3) */
+/* BDDC customization, kept so a rebuild can start from a new PC (pc_customize) */
+static PetscInt  *bd_xa = NULL, *bd_aj = NULL; /* local adjacency graph (CSR) */
+static IS         bd_fld[3] = {NULL, NULL, NULL}; /* x / y / z unknowns */
+static PetscReal *bd_cr = NULL;                /* coordinates of the owned equations */
 
 static double getd(const char *name, double def)
 {
@@ -398,6 +407,27 @@ static void send_cmd(double c, double a1, double a2, double a3)
 
 /* topology: rank 0 sends each rank its elements' equations; all build
    the local numbering, the MATIS matrices and the KSP shell */
+/* pass the BDDC customization to a new PC: at the first set-up and again at
+   every rebuild (pmat_collective). The graph stays CalTop's
+   (PETSC_USE_POINTER), so it is passed again without a copy. */
+static PetscErrorCode pc_customize(PC pc)
+{
+  IS isd;
+  PetscFunctionBeginUser;
+  PetscCall(PCBDDCSetLocalAdjacencyGraph(pc, nloc, bd_xa, bd_aj, PETSC_USE_POINTER));
+  PetscCall(PCBDDCSetDofsSplittingLocal(pc, 3, bd_fld));
+  PetscCall(PCSetCoordinates(pc, 3, m_own, bd_cr));
+  /* Empty Dirichlet set (CalTop has already removed the fixed unknowns).
+     Only telling BDDC that a Dirichlet set exists switches PETSc's
+     adaptive Schur code to the path that reuses the MUMPS factor to get
+     the inverse Schur complements (no MatFactorInvertSchurComplement);
+     the standalone test always had it and set up 2.5x faster. */
+  PetscCall(ISCreateGeneral(PETSC_COMM_WORLD, 0, NULL, PETSC_COPY_VALUES, &isd));
+  PetscCall(PCBDDCSetDirichletBoundaries(pc, isd));
+  PetscCall(ISDestroy(&isd));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 static PetscErrorCode topo_collective(int *myedof, int mynel, PetscInt n, double *coeq, PetscInt bs)
 {
   PetscInt *tmp, cnt = 0, i, k;
@@ -486,35 +516,19 @@ static PetscErrorCode topo_collective(int *myedof, int mynel, PetscInt n, double
     PetscCall(KSPSetType(ksp, KSPCG));
     {
       PC        pc;
-      IS        fld[3];
       PetscInt *fi[3], fn[3] = {0, 0, 0}, f;
-      PetscReal *cr;
       PetscCall(KSPGetPC(ksp, &pc));
       PetscCall(PCSetType(pc, PCBDDC));
-      PetscCall(PCBDDCSetLocalAdjacencyGraph(pc, nloc, xa, aj, PETSC_OWN_POINTER));
+      bd_xa = xa; bd_aj = aj;
       /* x / y / z unknowns as separate fields (constraints per component) */
       for (f = 0; f < 3; f++) PetscCall(PetscMalloc1(nloc + 1, &fi[f]));
       for (a = 0; a < nloc; a++) { f = (PetscInt)lrint(coeq[4 * lglob[a] + 3]); fi[f][fn[f]++] = a; }
-      for (f = 0; f < 3; f++) PetscCall(ISCreateGeneral(PETSC_COMM_SELF, fn[f], fi[f], PETSC_OWN_POINTER, &fld[f]));
-      PetscCall(PCBDDCSetDofsSplittingLocal(pc, 3, fld));
-      for (f = 0; f < 3; f++) PetscCall(ISDestroy(&fld[f]));
+      for (f = 0; f < 3; f++) PetscCall(ISCreateGeneral(PETSC_COMM_SELF, fn[f], fi[f], PETSC_OWN_POINTER, &bd_fld[f]));
       /* coordinates of the owned equations (corner selection) */
-      PetscCall(PetscMalloc1(3 * m_own + 1, &cr));
+      PetscCall(PetscMalloc1(3 * m_own + 1, &bd_cr));
       for (i = 0; i < m_own; i++)
-        for (k = 0; k < 3; k++) cr[3 * i + k] = coeq[4 * (r_0 + i) + k];
-      PetscCall(PCSetCoordinates(pc, 3, m_own, cr));
-      PetscCall(PetscFree(cr));
-      /* Empty Dirichlet set (CalTop has already removed the fixed unknowns).
-         Only telling BDDC that a Dirichlet set exists switches PETSc's
-         adaptive Schur code to the path that reuses the MUMPS factor to get
-         the inverse Schur complements (no MatFactorInvertSchurComplement);
-         the standalone test always had it and set up 2.5x faster. */
-      {
-        IS isd;
-        PetscCall(ISCreateGeneral(PETSC_COMM_WORLD, 0, NULL, PETSC_COPY_VALUES, &isd));
-        PetscCall(PCBDDCSetDirichletBoundaries(pc, isd));
-        PetscCall(ISDestroy(&isd));
-      }
+        for (k = 0; k < 3; k++) bd_cr[3 * i + k] = coeq[4 * (r_0 + i) + k];
+      PetscCall(pc_customize(pc));
       /* rigid-body modes from the coordinates (as the standalone test) */
       if (bs == 3) {
         PetscScalar *xc;
@@ -539,6 +553,20 @@ static void set_default(const char *name, const char *val)
   PetscBool has;
   PetscOptionsHasName(NULL, NULL, name, &has);
   if (!has) PetscOptionsSetValue(NULL, name, val);
+}
+
+/* resident memory over the ranks, printed by rank 0 (collective) */
+static PetscErrorCode report_memory(const char *when)
+{
+  PetscLogDouble m, msum = 0., mmax = 0.;
+  PetscFunctionBeginUser;
+  PetscCall(PetscMemoryGetCurrentUsage(&m));
+  PetscCallMPI(MPI_Reduce(&m, &msum, 1, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD));
+  PetscCallMPI(MPI_Reduce(&m, &mmax, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD));
+  if (bd_rank == 0)
+    printf(" BDDC: memory after %s: %.1f GB over all ranks, %.1f GB largest rank, rank 0 (CalTop + subdomain 0) %.1f GB\n", when, msum / 1e9,
+           mmax / 1e9, m / 1e9);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /* new element matrices (in lK): assemble A; the first one also becomes
@@ -641,15 +669,7 @@ static PetscErrorCode matrix_collective(double *tsetup)
         free(all);
       }
     }
-    {
-      PetscLogDouble m, msum = 0., mmax = 0.;
-      PetscCall(PetscMemoryGetCurrentUsage(&m));
-      PetscCallMPI(MPI_Reduce(&m, &msum, 1, MPI_DOUBLE, MPI_SUM, 0, PETSC_COMM_WORLD));
-      PetscCallMPI(MPI_Reduce(&m, &mmax, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD));
-      if (bd_rank == 0)
-        printf(" BDDC: memory after setup: %.1f GB over all ranks, %.1f GB largest rank, rank 0 (CalTop + subdomain 0) %.1f GB\n", msum / 1e9,
-               mmax / 1e9, m / 1e9);
-    }
+    PetscCall(report_memory("setup"));
     pc_ready = 1;
     TAU_REGION_STOP("Forward analysis: Preconditioner construction");
   }
@@ -667,6 +687,25 @@ static PetscErrorCode pmat_collective(double *tsetup)
   double   t0;
   PetscFunctionBeginUser;
   TAU_REGION_START("Forward analysis: Preconditioner construction");
+  PetscCallMPI(MPI_Barrier(PETSC_COMM_WORLD));
+  t0 = MPI_Wtime();
+  /* free the old preconditioner first, so the old and the new one are never
+     in memory together: the KSP gets a new, empty PC, which releases the
+     old one. The new PC gets the same customization and options; its
+     PCSetUp analyses the subdomain topology again (same result, small
+     extra cost). */
+  {
+    PC pcn;
+    PetscCall(PCCreate(PETSC_COMM_WORLD, &pcn));
+    PetscCall(KSPSetPC(ksp, pcn));  /* the old PC is destroyed here */
+    PetscCall(PCDestroy(&pcn));     /* the KSP keeps its reference */
+  }
+#ifdef __GLIBC__
+  malloc_trim(0);                   /* return the freed pages to the system */
+#endif
+  PetscCall(KSPGetPC(ksp, &pc));
+  PetscCall(PCSetType(pc, PCBDDC));
+  PetscCall(pc_customize(pc));
   PetscCall(MatZeroEntries(B));
   for (c = 0; c < nown; c++) {
     for (j = 0; j < bd_s; j++) li[j] = ledof[bd_s * c + j];
@@ -680,45 +719,28 @@ static PetscErrorCode pmat_collective(double *tsetup)
   PetscCall(MatSetOption(Bl, MAT_SYMMETRIC, PETSC_TRUE));
   PetscCall(MatSetOption(Bl, MAT_SPD, PETSC_TRUE));
   PetscCall(MatISRestoreLocalMat(B, &Bl));
-  PetscCall(KSPGetPC(ksp, &pc));
+  PetscCall(KSPSetOperators(ksp, A, B));
+  PetscCall(PCSetFromOptions(pc));
   PetscCall(KSPSetReusePreconditioner(ksp, PETSC_FALSE));
-  PetscCallMPI(MPI_Barrier(PETSC_COMM_WORLD));
-  t0 = MPI_Wtime();
   PetscCall(PCSetUp(pc));
   PetscCallMPI(MPI_Barrier(PETSC_COMM_WORLD));
   if (tsetup) *tsetup = MPI_Wtime() - t0;
   PetscCall(KSPSetReusePreconditioner(ksp, PETSC_TRUE));
+  PetscCall(report_memory("rebuild"));
   TAU_REGION_STOP("Forward analysis: Preconditioner construction");
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /* rhs owned slices are in vb; result in vx */
-/* guess: vx holds u; start from alpha*u, alpha = u'b/u'Ku (the best multiple
-   of u in the energy norm), if that beats a zero start */
-static PetscErrorCode solve_collective(double tol, int maxit, int guess, PetscInt *its, double *res, int *reason, double *alpha, double *r0)
+/* CG from a zero start; the true relative residual is returned in res */
+static PetscErrorCode solve_collective(double tol, int maxit, PetscInt *its, double *res, int *reason)
 {
   KSPConvergedReason r;
   PetscReal          rn, bn;
-  PetscBool          nz = PETSC_FALSE;
   PetscFunctionBeginUser;
   PetscCall(KSPSetTolerances(ksp, tol, 0., 1.e30, maxit));
-  *alpha = 0.; *r0 = 1.;
-  if (guess) {
-    PetscScalar ub, uku;
-    PetscReal   rn0, bn0;
-    PetscCall(MatMult(A, vx, vr));
-    PetscCall(VecDot(vx, vb, &ub));
-    PetscCall(VecDot(vx, vr, &uku));
-    PetscCall(VecNorm(vb, NORM_2, &bn0));
-    if (PetscRealPart(uku) > 0. && bn0 > 0.) {
-      double al = PetscRealPart(ub) / PetscRealPart(uku);
-      PetscCall(VecAYPX(vr, -al, vb));          /* vr = b - al K u */
-      PetscCall(VecNorm(vr, NORM_2, &rn0));
-      if (rn0 < bn0) { PetscCall(VecScale(vx, al)); nz = PETSC_TRUE; *alpha = al; *r0 = rn0 / bn0; }
-    }
-  }
-  if (!nz) PetscCall(VecSet(vx, 0.));
-  PetscCall(KSPSetInitialGuessNonzero(ksp, nz));
+  PetscCall(VecSet(vx, 0.));
+  PetscCall(KSPSetInitialGuessNonzero(ksp, PETSC_FALSE));
   PetscCall(KSPSolve(ksp, vb, vx));
   PetscCall(KSPGetIterationNumber(ksp, its));
   PetscCall(KSPGetConvergedReason(ksp, &r));
@@ -1289,15 +1311,7 @@ static void worker_loop(void)
       VecGetArray(vb, &a);
       MPI_Scatterv(NULL, NULL, NULL, MPI_DOUBLE, a, (int)m_own, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
       VecRestoreArray(vb, &a);
-      if ((int)msg[3]) {
-        VecGetArray(vx, &a);
-        MPI_Scatterv(NULL, NULL, NULL, MPI_DOUBLE, a, (int)m_own, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
-        VecRestoreArray(vx, &a);
-      }
-      {
-        double al, r0;
-        if (solve_collective(msg[1], (int)msg[2], (int)msg[3], &its, &res, &reason, &al, &r0)) MPI_Abort(PETSC_COMM_WORLD, 1);
-      }
+      if (solve_collective(msg[1], (int)msg[2], &its, &res, &reason)) MPI_Abort(PETSC_COMM_WORLD, 1);
       VecGetArray(vx, &a);
       MPI_Gatherv(a, (int)m_own, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
       VecRestoreArray(vx, &a);
@@ -1550,7 +1564,13 @@ static int ship_matrix(void)
   bd_nmat++;
   if (ts > 0.) {
     bd_tsetup = ts;
-    printf(" BDDC: preconditioner set up from this (stress-free) matrix in %.1f s, kept for the whole run\n", ts);
+    if (bd_rebuild_its < 0) bd_rebuild_its = (int)getd("CALTOP_BDDC_REBUILD", (double)BDDC_REBUILD_DEFAULT);
+    printf(" BDDC: preconditioner set up from the stress-free matrix in %.1f s\n", ts);
+    if (bd_rebuild_its > 0)
+      printf(" BDDC: rebuilt at the next Newton iteration after a solve needs more than %d CG iterations (CALTOP_BDDC_REBUILD)\n", bd_rebuild_its);
+    else
+      printf(" BDDC: not rebuilt during the Newton iterations (CALTOP_BDDC_REBUILD=0)\n");
+    printf(" BDDC: rebuilt once at the converged configuration if adjoint solves follow\n");
   }
   bd_dirty = 0;
   return 1;
@@ -1584,14 +1604,14 @@ void bddc_rebuild(void)
   bd_nrebuild++;
   bd_trebuild += ts;
   bd_dirty = 1;                       /* the Newton matrix (K_T) follows */
-  printf(" BDDC: preconditioner rebuilt from the material stiffness at the current configuration in %.1f s (rebuild %d)\n", ts, bd_nrebuild);
+  printf(" BDDC: preconditioner rebuilt from the stress-free matrix at the current configuration in %.1f s (rebuild %d)\n", ts, bd_nrebuild);
   fflush(stdout);
 }
 
 /* solve K x = b (b overwritten by x); a solve that does not converge stops the run */
-int bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *au, ITG *jq, ITG *irow, const double *guess)
+int bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *au, ITG *jq, ITG *irow)
 {
-  double       t0, res, al = 0., r0 = 1.;
+  double       t0, res;
   ITG          i;
   PetscInt     its;
   int          reason, maxit = 500, nt = omp_get_max_threads(), nm = mkl_get_max_threads(), ok;
@@ -1621,18 +1641,12 @@ int bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *
     }
   }
   t0 = MPI_Wtime();
-  send_cmd(CMD_SOLVE, tol, (double)maxit, guess != NULL ? 1. : 0.);
+  send_cmd(CMD_SOLVE, tol, (double)maxit, 0.);
   for (i = 0; i < neq; i++) bd_vp[bd_g[i]] = b[i];
   VecGetArray(vb, &a);
   MPI_Scatterv(bd_vp, bd_cnt, bd_dsp, MPI_DOUBLE, a, (int)m_own, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
   VecRestoreArray(vb, &a);
-  if (guess != NULL) {
-    for (i = 0; i < neq; i++) bd_vp[bd_g[i]] = guess[i];
-    VecGetArray(vx, &a);
-    MPI_Scatterv(bd_vp, bd_cnt, bd_dsp, MPI_DOUBLE, a, (int)m_own, MPI_DOUBLE, 0, PETSC_COMM_WORLD);
-    VecRestoreArray(vx, &a);
-  }
-  if (solve_collective(tol, maxit, guess != NULL, &its, &res, &reason, &al, &r0)) MPI_Abort(PETSC_COMM_WORLD, 1);
+  if (solve_collective(tol, maxit, &its, &res, &reason)) MPI_Abort(PETSC_COMM_WORLD, 1);
   unpin_all(nt, nm);
   ok = (reason > 0) || (res <= (tol > accept ? tol : accept));
   {
@@ -1652,7 +1666,6 @@ int bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *
     free(bd_K); free(bd_have);
     bd_K = NULL; bd_have = NULL; bd_ne = 0;
   }
-  if (al != 0.) printf(" BDDC: adjoint started from %.3g x converged displacement, |b - K x0|/|b| = %.2e\n", al, r0);
   printf(" BDDC: %s CG %d it, |b-Kx|/|b| = %.1e (asked %.0e), %.2f s\n", adjoint ? "adjoint" : "Newton", (int)its, res, tol, t0);
   if (!ok) {
     printf(" *ERROR: BDDC: %s CG did not converge (true residual %.1e, PETSc reason %d); stopping.\n"
@@ -1663,7 +1676,7 @@ int bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *
   if (bd_rebuild_its < 0) bd_rebuild_its = (int)getd("CALTOP_BDDC_REBUILD", (double)BDDC_REBUILD_DEFAULT);
   if (!adjoint && bd_rebuild_its > 0 && its > bd_rebuild_its && !bd_want) {
     bd_want = 1;
-    printf(" BDDC: more than %d CG iterations (CALTOP_BDDC_REBUILD): the preconditioner is rebuilt at the next increment\n", bd_rebuild_its);
+    printf(" BDDC: more than %d CG iterations (CALTOP_BDDC_REBUILD): the preconditioner is rebuilt at the next Newton iteration\n", bd_rebuild_its);
   }
   return ok;
 }
@@ -1708,9 +1721,8 @@ void bddc_capture_end(ITG *kon, ITG *ipkon, ITG ne, ITG *nactdof, ITG *mi, ITG n
 {
   (void)kon; (void)ipkon; (void)ne; (void)nactdof; (void)mi; (void)nk; (void)co; (void)neq;
 }
-int bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *au, ITG *jq, ITG *irow, const double *guess)
+int bddc_solve(double *b, ITG neq, double tol, int adjoint, double *ad, double *au, ITG *jq, ITG *irow)
 {
-  (void)guess;
   (void)b; (void)neq; (void)tol; (void)adjoint; (void)ad; (void)au; (void)jq; (void)irow;
   return 0;
 }
