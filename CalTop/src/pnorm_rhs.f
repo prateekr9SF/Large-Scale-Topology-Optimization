@@ -103,6 +103,7 @@
       real*8 sige, sigeT
       real*8 sigeT_tol
       parameter (sigeT_tol = 1.d-30)
+      real*8 rhs_e(30), vm_sum
 !     
 
       intent(in) co,kon,ipkon,lakon,ne,v,
@@ -190,6 +191,11 @@
             enddo
          enddo
 
+
+         do m1=1,3*nope
+            rhs_e(m1)=0.d0
+         enddo
+         vm_sum=0.d0
 
 !     Begin loop over all integrations points per element
          do jj=1,mint3d
@@ -553,73 +559,72 @@ c             shp(1,j)=dNj/dx, shp(2,j)=dNj/dy, shp(3,j)=dNj/dz
                !if (m .le. 10) then
                !   write(*,*) 'After M calc: sigeT=', sigeT
                !endif
-               sige = dsqrt(sigeT)/(sig0)+ eps_relax - eps_relax/rho_eff
-               if (sige .lt. 0.d0) sige=0.d0
-
-! ---          Construct the coeff
-               !TESTMARK
-               if (sigeT .lt. 0.d0 ) then
-                  coeff = 0.d0
-               elseif (sigeT .le. sigeT_tol) then
-                  coeff = 0.d0
-               else
-                  coeff = (sige**(pexp-1))/(sig0*dsqrt(sigeT))
+! ---          Accumulate sum_gp (MeN*u_e)/vm_gp and sum_gp vm_gp
+               if (sigeT .gt. sigeT_tol) then
+                  vm_sum = vm_sum + dsqrt(sigeT)
+                  do m1=1,3*nope
+                     rhs_e(m1) = rhs_e(m1) + rhs_loc(m1)/dsqrt(sigeT)
+                  enddo
                endif
-
-               ! --- Catch NaN
-               if (coeff .ne. coeff) then
-
-                  write(*,*) '================================'
-                  write(*,*) 'P-NORM SENS RHS DIAGNOSTICS'
-                  write(*,*) 'RHS NAN COEFF FOUND'
-                  write(*,*) 'element  = ',i
-                  write(*,*) 'pexp     = ',pexp
-                  write(*,*) 'rho      = ',rho_e
-                  write(*,*) 'rho_eff  = ',rho_eff
-                  write(*,*) 'sig0     = ',sig0
-                  write(*,*) 'relax    = ',eps_relax
-                  write(*,*) 'sigeT    = ',sigeT
-                  write(*,*) 'sige     = ',sige
-                  write(*,*) '================================'
-                  stop
-               endif
-
-               ! ---Catch numerical blow-up
-               if (dabs(coeff) .gt. 1.d100) then
-                  write(*,*) 'P-NORM SENS RHS DIAGNOSTICS'
-                  write(*,*) 'RHS VERY LARGE COEFF FOUND'
-                  write(*,*) 'element = ',i
-                  write(*,*) 'coeff   = ',coeff
-                  write(*,*) 'pexp    = ',pexp
-                  write(*,*) 'rho     = ',rho_e
-                  write(*,*) 'rho_eff = ',rho_eff
-                  write(*,*) 'sigeT   = ',sigeT
-                  write(*,*) 'sige    = ',sige
-                  stop
-               endif
-               !if (m .le. 5) then
-               !   write(*,*) 'Elem', i,'rho=',rho_e,'vol=',xsj*weight,
-     &         !              'sigeT=',sigeT,'sige=',sige,'coeff=',coeff
-               !endif             
-               do m1=1,3*nope
-                  rhs_loc(m1) = coeff * rhs_loc(m1)
-               enddo
-
-! ---          Scatter to global rhs(1..3, node)
-                do m1=1,nope   ! Loop over all DOFs.
-                  rhs(1,konl(m1)) = rhs(1,konl(m1))
-     &            + rhs_loc(3*(m1-1)+1)
-                  rhs(2,konl(m1)) = rhs(2,konl(m1)) 
-     &            + rhs_loc(3*(m1-1)+2)
-                  rhs(3,konl(m1)) = rhs(3,konl(m1)) 
-     &            + rhs_loc(3*(m1-1)+3)
-                enddo
-              !endif
-            endif ! End if nope .eq. 4 condition
+            endif ! End if nope .eq. 4 .or. nope .eq. 10
 c----------------------------------------------------------------------
 
 !
          enddo  ! <--- end of integration over element Gauss points
+
+! ---    Element-averaged relaxed stress (same definition as stresspnorm)
+         sige = (vm_sum/dble(mint3d))/sig0 + eps_relax
+     &          - eps_relax/rho_eff
+         if (sige .lt. 0.d0) sige=0.d0
+
+! ---    coeff = phi_e^(p-1)/sig0 * (1/mint3d)
+         coeff = (sige**(pexp-1))/(sig0*dble(mint3d))
+
+         ! --- Catch NaN
+         if (coeff .ne. coeff) then
+
+            write(*,*) '================================'
+            write(*,*) 'P-NORM SENS RHS DIAGNOSTICS'
+            write(*,*) 'RHS NAN COEFF FOUND'
+            write(*,*) 'element  = ',i
+            write(*,*) 'pexp     = ',pexp
+            write(*,*) 'rho      = ',rho_e
+            write(*,*) 'rho_eff  = ',rho_eff
+            write(*,*) 'sig0     = ',sig0
+            write(*,*) 'relax    = ',eps_relax
+            write(*,*) 'vm_sum   = ',vm_sum
+            write(*,*) 'sige     = ',sige
+            write(*,*) '================================'
+            stop
+         endif
+
+         ! ---Catch numerical blow-up
+         if (dabs(coeff) .gt. 1.d100) then
+            write(*,*) 'P-NORM SENS RHS DIAGNOSTICS'
+            write(*,*) 'RHS VERY LARGE COEFF FOUND'
+            write(*,*) 'element = ',i
+            write(*,*) 'coeff   = ',coeff
+            write(*,*) 'pexp    = ',pexp
+            write(*,*) 'rho     = ',rho_e
+            write(*,*) 'rho_eff = ',rho_eff
+            write(*,*) 'vm_sum  = ',vm_sum
+            write(*,*) 'sige    = ',sige
+            stop
+         endif
+
+         do m1=1,3*nope
+            rhs_loc(m1) = coeff * rhs_e(m1)
+         enddo
+
+! ---    Scatter to global rhs(1..3, node)
+         do m1=1,nope   ! Loop over all DOFs.
+            rhs(1,konl(m1)) = rhs(1,konl(m1))
+     &      + rhs_loc(3*(m1-1)+1)
+            rhs(2,konl(m1)) = rhs(2,konl(m1))
+     &      + rhs_loc(3*(m1-1)+2)
+            rhs(3,konl(m1)) = rhs(3,konl(m1))
+     &      + rhs_loc(3*(m1-1)+3)
+         enddo
          !do m1=1,12
          !   write(*,'(ES10.2)'),uel(m1)
          !enddo

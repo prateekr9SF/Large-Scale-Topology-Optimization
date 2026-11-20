@@ -30,9 +30,51 @@
 #endif
 #ifdef PARDISO
    #include "pardiso.h"
+#include "bddc.h"
 #endif
 
 #define max(a,b) ((a) >= (b) ? (a) : (b))
+
+/* wall-clock breakdown of nonlingeo (printed at its end): every call of
+   the routines below is timed through these wrappers */
+#include <omp.h>
+static double nl_tstart=0.,nl_tasm=0.,nl_tres=0.,nl_tsol=0.;
+static long nl_nasm=0,nl_nres=0,nl_nsol=0;
+extern double ct_t_asm_reduce;   /* mafillsmmain.c */
+static double nl_tred0=0.;
+
+/* TAU regions (profiling build, -DPROFILING_ON): the category names of the
+   run-time breakdown. Regions nest; time is attributed to the innermost one.
+   After the Newton loop (nl_adj=1) the solves belong to the adjoint and the
+   element routines to the sensitivity evaluation around them. */
+#ifdef PROFILING_ON
+#include <TAU.h>
+#define TAU_REGION_START(n) TAU_START(n)
+#define TAU_REGION_STOP(n) do{TAU_TRACK_MEMORY_FOOTPRINT_HERE();TAU_STOP(n);}while(0)
+#else
+#define TAU_REGION_START(n) ((void)0)
+#define TAU_REGION_STOP(n) ((void)0)
+#endif
+static int nl_adj=0;
+#define NL_ASM (nl_adj?NULL:"Forward analysis: Element computations")
+#define NL_RES (nl_adj?NULL:"Forward analysis: Element computations")
+#define NL_SOL (nl_adj?"Sensitivity analysis: Adjoint solves":"Forward analysis: Linear solves")
+#define NL_TIMED(acc,cnt,name,call) do{const char *n_=name;double t_=omp_get_wtime();\
+    if(n_!=NULL) TAU_REGION_START(n_);\
+    call;\
+    if(n_!=NULL) TAU_REGION_STOP(n_);\
+    acc+=omp_get_wtime()-t_;cnt++;}while(0)
+#define mafillsmmain(...) NL_TIMED(nl_tasm,nl_nasm,NL_ASM,mafillsmmain(__VA_ARGS__))
+#define results(...) NL_TIMED(nl_tres,nl_nres,NL_RES,results(__VA_ARGS__))
+#ifdef PARDISO
+#define pardiso_main(...) NL_TIMED(nl_tsol,nl_nsol,NL_SOL,pardiso_main(__VA_ARGS__))
+#define pardiso_factor_solve(...) \
+  NL_TIMED(nl_tsol,nl_nsol,NL_SOL,pardiso_factor_solve(__VA_ARGS__))
+#define pardiso_store_factor(...) \
+  NL_TIMED(nl_tsol,nl_nsol,NL_SOL,pardiso_store_factor(__VA_ARGS__))
+#define pardiso_factor(...) NL_TIMED(nl_tsol,nl_nsol,NL_SOL,pardiso_factor(__VA_ARGS__))
+#define pardiso_solve(...) NL_TIMED(nl_tsol,nl_nsol,NL_SOL,pardiso_solve(__VA_ARGS__))
+#endif
 /*
      nmethod: -1:visco (=static+creep) 
 !               0:no analysis 
@@ -50,6 +92,24 @@
 !               12:sensitivity
 
 */
+/* penalized Cauchy stress of the output increment -> driver array (.vtu) */
+static void nlgeo_copy_stx_vtu(double *stx_vtu, double *stx, ITG *ne,
+                               ITG *mi, double *design, double *penal,
+                               double *rhomin)
+{
+    ITG e, j, n = 6*mi[0];
+    if (stx_vtu == NULL) return;
+    for (e = 0; e < *ne; e++)
+    {
+        double r = design[e];
+        if (r < 0.0) r = 0.0;
+        if (r > 1.0) r = 1.0;
+        if (r < *rhomin) r = *rhomin;
+        double sc = pow(r, *penal);
+        for (j = 0; j < n; j++) stx_vtu[(size_t)n*e + j] = sc*stx[(size_t)n*e + j];
+    }
+}
+
 void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	     ITG *ne, 
 	     ITG *nodeboun, ITG *ndirboun, double *xboun, ITG *nboun, 
@@ -98,7 +158,8 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	     ITG *network,char *orname,double *vel,ITG *nef,
 	     double *velo,double *veloo, double *design,double *penal,
 		 double *sigma0, double *eps_relax, double *rhomin,
-         double *pexp, double *Pnorm, double *dPnorm_drho, int *eval_PNORM, double *mat_dens){
+         double *pexp, double *Pnorm, double *dPnorm_drho, int *eval_PNORM, double *mat_dens,
+         double *stx_vtu){
 
   char description[13]="            ",*lakon=NULL,jobnamef[396]="",
       *sideface=NULL,*labmpc=NULL,*lakonf=NULL,
@@ -201,6 +262,10 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   islavsurf=*islavsurfp;pslavsurf=*pslavsurfp;clearini=*clearinip;
 
+  nl_tstart=omp_get_wtime();
+  nl_tasm=nl_tres=nl_tsol=0.;nl_nasm=nl_nres=nl_nsol=0;
+  nl_adj=0;
+  nl_tred0=ct_t_asm_reduce;
   tinc=&timepar[0];
   tper=&timepar[1];
   tmin=&timepar[2];
@@ -1896,6 +1961,41 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
 	if(*nmethod==4) DMEMSET(fnext,0,mt**nk,0.);
 
+#ifdef PARDISO
+	if((nasym==0)&&bddc_want_rebuild()){   /* next Newton iteration */
+	    /* CALTOP_SOLVER=bddc: new preconditioner matrix, the same assembly
+	       with the stresses set to zero: the material stiffness at the
+	       current displacements, without the geometric (stress) term, so
+	       positive semi-definite in every subdomain */
+	    double *stiz=NULL,*adz=NULL,*auz=NULL,*fextz=NULL;
+	    NNEW(stiz,double,6*mi[0]**ne);
+	    NNEW(adz,double,neq[1]);
+	    NNEW(auz,double,nzs[1]);
+	    NNEW(fextz,double,neq[1]);
+	    bddc_capture_begin(*ne,ipkon,lakon);
+	    mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
+		  ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
+		  nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
+		  nbody,cgr,adz,auz,fextz,nactdof,icol,jq,irow,neq,nzl,
+		  nmethod,ikmpc,ilmpc,ikboun,ilboun,
+		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
+		  ielmat,ielorien,norien,orab,ntmat_,
+		  t0,t1act,ithermal,prestr,iprestr,vold,iperturb,stiz,
+		  nzs,stx,adb,aub,iexpl,plicon,nplicon,plkcon,nplkcon,
+		  xstiff,npmat_,&dtime,matname,mi,
+                  ncmat_,mass,&stiffness,&buckling,&rhsi,&intscheme,
+                  physcon,shcon,nshcon,cocon,ncocon,ttime,&time,istep,&iinc,
+		  &coriolis,ibody,xloadold,&reltime,veold,springarea,nstate_,
+                  xstateini,xstate,thicke,integerglob,doubleglob,
+		  tieset,istartset,iendset,ialset,ntie,&nasym,pslavsurf,
+		  pmastsurf,mortar,clearini,ielprop,prop,&ne0,fnext,&kscale,
+		  iponoel,inoel,network,ntrans,inotr,trab, design,penal,mat_dens);
+	    bddc_capture_end(kon,ipkon,*ne,nactdof,mi,*nk,co,neq[1]);
+	    bddc_rebuild();
+	    SFREE(stiz);SFREE(adz);SFREE(auz);SFREE(fextz);
+	}
+	bddc_capture_begin(*ne,ipkon,lakon);        /* CALTOP_SOLVER=bddc */
+#endif
 	mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
 		  ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
 		  nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
@@ -1913,6 +2013,9 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 		  tieset,istartset,iendset,ialset,ntie,&nasym,pslavsurf,
 		  pmastsurf,mortar,clearini,ielprop,prop,&ne0,fnext,&kscale,
 		  iponoel,inoel,network,ntrans,inotr,trab, design,penal,mat_dens);
+#ifdef PARDISO
+	bddc_capture_end(kon,ipkon,*ne,nactdof,mi,*nk,co,neq[1]);
+#endif
 	iperturb[0]=iperturb_sav[0];
 	iperturb[1]=iperturb_sav[1];
 	if(nasym==1){
@@ -2218,8 +2321,17 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 	  else if(*isolver==7){
 #ifdef PARDISO
 	      if(*ithermal<2){
-		  pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,&neq[0],&nzs[0],
+		  if((g_useNK||bddc_active())&&isensitivity&&(*nmethod!=4)){
+		      /* Newton-Krylov: current K_T solved by FGMRES on the
+		         last factor; refactor only if FGMRES fails.
+		         CALTOP_SOLVER=bddc: CG with BDDC (pardiso_factor_solve) */
+		      pardiso_factor_solve(ad,au,adb,aub,&sigma,b,icol,irow,
+			       &neq[0],&nzs[0],&symmetryflag,&inputformat,
+			       jq,&nzs[2],&nrhs);
+		  }else{
+		      pardiso_main(ad,au,adb,aub,&sigma,b,icol,irow,&neq[0],&nzs[0],
 			       &symmetryflag,&inputformat,jq,&nzs[2],&nrhs);
+		  }
 	      }else if((*ithermal==2)&&(uncoupled)){
 		  n1=neq[1]-neq[0];
 		  n2=nzs[1]-nzs[0];
@@ -2802,9 +2914,11 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
               mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	      islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
               inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun,
-			  design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm, (*eval_PNORM == 2) ? 1 : 0); 
+			  design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm,0); 
       
       memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
+      nlgeo_copy_stx_vtu(stx_vtu,stx,ne,mi,design,penal,rhomin);
+
 
       iout=0;
       if(*iexpl<=1) icmd=0;
@@ -2906,9 +3020,11 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
             mortar,islavact,cdn,islavnode,nslavnode,ntie,clearini,
 	    islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
             inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun,
-			design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm, (*eval_PNORM== 2) ? 1 : 0); 
+			design, penal,sigma0,eps_relax,rhomin,pexp,brhs,djdrho_explicit,Pnorm,0); 
     
     memcpy(&vold[0],&v[0],sizeof(double)*mt**nk);
+      nlgeo_copy_stx_vtu(stx_vtu,stx,ne,mi,design,penal,rhomin);
+
 
     iout=0;
     if(*iexpl<=1) icmd=0;
@@ -2962,6 +3078,186 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
 
   }
     
+  /* from here on: adjoint preparation, P-norm and its adjoint */
+  nl_adj=1;
+  TAU_REGION_START("Sensitivity analysis: Sensitivity evaluation");
+
+#ifdef PARDISO
+  /* converged K_T, factored once and kept for the adjoint solves
+     (P-norm below, compliance in sensitivity()); also written to .stm */
+  if(isensitivity&&(*isolver==7)&&(*ithermal<2)&&(*iexpl<=1)&&
+     (*nmethod!=4)&&(idamping==0)&&(nasym==0)){
+      NNEW(ad,double,neq[1]);
+      NNEW(au,double,nzs[1]);
+      /* CALTOP_SOLVER=bddc: rebuild the preconditioner once at the converged
+         configuration, so the adjoint solves never use a stale one */
+      if(bddc_active()){
+	    printf(" BDDC: rebuilding the preconditioner at the converged configuration for the adjoint solves\n");
+	    double *stiz=NULL,*adz=NULL,*auz=NULL,*fextz=NULL;
+	    NNEW(stiz,double,6*mi[0]**ne);
+	    NNEW(adz,double,neq[1]);
+	    NNEW(auz,double,nzs[1]);
+	    NNEW(fextz,double,neq[1]);
+	    bddc_capture_begin(*ne,ipkon,lakon);
+	    mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
+		  ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
+		  nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
+		  nbody,cgr,adz,auz,fextz,nactdof,icol,jq,irow,neq,nzl,
+		  nmethod,ikmpc,ilmpc,ikboun,ilboun,
+		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
+		  ielmat,ielorien,norien,orab,ntmat_,
+		  t0,t1act,ithermal,prestr,iprestr,vold,iperturb,stiz,
+		  nzs,stx,adb,aub,iexpl,plicon,nplicon,plkcon,nplkcon,
+		  xstiff,npmat_,&dtime,matname,mi,
+                  ncmat_,mass,&stiffness,&buckling,&rhsi,&intscheme,
+                  physcon,shcon,nshcon,cocon,ncocon,ttime,&time,istep,&iinc,
+		  &coriolis,ibody,xloadold,&reltime,veold,springarea,nstate_,
+                  xstateini,xstate,thicke,integerglob,doubleglob,
+		  tieset,istartset,iendset,ialset,ntie,&nasym,pslavsurf,
+		  pmastsurf,mortar,clearini,ielprop,prop,&ne0,fnext,&kscale,
+		  iponoel,inoel,network,ntrans,inotr,trab, design,penal,mat_dens);
+	    bddc_capture_end(kon,ipkon,*ne,nactdof,mi,*nk,co,neq[1]);
+	    bddc_rebuild();
+	    SFREE(stiz);SFREE(adz);SFREE(auz);SFREE(fextz);
+      }
+      bddc_capture_begin(*ne,ipkon,lakon);
+      mafillsmmain(co,nk,kon,ipkon,lakon,ne,nodeboun,ndirboun,xbounact,nboun,
+		  ipompc,nodempc,coefmpc,nmpc,nodeforc,ndirforc,xforcact,
+		  nforc,nelemload,sideload,xloadact,nload,xbodyact,ipobody,
+		  nbody,cgr,ad,au,fext,nactdof,icol,jq,irow,neq,nzl,
+		  nmethod,ikmpc,ilmpc,ikboun,ilboun,
+		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,
+		  ielmat,ielorien,norien,orab,ntmat_,
+		  t0,t1act,ithermal,prestr,iprestr,vold,iperturb,sti,
+		  nzs,stx,adb,aub,iexpl,plicon,nplicon,plkcon,nplkcon,
+		  xstiff,npmat_,&dtime,matname,mi,
+                  ncmat_,mass,&stiffness,&buckling,&rhsi,&intscheme,
+                  physcon,shcon,nshcon,cocon,ncocon,ttime,&time,istep,&iinc,
+		  &coriolis,ibody,xloadold,&reltime,veold,springarea,nstate_,
+                  xstateini,xstate,thicke,integerglob,doubleglob,
+		  tieset,istartset,iendset,ialset,ntie,&nasym,pslavsurf,
+		  pmastsurf,mortar,clearini,ielprop,prop,&ne0,fnext,&kscale,
+		  iponoel,inoel,network,ntrans,inotr,trab, design,penal,mat_dens);
+      bddc_capture_end(kon,ipkon,*ne,nactdof,mi,*nk,co,neq[1]);
+      memcpy(&adcpy[0],&ad[0],sizeof(double)*neq[1]);
+      memcpy(&aucpy[0],&au[0],sizeof(double)*nzs[1]);
+      if(g_useNK||bddc_active()){
+	  pardiso_store_factor(ad,au,adb,aub,&sigma,icol,irow,&neq[0],&nzs[0],
+			       &symmetryflag,&inputformat,jq,&nzs[2]);
+      }else{
+	  pardiso_release();
+	  pardiso_factor(ad,au,adb,aub,&sigma,icol,irow,&neq[0],&nzs[0],
+			 &symmetryflag,&inputformat,jq,&nzs[2]);
+      }
+      SFREE(ad);SFREE(au);
+  }
+#endif
+
+  /*********************************************************/
+  /*   stress P-norm and its adjoint sensitivity (NLGEOM)   */
+  /*   Cauchy stress, converged state vold; mirrors the      */
+  /*   linear path in linstatic.c                            */
+  /*********************************************************/
+
+  if(*eval_PNORM==2){
+#ifdef PARDISO
+      if(!pardiso_factor_alive()){
+	  printf("*ERROR in nonlingeo: the NLGEOM P-norm adjoint needs the\n");
+	  printf("       converged K_T factor: a design tieset (sensitivity\n");
+	  printf("       step), the PARDISO solver and a symmetric static K_T.\n\n");
+	  FORTRAN(stop,());
+      }
+
+      printf("\n========================================\n");
+      printf("STRESS P-NORM (NLGEOM, CAUCHY)\n");
+      printf("========================================\n");
+
+      /* 1) P-norm value and nodal adjoint RHS at the converged state.
+            results() with get_adjoint=3 only runs the P-norm threads;
+            scratch arrays keep stx, fn, f and qa of the analysis intact */
+      {
+	  double *v_p=NULL,*fn_p=NULL,*stn_p=NULL,*stx_p=NULL,*f_p=NULL,
+	      qa_p[4]={0.,0.,-1.,0.};
+	  ITG *inum_p=NULL,iout_p=-1,icmd_p=3;
+
+	  NNEW(v_p,double,mt**nk);
+	  memcpy(&v_p[0],&vold[0],sizeof(double)*mt**nk);
+	  NNEW(fn_p,double,mt**nk);
+	  NNEW(stn_p,double,6**nk);
+	  NNEW(stx_p,double,6*mi[0]**ne);
+	  NNEW(f_p,double,neq[1]);
+	  NNEW(inum_p,ITG,*nk);
+	  DMEMSET(brhs,0,mt**nk,0.);
+
+	  results(co,nk,kon,ipkon,lakon,ne,v_p,stn_p,inum_p,stx_p,
+		  elcon,nelcon,rhcon,nrhcon,alcon,nalcon,alzero,ielmat,
+		  ielorien,norien,orab,ntmat_,t0,t1act,ithermal,
+		  prestr,iprestr,filab,eme,NULL,NULL,iperturb,
+		  f_p,fn_p,nactdof,&iout_p,qa_p,vold,b,nodeboun,
+		  ndirboun,xbounact,nboun,ipompc,
+		  nodempc,coefmpc,labmpc,nmpc,nmethod,cam,&neq[1],veold,accold,
+		  &bet,&gam,&dtime,&time,ttime,plicon,nplicon,plkcon,nplkcon,
+		  xstateini,xstiff,xstate,npmat_,NULL,matname,mi,&ielas,&icmd_p,
+		  ncmat_,nstate_,stiini,vini,ikboun,ilboun,ener,NULL,emeini,
+		  NULL,eei,enerini,cocon,ncocon,set,nset,istartset,iendset,
+		  ialset,nprint,prlab,prset,qfx,qfn,trab,inotr,ntrans,fmpc,
+		  nelemload,nload,ikmpc,ilmpc,istep,&iinc,springarea,
+		  &reltime,&ne0,thicke,shcon,nshcon,
+		  sideload,xloadact,xloadold,&icfd,inomat,pslavsurf,pmastsurf,
+		  mortar,islavact,NULL,islavnode,nslavnode,ntie,clearini,
+		  islavsurf,ielprop,prop,energyini,energy,&kscale,iponoel,
+		  inoel,nener,orname,network,ipobody,xbodyact,ibody,typeboun,
+		  design,penal,sigma0,eps_relax,rhomin,pexp,brhs,
+		  djdrho_explicit,Pnorm,3);
+
+	  SFREE(v_p);SFREE(fn_p);SFREE(stn_p);SFREE(stx_p);SFREE(f_p);
+	  SFREE(inum_p);
+      }
+      printf(" P-norm (Cauchy) = %.15e\n",*Pnorm);
+
+      /* 2) nodal RHS -> equation space (no MPCs), as in linstatic.c */
+      {
+	  double *b_adj=NULL,*lam=NULL,*djdrho_impl=NULL,PnormMult;
+	  ITG nea_loc=1,neb_loc=*ne,list_loc=0,*ilist_loc=NULL,idir,idof;
+
+	  NNEW(b_adj,double,neq[0]);
+	  for(i=0;i<*nk;++i){
+	      for(idir=1;idir<=3;++idir){
+		  idof=nactdof[idir+i*mt]-1;
+		  if(idof>=0) b_adj[idof]=brhs[idir+i*mt];
+	      }
+	  }
+
+	  /* 3) adjoint solve K_T lambda = dJ/du on the kept factor
+	        (same matrix the compliance adjoint uses; no new factorization) */
+	  pardiso_solve(b_adj,&neq[0],&symmetryflag,&nrhs);
+
+	  /* equation space -> nodal field */
+	  NNEW(lam,double,mt**nk);
+	  adjoint_eq_2_node(nk,nactdof,nboun,nodeboun,ndirboun,typeboun,
+			    mi,lam,b_adj);
+
+	  /* 4) implicit + explicit sensitivity per element */
+	  NNEW(djdrho_impl,double,*ne);
+	  FORTRAN(pnorm_implicit_nl,(co,kon,ipkon,lakon,ne,mi,
+		  xstiff,vold,lam,design,penal,pexp,eps_relax,sigma0,
+		  &nea_loc,&neb_loc,&list_loc,ilist_loc,djdrho_impl));
+
+	  /* 5) P^(1-p) prefactor */
+	  PnormMult=(*Pnorm>0.) ? *Pnorm/pow(*Pnorm,*pexp) : 0.;
+	  for(i=0;i<*ne;++i){
+	      dPnorm_drho[i]=PnormMult*djdrho_impl[i];
+	  }
+
+	  SFREE(b_adj);SFREE(lam);SFREE(djdrho_impl);
+      }
+#else
+      printf("*ERROR in nonlingeo: the NLGEOM P-norm adjoint needs PARDISO\n\n");
+      FORTRAN(stop,());
+#endif
+  }
+  TAU_REGION_STOP("Sensitivity analysis: Sensitivity evaluation");
+
   /* writing out the latest stiffness matrix for a subsequent
      sensitivity analysis */
 
@@ -3187,6 +3483,19 @@ void nonlingeo(double **cop, ITG *nk, ITG **konp, ITG **ipkonp, char **lakonp,
   // MPADD end
   
   (*ttime)+=(*tper);
+
+  {
+    double tt=omp_get_wtime()-nl_tstart;
+    printf(" [time] nonlingeo breakdown: total %.1f s\n"
+	   " [time]   stiffness assembly (mafillsm)      %9.1f s  (%ld calls)\n"
+	   " [time]     of which summing thread copies   %9.1f s\n"
+	   " [time]   internal forces/stresses (results) %9.1f s  (%ld calls)\n"
+	   " [time]   linear solves                      %9.1f s  (%ld calls)\n"
+	   " [time]   everything else                    %9.1f s\n",
+	   tt,nl_tasm,nl_nasm,ct_t_asm_reduce-nl_tred0,nl_tres,nl_nres,nl_tsol,nl_nsol,
+	   tt-nl_tasm-nl_tres-nl_tsol);
+    fflush(stdout);
+  }
   
   return;
 }

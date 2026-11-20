@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "CalculiX.h"
+#include "bddc.h"
 
 #define min(a,b) ((a) <= (b) ? (a) : (b))
 #define max(a,b) ((a) >= (b) ? (a) : (b))
@@ -256,6 +257,22 @@ void mastruct(ITG *nk, ITG *kon, ITG *ipkon, char *lakon, ITG *ne,
       else{neq[2]=neq[1];}
   }
   
+  /* CALTOP_SOLVER=bddc, static NLGEOM step: BDDC assembles its own subdomain
+     matrices from the element matrices and CalTop's global K is never built,
+     so its sparsity structure is not needed either (on the wing: 118M
+     nonzeros, 0.5 GB of row indices plus the same again for K). The
+     equations above are numbered as usual; the structure is left empty. */
+  if(bddc_active()&&(*nmethod==1)&&(iperturb[1]==1)){
+      for(i=0;i<neq[1];i++){icol[i]=0;jq[i]=1;}
+      jq[neq[1]]=1;
+      nzs[0]=0;nzs[1]=0;nzs[2]=0;
+      printf("Number of equations: %" ITGFORMAT "\n",neq[1]);
+      printf("Matrix structure not built (CALTOP_SOLVER=bddc assembles its own subdomain matrices)\n");
+      *mast1p=mast1;
+      *irowp=irow;
+      return;
+  }
+
   /* determining the subdiagonal nonzeros in the stiffness/mass matrix */
 
   ifree=0;

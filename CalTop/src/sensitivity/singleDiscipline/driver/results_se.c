@@ -174,7 +174,11 @@ void results_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 	NNEW(nebpar,ITG,num_cpus);
 	elementcpuload(neapar,nebpar,ne,ipkon,&num_cpus);
 	
-	NNEW(fn01,double,num_cpus*mt**nkon);
+	/* each element writes only its own slots fn0(.,ipkon(e)+j) and the threads
+	   have disjoint element ranges, so they never share an entry: the threads
+	   write straight into fn0 (no per-thread copies: they were num_cpus*mt*nkon
+	   doubles, 27 GB at 128 threads on the wing, and overflowed 32 bits) */
+	fn01=fn0;
 	
 	co1=co;kon1=kon;ipkon1=ipkon;lakon1=lakon;ne1=ne;v1=v;
 	stx1=stx;elcon1=elcon;nelcon1=nelcon;rhcon1=rhcon;
@@ -206,18 +210,8 @@ void results_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 	}
 	for(i=0; i<num_cpus; i++)  pthread_join(tid[i], NULL);
 	
-	/* Assembling fn0 and dfn */
-	
-	for(i=0;i<mt**nkon;i++){
-	    fn0[i]=fn01[i];
-	}
-	for(i=0;i<mt**nkon;i++){
-	    for(j=1;j<num_cpus;j++){
-		fn0[i]+=fn01[i+j*mt**nkon];
-	    }
-	}
-	
-	SFREE(fn01);SFREE(ithread);SFREE(neapar);SFREE(nebpar); 
+	fn01=NULL;
+	SFREE(ithread);SFREE(neapar);SFREE(nebpar); 
     }
     
     /* in case of nonlinear geometry calculate vector fint */
@@ -320,14 +314,15 @@ void results_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,ITG *ne,
 
 void *resultsmechmt_se(ITG *i){
 
-    ITG indexfn0,indexdfn,nea,neb;
+    long long indexfn0,indexdfn;
+    ITG nea,neb;
 
     if(idesvar1==0){
-	indexfn0=*i*mt1**nkon1;
+	indexfn0=0;
 	indexdfn=0;
     }else{
 	indexfn0=0;
-	indexdfn=*i*mt1**nk1;
+	indexdfn=(long long)*i*mt1**nk1;
     }
 
 /*    nedelta=(ITG)floor(*ne1/(double)num_cpus);

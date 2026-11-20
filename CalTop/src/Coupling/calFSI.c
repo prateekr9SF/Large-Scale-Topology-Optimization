@@ -29,6 +29,9 @@
 #include <string.h>
 #include "CalFSI.h"
 #include "CalculiX.h"
+#ifdef PARDISO
+#include "pardiso.h"
+#endif
 
 #include <time.h>
 #include <unistd.h>
@@ -531,6 +534,21 @@ else
       break;
     }
   }
+
+  /* NLGEOM solver: CALTOP_SOLVER=nr|nk|bddc (environment); the former
+     --NK / --MG flags are ignored */
+  for(i=1; i<argc; i++)
+  {
+    if(strcmp(argv[i],"--NK")==0||strcmp(argv[i],"--MG")==0)
+    {
+      printf(" *WARNING: %s is no longer used and is ignored; the solver is set with"
+             " CALTOP_SOLVER=nr|nk|bddc\n\n",argv[i]);
+      break;
+    }
+  }
+#ifdef PARDISO
+  pardiso_select_solver();
+#endif
 }
 
 
@@ -2223,7 +2241,8 @@ while(istat>=0)
            &ifacecount,typeboun,&islavsurf,&pslavsurf,&clearini,&nmat,
            xmodal,&iaxial,&inext,&nprop,&network,orname,vel,&nef,
            velo,veloo,rhoPhys,&pstiff,
-           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens, preciceParticipantName,configFilename);
+           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens, preciceParticipantName,configFilename,
+           stx);
 
 	      memmpc_=mpcinfo[0];
         mpcfree=mpcinfo[1];
@@ -3187,6 +3206,9 @@ while(istat>=0)
   #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
   calculix_freeExternalBehaviours();
   #endif /* CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT */
+#ifdef PARDISO
+  pardiso_release();   /* K_T factor kept for the adjoint solves */
+#endif
   printf("done! \n");
   return 0;
 }

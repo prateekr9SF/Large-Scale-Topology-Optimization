@@ -27,15 +27,62 @@
 #include <TAU.h>
 #endif
 
+/* TAU regions for the run-time breakdown (profiling build, -DPROFILING_ON).
+   Categories (time goes to the innermost region; the rest of rank 0's time
+   is "Unattributed" = exclusive time of .TAU application):
+     Pre-processing
+     Design-variable filtering
+     Domain decomposition                          (bddc.c)
+     Forward analysis: Newton update               (the nonlingeo call: what its sub-regions leave)
+     Forward analysis: Element computations        (nonlingeo.c)
+     Forward analysis: Preconditioner construction (bddc.c)
+     Forward analysis: Linear solves               (nonlingeo.c)
+     Forward analysis: Data exchange               (bddc.c)
+     Sensitivity analysis: Adjoint solves          (nonlingeo.c, sensitivity.c)
+     Sensitivity analysis: Sensitivity evaluation
+     Sensitivity analysis: Sensitivity filtering
+     Post-processing
+   Each region also records rank 0's memory (VmRSS, VmHWM) when it ends. */
+#ifdef PROFILING_ON
+#define TAU_REGION_START(n) TAU_START(n)
+#define TAU_REGION_STOP(n) do{TAU_TRACK_MEMORY_FOOTPRINT_HERE();TAU_STOP(n);}while(0)
+#else
+#define TAU_REGION_START(n) ((void)0)
+#define TAU_REGION_STOP(n) ((void)0)
+#endif
+static int ct_reg_pre=0,ct_reg_post=0;   /* regions that span branches: open flags */
+
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "CalculiX.h"
+#include "bddc.h"
+#ifdef PARDISO
+#include "pardiso.h"
+#endif
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h> 
 #include <omp.h>
+
+/* wall-clock phase marks: " [time] <phase>  <since last mark>  (total)" */
+static double ct_t0=-1.,ct_tp=0.;
+/* sub-phase timer inside a phase: " [time]   <part>  <seconds>" (does not move the phase mark) */
+static double ct_tsub=0.;
+static void ct_part(const char *label)
+{
+  printf(" [time]   %-42s %9.1f s\n",label,omp_get_wtime()-ct_tsub);
+  fflush(stdout);
+}
+static void ct_mark(const char *label)
+{
+  double t=omp_get_wtime();
+  if(ct_t0<0.||label==NULL){ct_t0=ct_tp=t;return;}
+  printf(" [time] %-44s %9.1f s   (total %9.1f s)\n",label,t-ct_tp,t-ct_t0);
+  fflush(stdout);
+  ct_tp=t;
+}
 
 #ifdef CALCULIX_MPI
 ITG myid = 0, nproc = 0;
@@ -43,12 +90,15 @@ ITG myid = 0, nproc = 0;
 
 int main(int argc,char *argv[])
 {
+  /* CALTOP_SOLVER=bddc: relaunch under MPI / become a solver worker */
+  bddc_launch(&argc,&argv);
 
   // Initialize TAU profiling for the main process in OpenMP/Pthreads runs
   #ifdef PROFILING_ON
     TAU_PROFILE_INIT(argc, argv);
     TAU_PROFILE_SET_NODE(0);
   #endif
+  TAU_REGION_START("Pre-processing"); ct_reg_pre=1;
 
   #ifdef PROFILING_ON
     TAU_PROFILE_TIMER(t_preProc_CalTop,"preprocess: CalTop","",TAU_USER);  // Preprocess timer
@@ -395,10 +445,12 @@ int main(int argc,char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &nproc) ;
   #endif
 
+  ct_mark(NULL);
   if(argc==1)
   { 
     /* Inadequate input arguments */
     printf("Usage: Flags: -i jobname -p PENALTY -r RADIUS -f FILTERNNZ --pexp PNORM EXPONENT --sigmin SIGMA MINIMUM --sigrelax STRESS RELAXATION --cg_eval YES\n");
+    printf("       NLGEOM solver: environment variable CALTOP_SOLVER=nr (PARDISO direct, default), nk (Newton-Krylov) or bddc\n");
     FORTRAN(stop,());
   }
 
@@ -516,6 +568,21 @@ else
     }
   }
 
+  /* NLGEOM solver: CALTOP_SOLVER=nr|nk|bddc (environment); the former
+     --NK / --MG flags are ignored */
+  for(i=1; i<argc; i++)
+  {
+    if(strcmp(argv[i],"--NK")==0||strcmp(argv[i],"--MG")==0)
+    {
+      printf(" *WARNING: %s is no longer used and is ignored; the solver is set with"
+             " CALTOP_SOLVER=nr|nk|bddc\n\n",argv[i]);
+      break;
+    }
+  }
+#ifdef PARDISO
+  pardiso_select_solver();
+#endif
+
 } // End parsing all command line arguments
 
 
@@ -529,6 +596,7 @@ else
   pstiff=pSupplied;
 }
 
+//setenv("CCX_JOBNAME_GETJOBNAME",jobnamec,1);
 putenv("CCX_JOBNAME_GETJOBNAME=jobnamec");
 
 #ifdef BAM
@@ -607,6 +675,8 @@ FORTRAN(allocation,(&nload_,&nforc_,&nboun_,&nk_,&ne_,&nmpc_,&nset_,&nalset_,
 TAU_PROFILE_STOP(t_preProc_CalTop);
 #endif
 
+//printf("CG flag after allocation: %d\n", eval_CG);
+//printf("PNROM flag ater allocation %d\n", eval_PNORM);
 
 SFREE(set);
 SFREE(meminset);
@@ -1140,27 +1210,28 @@ while(istat>=0)
     }
     printf("\n");
 
-    /* Read element desitiies from .dat file, if absent, initialize the design to one */    
-    rho(design,ne);
+  /* Read element desitiies from .dat file, if absent, initialize the design to one */    
+  rho(design,ne);
 
-    if (numPassive > 1)
-    {
-      printf("Setting raw element densitities for skin elements to 1 ...");
-      /* Set the element density of passive elements to 1 */
-      filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
-      printf("done\n");
-    }
-
-    #ifdef PROFILING_ON
-      TAU_PROFILE_STOP(t_preProc_CalTop);
-    #endif
-
-    /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
-    NNEW(stx,double,6*mi[0]*ne);
+  if (numPassive > 1)
+  {
+    printf("Setting raw element densitities for skin elements to 1 ...");
+    /* Set the element density of passive elements to 1 */
+    filterOutPassiveElems_density(design, ne, passiveIDs, numPassive);
+    printf("done\n");
+  }
 
 
+  #ifdef PROFILING_ON
+    TAU_PROFILE_STOP(t_preProc_CalTop);
+  #endif
 
-    #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
+  /* Define stress array here, pass to linstatic and then plot in write_vtu.c */
+  NNEW(stx,double,6*mi[0]*ne);
+
+
+
+  #ifdef CALCULIX_EXTERNAL_BEHAVIOURS_SUPPORT
   for(i=0;i!=nmat;++i)
   {
     calculix_registerExternalBehaviour(matname+80*i);
@@ -1831,40 +1902,36 @@ while(istat>=0)
    *--------------------------------------------------------------------*/
 
 
+  if(ct_reg_pre){ TAU_REGION_STOP("Pre-processing"); ct_reg_pre=0; }
+
   // Non-zero penalization specified, filter densities
   if(pSupplied != 0)
   {
     #ifdef PROFILING_ON
       TAU_PROFILE_START(t_filter_CalTop);
     #endif
+    TAU_REGION_START("Design-variable filtering");
 
+    ct_mark("input, mesh, matrix structure");
     NNEW(filternnzElems, ITG, ne_);
     NNEW(designFiltered, double, ne_);
     printf("Filtering element densities...");
     fflush(stdout);
-
-    // LEGACY COO-based density filtering
+    // COO-based density filtering
     //filterDensity_buffered_bin_mt(design, designFiltered, filternnzElems,
     //                              &ne, &fnnzassumed, &qfilter, filternnz);
 
-    double t_start_rhoFilt = omp_get_wtime();
-
     // CSR-based density filtering
+    printf("Applying CSR-based filtering...");
     filterDensity_buffered_bin_mt_csr(design,designFiltered,filternnzElems,&ne,&fnnzassumed,&qfilter,filternnz);
-    
-    double t_end_rhoFilt = omp_get_wtime();
-
-    printf("Density filtering time: %.6f seconds \n", t_end_rhoFilt - t_start_rhoFilt);
-
+    printf("Done!\n");
     /* Enforce rhomin floor to prevent division by zero */
     for(i=0; i<ne_; i++)
     {
       if(designFiltered[i] < rhomin) designFiltered[i] = rhomin;
     }
 
-    /* DEBUG: Write filtered densities to disk ==>
-
-    // Write filtered element densities to binary file 
+    /* Write filtered element densities to binary file */
     FILE *fp = fopen("densityFiltered.bin", "wb");
 
     if (fp == NULL)
@@ -1873,30 +1940,32 @@ while(istat>=0)
       exit(EXIT_FAILURE);
     }
 
-    // Check for file size consistency
-    size_t nwritten = fwrite(designFiltered,sizeof(double),(size_t)ne_,fp);
+    size_t nwritten = fwrite(
+    designFiltered,
+    sizeof(double),
+    (size_t)ne_,
+    fp);
 
     if (nwritten != (size_t)ne_)
-    {
-      fprintf(stderr, "Error writing filtered densities\n");
-      fclose(fp);
-      exit(EXIT_FAILURE);
-    }
+  {
+    fprintf(stderr, "Error writing filtered densities\n");
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
 
-    if (fclose(fp) != 0)
-    {
-      perror("Error closing densityFiltered.bin");
-      exit(EXIT_FAILURE);
-    }
+  if (fclose(fp) != 0)
+  {
+    perror("Error closing densityFiltered.bin");
+    exit(EXIT_FAILURE);
+  }
 
-    printf("Wrote %d filtered element densities to densityFiltered.bin\n", (int)ne_);
-
-    <== end debug phase */
-
+  printf("Wrote %d filtered element densities to densityFiltered.bin\n", (int)ne_);
 
     rhoPhys = designFiltered;
     printf("Density filtering complete!\n");
     fflush(stdout);
+    ct_mark("density filter");
+    TAU_REGION_STOP("Design-variable filtering");
 
     #ifdef PROFILING_ON
       TAU_PROFILE_STOP(t_filter_CalTop);
@@ -2010,18 +2079,12 @@ while(istat>=0)
 
       /* Allocate memory for P-norm stress sensitivities */  
       NNEW(dPnorm_drhoFiltered, double, ne_);
-
-      double t_start = omp_get_wtime();
-
-      // LEGACY COO-based filtering
-      //filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
-
-      // CSR-based transpose sensitivity filtering
-      filterSensitivity_bin_buffered_mts_csr(dPnorm_drho,dPnorm_drhoFiltered,ne,filternnz);
-
-      double t_end = omp_get_wtime();
-
-      printf("P-Norm sensitivity filtering time: %.6f seconds\n", t_end - t_start);
+      ct_tsub=omp_get_wtime();
+      // Legacy COO-based filtering: filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+      TAU_REGION_START("Sensitivity analysis: Sensitivity filtering");
+      filterSensitivity_bin_buffered_mts_csr(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+      TAU_REGION_STOP("Sensitivity analysis: Sensitivity filtering");
+      ct_part("stress (P-norm) gradient filter");
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_filter_CalTop);
@@ -2031,7 +2094,9 @@ while(istat>=0)
         TAU_PROFILE_START(t_fileIO_CalTop);
       #endif
 
+      TAU_REGION_START("Post-processing");
       int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
+      TAU_REGION_STOP("Post-processing");
       if (rs != 0) 
       {
         printf("Unable to write P-norm sensitivities to disk!\n");
@@ -2086,6 +2151,7 @@ while(istat>=0)
     printf("NON-LINEAR ELASTIC SOLUTION\n");
     printf("========================================\n");
 
+    TAU_REGION_START("Forward analysis: Newton update");
     nonlingeo(&co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,xboun,&nboun,
            &ipompc,&nodempc,&coefmpc,&labmpc,&nmpc,nodeforc,ndirforc,xforc,
            &nforc,&nelemload,&sideload,xload,&nload,
@@ -2110,10 +2176,41 @@ while(istat>=0)
            &ifacecount,typeboun,&islavsurf,&pslavsurf,&clearini,&nmat,
            xmodal,&iaxial,&inext,&nprop,&network,orname,vel,&nef,
            velo,veloo,rhoPhys,&pstiff,
-           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens);
+           &sigma0,&eps_relax,&rhomin,&pexp,&Pnorm,dPnorm_drho, &eval_PNORM,&mat_dens,
+           stx);
+    TAU_REGION_STOP("Forward analysis: Newton update");
+    ct_mark("nonlingeo (Newton solve, P-norm adjoint)");
 
     memmpc_=mpcinfo[0]; mpcfree=mpcinfo[1];
     icascade=mpcinfo[2]; maxlenmpc=mpcinfo[3];
+
+    if (eval_PNORM == 2)
+    {
+      printf("Filtering element stress (P-norm) gradient...");
+      fflush(stdout);
+
+      NNEW(dPnorm_drhoFiltered, double, ne_);
+      ct_tsub=omp_get_wtime();
+      // Legacy COO-based filtering: filterSensitivity_bin_buffered_mts(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+      TAU_REGION_START("Sensitivity analysis: Sensitivity filtering");
+      filterSensitivity_bin_buffered_mts_csr(dPnorm_drho, dPnorm_drhoFiltered, ne, filternnz);
+      TAU_REGION_STOP("Sensitivity analysis: Sensitivity filtering");
+      ct_part("stress (P-norm) gradient filter");
+
+      TAU_REGION_START("Post-processing");
+      int rs = write_Stress_sens("stress_sens.csv", ne, dPnorm_drhoFiltered);
+      TAU_REGION_STOP("Post-processing");
+      if (rs != 0)
+      {
+        printf("Unable to write P-norm sensitivities to disk!\n");
+        fflush(stdout);
+      }
+
+      SFREE(dPnorm_drhoFiltered);
+      printf("done \n");
+    }
+
+    SFREE(dPnorm_drho);
 
     for(i=0;i<3;i++) nzsprevstep[i]=nzs[i];
 
@@ -2227,6 +2324,8 @@ while(istat>=0)
       printf("done\n");
 
       
+      ct_tsub=omp_get_wtime();
+      TAU_REGION_START("Sensitivity analysis: Sensitivity evaluation");
       sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	     xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
              ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2245,6 +2344,8 @@ while(istat>=0)
 	     ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
 	     &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
              jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
+      TAU_REGION_STOP("Sensitivity analysis: Sensitivity evaluation");
+      ct_part("sensitivity() total");
 
       
 
@@ -2317,6 +2418,8 @@ while(istat>=0)
         TAU_PROFILE_START(t_compGrad_total);
       #endif
 
+	    ct_tsub=omp_get_wtime();
+	    TAU_REGION_START("Sensitivity analysis: Sensitivity evaluation");
 	    sensitivity(co,&nk,&kon,&ipkon,&lakon,&ne,nodeboun,ndirboun,
 	      xboun,&nboun, ipompc,nodempc,coefmpc,labmpc,&nmpc,nodeforc,
         ndirforc,xforc,&nforc, nelemload,sideload,xload,&nload,
@@ -2335,6 +2438,8 @@ while(istat>=0)
 	      ielprop,prop,typeboun,&mortar,mpcinfo,tietol,ics,&icontact,
 	      &nobject,&objectset,&istat,orname,nzsprevstep,&nlabel,physcon,
         jobnamef,rhoPhys,&pstiff,gradCompl,elCompl,elCG,eleVol, &eval_PNORM);
+	    TAU_REGION_STOP("Sensitivity analysis: Sensitivity evaluation");
+	    ct_part("sensitivity() total");
 
         #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_compGrad_total);
@@ -2352,19 +2457,13 @@ while(istat>=0)
 
       printf("Filter compliance gradient ");
       fflush(stdout);
-
-    
-      // Legacy COO-based sensitivity filtering
-      //filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
-        
-      double t_start_complFilt = omp_get_wtime();
-
-      // CSR-based sensitivity filtering 
+      ct_tsub=omp_get_wtime();
+      // Legacy COO-based filtering: filterSensitivity_bin_buffered_mts(gradCompl, gradComplFiltered, ne, filternnz);
+      TAU_REGION_START("Sensitivity analysis: Sensitivity filtering");
       filterSensitivity_bin_buffered_mts_csr(gradCompl, gradComplFiltered, ne, filternnz);
-      
-      double t_end_complFilt = omp_get_wtime();
-
-      printf("Compliance sensitivity filtering time: %.6f seconds\n", t_end_complFilt - t_start_complFilt);
+      TAU_REGION_STOP("Sensitivity analysis: Sensitivity filtering");
+      ct_part("compliance gradient filter");
+      printf("done! \n");
       fflush(stdout);
       
       if (numPassive > 0)
@@ -2389,7 +2488,9 @@ while(istat>=0)
       printf("Writing compliance sensitivities...");
       fflush(stdout);
 
+      TAU_REGION_START("Post-processing");
       write_compliance_sensitivities(ne,gradCompl,gradComplFiltered,elCompl,&compliance_sum);
+      TAU_REGION_STOP("Post-processing");
       fflush(stdout);
 
       printf("done!\n");
@@ -2433,9 +2534,11 @@ while(istat>=0)
           TAU_PROFILE_START(t_cgGrad_total);
         #endif
 
+        TAU_REGION_START("Sensitivity analysis: Sensitivity evaluation");
         compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             dCGx, dCGy, dCGz, mat_dens, passiveIDs, numPassive);
+        TAU_REGION_STOP("Sensitivity analysis: Sensitivity evaluation");
       
         #ifdef PROFILING_ON
           TAU_PROFILE_STOP(t_cgGrad_total);
@@ -2446,16 +2549,11 @@ while(istat>=0)
         #endif
 
         printf("\nFilter CG gradient");
-        // Legacy COO-based grouped sensitivity filtering
-        //filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
-
-        double t_start_cgFilt = omp_get_wtime();
-        // CSR-based grouped sensitivity filtering
-        filterSensitivity_bin_buffered_mts3_csr(dCGx, dCGy, dCGz,dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+        // Legacy COO-based filtering: filterSensitivity_bin_buffered_mts3(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+        TAU_REGION_START("Sensitivity analysis: Sensitivity filtering");
+        filterSensitivity_bin_buffered_mts3_csr(dCGx, dCGy, dCGz, dCGxFiltered, dCGyFiltered, dCGzFiltered,ne, filternnz);
+        TAU_REGION_STOP("Sensitivity analysis: Sensitivity filtering");
         
-        double t_end_cgFilt = omp_get_wtime();
-
-        printf("CG sensitivity filtering time: %.6f seconds\n", t_end_cgFilt - t_start_cgFilt);
         fflush(stdout);
 
         #ifdef PROFILING_ON
@@ -2474,7 +2572,9 @@ while(istat>=0)
         #endif
 
         /* ... after you fill dCGx, dCGy, dCGz ... */
+        TAU_REGION_START("Post-processing");
         int rc = write_cg_sens("cg_sens.csv", ne, dCGxFiltered, dCGyFiltered, dCGzFiltered);
+        TAU_REGION_STOP("Post-processing");
         if (rc != 0) 
         {
           printf("  Unable to write CG sensitivities to disk!\n");
@@ -2507,9 +2607,11 @@ while(istat>=0)
         /* Compute the CG and mass without sensitivities */
         printf("Evaluate CG..");
         fflush(stdout);
+        TAU_REGION_START("Post-processing");
         compute_mass_cg_and_cg_sens(ne, eleVol, rhoPhys, elCG,
                             &M, &cgx, &cgy, &cgz,
                             NULL, NULL, NULL, mat_dens, passiveIDs, numPassive);
+        TAU_REGION_STOP("Post-processing");
       
         printf("done \n");
         fflush(stdout);
@@ -2537,7 +2639,9 @@ while(istat>=0)
       #ifdef PROFILING_ON
         TAU_PROFILE_START(t_volGrad_total);
       #endif
+      TAU_REGION_START("Sensitivity analysis: Sensitivity evaluation");
       volumeSens(ne,eleVol,passiveIDs,numPassive,volFracSens);
+      TAU_REGION_STOP("Sensitivity analysis: Sensitivity evaluation");
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_volGrad_total);
@@ -2549,19 +2653,12 @@ while(istat>=0)
 
       printf("Filter volume fraction gradient ");
       fflush(stdout);
-
-
-      // Legacy COO-based sensitivity filtering
-      //filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
-
-      double t_start_volFracFilt = omp_get_wtime();
-      // CSR-based sensitivity filtering
+      ct_tsub=omp_get_wtime();
+      // Legacy COO-based filtering: filterSensitivity_bin_buffered_mts(volFracSens, volFracSensFiltered, ne, filternnz);
+      TAU_REGION_START("Sensitivity analysis: Sensitivity filtering");
       filterSensitivity_bin_buffered_mts_csr(volFracSens, volFracSensFiltered, ne, filternnz);
-
-      double t_end_volFracFilt = omp_get_wtime();
-
-      printf("Volume Fraction sensitivity filtering time: %.6f seconds\n", t_end_volFracFilt - t_start_volFracFilt);
-      fflush(stdout);
+      TAU_REGION_STOP("Sensitivity analysis: Sensitivity filtering");
+      ct_part("volume gradient filter");
 
       #ifdef PROFILING_ON
         TAU_PROFILE_STOP(t_filter_CalTop);
@@ -2578,7 +2675,9 @@ while(istat>=0)
 
       printf("\nWriting volume sensitivities...");
       fflush(stdout);
+      TAU_REGION_START("Post-processing");
       write_volume_sensitivities(ne, eleVol, rhoPhys, volFracSensFiltered);
+      TAU_REGION_STOP("Post-processing");
       printf("done!\n");
       fflush(stdout);
 
@@ -2592,6 +2691,8 @@ while(istat>=0)
       ends = time(NULL);
       
       
+      ct_mark("sensitivities, filtering, CSV output");
+      TAU_REGION_START("Post-processing"); ct_reg_post=1;
       printf("\n========================================\n");
       printf("OUTPUT\n");
       printf("========================================\n");
@@ -2887,6 +2988,13 @@ while(istat>=0)
   }
 
  } // end while(istat>=0)
+
+  if(ct_reg_post){ TAU_REGION_STOP("Post-processing"); ct_reg_post=0; }
+  if(ct_reg_pre){ TAU_REGION_STOP("Pre-processing"); ct_reg_pre=0; }   /* analyses without that branch */
+  ct_mark("objectives, densities, VTU output");
+#ifdef PARDISO
+  pardiso_release();   /* K_T factor kept for the adjoint solves */
+#endif
 
   printf("Removing filter files...");
   fflush(stdout);

@@ -217,6 +217,63 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) -std=c++11 $(CFLAGS) -c $< -o $@
 
 # ============================================================
+# PETSc BDDC solver (CALTOP_SOLVER=bddc at run time)
+#   make BDDC=1      (PETSC_DIR and PETSC_ARCH must be set)
+#   make             (BDDC=0: src/bddc.c compiles to stubs, as before)
+#   After switching BDDC on or off: make clean
+# ============================================================
+BDDC ?= 0
+ifeq ($(BDDC),1)
+  # petscvariables also sets CC/FC/CXX: keep ours
+  CC_SAVE  := $(CC)
+  FC_SAVE  := $(FC)
+  CXX_SAVE := $(CXX)
+  include $(PETSC_DIR)/$(PETSC_ARCH)/lib/petsc/conf/petscvariables
+  CC  := $(CC_SAVE)
+  FC  := $(FC_SAVE)
+  CXX := $(CXX_SAVE)
+  # one MKL in the process: PETSc's (shared, sequential), as MUMPS was built
+  # with; CalTop's static threaded MKL is left out of the link (CT_LIBS).
+  # In this build PARDISO / p-multigrid run single-threaded: use the plain
+  # build (make, BDDC=0) for multigrid runs.
+  # CalculiX bundles reference BLAS/LAPACK (dgesv.f, dgmres.f); without
+  # --exclude-libs the executable exports them and MUMPS/PETSc call those
+  # instead of MKL (3x slower BDDC setup).
+  BDDC_LIBS = -Wl,--exclude-libs,ALL $(PETSC_WITH_EXTERNAL_LIB)
+  LINKER    = $(FC_LINKER)
+  # PROFILING=1: the BDDC link uses PETSc's linker, not tau_f90.sh, so TAU's
+  # library is added here (the TAU regions are in every C file)
+  ifeq ($(PROFILING),1)
+    include $(TAU_MAKEFILE)
+    BDDC_LIBS += $(TAU_SHLIBS)
+  endif
+  ifeq ($(strip $(FC_LINKER)),)
+    $(error PETSc in $(PETSC_DIR)/$(PETSC_ARCH) was built without Fortran (no MUMPS): set PETSC_ARCH to the MUMPS build)
+  endif
+  ifeq ($(shell grep -c "define PETSC_HAVE_MUMPS 1" $(PETSC_DIR)/$(PETSC_ARCH)/include/petscconf.h 2>/dev/null),0)
+    $(error PETSc in $(PETSC_DIR)/$(PETSC_ARCH) has no MUMPS: set PETSC_ARCH to the MUMPS build)
+  endif
+else
+  BDDC_LIBS =
+  LINKER    = $(LINK_FC)
+endif
+
+# libraries for the final link: without CalTop's static MKL when BDDC=1
+COMMA := ,
+MKL_STATIC = -Wl$(COMMA)--start-group -Wl$(COMMA)--end-group \
+             $(MKL_LIB)/libmkl_intel_lp64.a $(MKL_LIB)/libmkl_gnu_thread.a $(MKL_LIB)/libmkl_core.a
+CT_LIBS = $(if $(filter 1,$(BDDC)),$(filter-out $(MKL_STATIC),$(LIBS)),$(LIBS))
+
+# BDDC solver: compiled with PETSc's MPI compiler wrapper when BDDC=1
+$(OBJ_DIR)/bddc.o: $(SRC_DIR)/bddc.c
+	@mkdir -p $(dir $@)
+ifeq ($(BDDC),1)
+	$(PCC) $(CFLAGS) -DCALTOP_BDDC $(PETSC_CC_INCLUDES) -c $< -o $@
+else
+	$(CC) $(CFLAGS) -c $< -o $@
+endif
+
+# ============================================================
 # Static library build
 #   NOTE: Coupling sources have already been removed from
 #   SCCXF/SCCXC/SCCXCXX when MDO=0, so ccx_2.15.a will not
@@ -233,7 +290,7 @@ ccx_2.15.a: $(OCCXF) $(OCCXC) $(OCCXCXX) | $(OBJ_DIR)
 $(BIN_DIR)/calTop.exe: $(OCCXMAIN) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
 	./date.pl
 	$(CC) $(CFLAGS) -c $(DRIVER_DIR)/ccx_2.15.c -o $(OBJ_DIR)/drivers/ccx_2.15.o
-	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAIN) ccx_2.15.a $(LIBS)
+	$(LINKER) -Wall -O3 -fopenmp -o $@ $(OCCXMAIN) ccx_2.15.a $(BDDC_LIBS) $(CT_LIBS)
 	@echo "Build calTop.exe successfully!"
 
 # calFilt
@@ -244,19 +301,19 @@ $(BIN_DIR)/calTop.exe: $(OCCXMAIN) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
 
 # calFilt
 $(BIN_DIR)/calFilt.exe: $(OCCXMAINFILT) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
-	$(LINK_FC) -Wall -O3 -fopenmp -pthread \
-	-o $@ $(OCCXMAINFILT) ccx_2.15.a $(LIBS)
+	$(LINKER) -Wall -O3 -fopenmp -pthread \
+	-o $@ $(OCCXMAINFILT) ccx_2.15.a $(BDDC_LIBS) $(CT_LIBS)
 	@echo "Build calFilt.exe successfully!"
 
 # calFSI (only meaningful when MDO=1)
 ifeq ($(MDO),1)
 $(BIN_DIR)/calFSI.exe: $(OCCXMAINFSI) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
-	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI) ccx_2.15.a $(LIBS)
+	$(LINKER) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI) ccx_2.15.a $(BDDC_LIBS) $(CT_LIBS)
 	@echo "Build calFSI.exe successfully!"
 
 # calAdj (only meaningful when MDO=1)
 $(BIN_DIR)/calFSI_ADJ.exe: $(OCCXMAINFSI_ADJ) ccx_2.15.a | $(BIN_DIR) $(OBJ_DIR)
-	$(LINK_FC) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI_ADJ) ccx_2.15.a $(LIBS)
+	$(LINKER) -Wall -O3 -fopenmp -o $@ $(OCCXMAINFSI_ADJ) ccx_2.15.a $(BDDC_LIBS) $(CT_LIBS)
 	@echo "Build calFSI_ADJ.exe successfully!"
 endif
 

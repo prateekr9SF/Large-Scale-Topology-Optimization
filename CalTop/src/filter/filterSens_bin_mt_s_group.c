@@ -77,8 +77,8 @@ static void *worker_accumulate_onepass(void *args_ptr)
 {
     ThreadArgs *a = (ThreadArgs*)args_ptr;
 
-    const int s = (a->block_read * a->thread_id) / a->num_threads;
-    const int e = (a->block_read * (a->thread_id + 1)) / a->num_threads;
+    const int s = (int)(((long long)a->block_read * a->thread_id) / a->num_threads);
+    const int e = (int)(((long long)a->block_read * (a->thread_id + 1)) / a->num_threads);
 
     for (int t = s; t < e; ++t) {
 

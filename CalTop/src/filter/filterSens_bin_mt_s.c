@@ -31,7 +31,7 @@
 #endif
 
 #ifndef BLOCK_SIZE
-#define BLOCK_SIZE 100000000    // tune for I/O/cache
+#define BLOCK_SIZE 10000000     // 10M triplets: 4 buffers of 80 MB (was 100M = 3.2 GB)
 #endif
 
 #ifndef SHARDS
@@ -72,8 +72,8 @@ static inline int inb(int x,int n){ return (unsigned)x < (unsigned)n; }
 static void *worker_accumulate_onepass(void *args_ptr)
 {
     ThreadArgs *a = (ThreadArgs*)args_ptr;
-    int s = (a->block_read * a->thread_id) / a->num_threads;
-    int e = (a->block_read * (a->thread_id + 1)) / a->num_threads;
+    int s = (int)(((long long)a->block_read * a->thread_id) / a->num_threads);
+    int e = (int)(((long long)a->block_read * (a->thread_id + 1)) / a->num_threads);
 
     for (int t = s; t < e; ++t) 
     {
@@ -144,8 +144,9 @@ void filterSensitivity_bin_buffered_mts(const double *SensIn,
     double *dval_block=(double*)malloc((size_t)BLOCK_SIZE*sizeof(double));
 
 
-    if(!drow_block||!dcol_block||!dval_block){fprintf(stderr,"alloc blocks failed\n");exit(EXIT_FAILURE);}
+    if(!drow_block||!dcol_block||!dval_block){printf("alloc blocks failed: out of memory\n");fflush(stdout);exit(EXIT_FAILURE);}
     double *w_block=(double*)malloc((size_t)BLOCK_SIZE*sizeof(double));
+    if(!w_block){printf("alloc w_block failed (%.1f GB): out of memory\n",(double)BLOCK_SIZE*8./1e9);fflush(stdout);exit(EXIT_FAILURE);}
 
     // Sharded outputs
     double *out_shard[SHARDS];

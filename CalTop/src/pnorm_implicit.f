@@ -66,6 +66,7 @@ c--- locals
       real*8 E
       real*8 expli1
       real*8 expli2
+      real*8 gpf
 c--- Gauss rule (C3D4, 1 point)
       include 'gauss.f'
 
@@ -115,6 +116,9 @@ c------ local u and lambda (3 dofs per node, stacked)
 
 c------ gaussian integration for C3D4&D10
          vm_sum = 0.d0
+         do a=1,3*nope
+            k0u(a) = 0.d0
+         enddo
          do jj=1,mint3d
             if(lakonl(4:5).eq.'10') then
                xi=gauss3d5(1,jj); et=gauss3d5(2,jj); ze=gauss3d5(3,jj)
@@ -126,9 +130,6 @@ c------ gaussian integration for C3D4&D10
                call shape4tet(xi,et,ze,xl,xsj,shp,iflag)
             endif
             xsj = dabs(xsj)
-            do a=1,3*nope
-               k0u(a) = 0.d0
-            enddo
             call build_B_tet(shp,B,nope)
 c------ strain eps = B * u
             do m=1,6
@@ -156,10 +157,11 @@ c------ calculate effective vm stress
             vm_sum = vm_sum+dsqrt(max(vm2,0.d0))
 c------ internal nodal forces k0u += B^T * sig * vol
             do n=1,3*nope
+               gpf = 0.d0
                do m=1,6
-                  k0u(n) = k0u(n) + B(m,n)*sigP(m)
+                  gpf = gpf + B(m,n)*sigP(m)
                enddo
-               k0u(n) = k0u(n) * (xsj*weight)
+               k0u(n) = k0u(n) + gpf*(xsj*weight)
             enddo
          enddo  !-------END of GP loop
 c------ element-average vm and sige

@@ -1,4 +1,5 @@
 SRC_DIR = src
+OPT = -O2 
 SCCXF = \
 $(SRC_DIR)/absolute_relative.f \
 $(SRC_DIR)/acctube.f \
@@ -883,6 +884,7 @@ $(SRC_DIR)/pnorm_rhs.f \
 $(SRC_DIR)/pnorm_explicit.f \
 $(SRC_DIR)/pnorm_implicit.f \
 $(SRC_DIR)/pnorm_value_from_stx.f \
+$(SRC_DIR)/stresspnorm_nl.f \
 $(SRC_DIR)/mechmodel_simp.f \
 $(SRC_DIR)/linel_simp.f \
 $(SRC_DIR)/resultsiniAdjoint.f \
@@ -894,6 +896,7 @@ $(SRC_DIR)/sensitivity/singleDiscipline/compliance/linearCompliance_C3D10.f \
 
 
 SCCXC = \
+$(SRC_DIR)/bddc.c \
 $(SRC_DIR)/rho.c \
 $(SRC_DIR)/arpack.c \
 $(SRC_DIR)/arpackbu.c \

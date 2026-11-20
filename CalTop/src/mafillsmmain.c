@@ -21,8 +21,18 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "CalculiX.h"
+#include <omp.h>
+#include <string.h>
+#include "bddc.h"
+
+/* CalTop: time of the per-thread copy reduction (reported by nonlingeo) */
+double ct_t_asm_reduce=0.;
 
 static char *lakon1,*sideload1,*matname1,*tieset1;
+static ITG ct_nok=0;   /* CALTOP_SOLVER=bddc: this pass skips the global K (ctnokmat_) */
+static ITG ct_stiff0=0; /* distributed element work: rank 0 assembles the right-hand side only */
+static ITG ct_nfe=1;    /* copies of fext (1: distributed element work without distributed loads) */
+ITG ctnokmat_(void);
 
 static ITG *nk1,*kon1,*ipkon1,*ne1,*nodeboun1,*ndirboun1,*nboun1,
     *ipompc1,*nodempc1,*nmpc1,*nodeforc1,*ndirforc1,*nforc1,*nelemload1,
@@ -176,12 +186,26 @@ void mafillsmmain(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
     /* allocating fields for mass and stiffness matrix */
 
 //    if(*buckling!=1){
+    /* CALTOP_SOLVER=bddc: after the first assembly BDDC works from the
+       element matrices only; the per-thread copies of K (num_cpus x nzs
+       doubles, 60 GB at 64 threads on the wing) are neither filled nor
+       summed, ad/au stay zero */
+    ct_nok=(*buckling!=1)&&ctnokmat_();
+    if(ct_nok){
+	NNEW(ad1,double,1);
+	NNEW(au1,double,1);
+    }else{
 	NNEW(ad1,double,num_cpus*neq[1]);
 	NNEW(au1,double,(long long)num_cpus*nzs[2]);
+    }
 //    }
 
+    /* distributed element work without distributed loads: rank 0 runs no
+       element loop, so fext needs no per-thread copies */
+    ct_nfe=(ct_nok&&bddc_dist_on()&&(*stiffness==1)&&(*nbody==0)&&(*nload==0)&&
+	    (ithermal[0]==0)&&(*iprestr==0)) ? 1 : num_cpus;
     if(*rhsi==1){
-	NNEW(fext1,double,num_cpus*neq[1]);
+	NNEW(fext1,double,(long long)ct_nfe*neq[1]);
     }
 
     if((mass[1]==1)||((mass[0]==1)||(*buckling==1))){
@@ -233,18 +257,56 @@ void mafillsmmain(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
     clearini1=clearini;ielprop1=ielprop;prop1=prop;ne01=ne0;kscale1=kscale;
     iponoel1=iponoel;inoel1=inoel;network1=network,design1=design, penal1=penal, matdens1 = mat_dens;
 
+    /* CALTOP_SOLVER=bddc, distributed element work: the BDDC ranks compute
+       the element stiffness of their own subdomains (bddc_dist_asm); rank 0
+       then only assembles the right-hand side: no element loop at all when
+       there are no distributed loads (body forces, face loads), else the
+       usual loop with the stiffness switched off */
+    {
+      ITG ct_dist=0,ct_rhs=1;
+      if(ct_nok){
+	bddc_eargs ea;
+	memset(&ea,0,sizeof(ea));
+	ea.co=co;ea.nk=nk;ea.kon=kon;ea.ipkon=ipkon;ea.lakon=lakon;ea.ne=ne;ea.nactdof=nactdof;ea.mi=mi;
+	ea.elcon=elcon;ea.nelcon=nelcon;ea.rhcon=rhcon;ea.nrhcon=nrhcon;ea.alcon=alcon;ea.nalcon=nalcon;
+	ea.alzero=alzero;ea.ielmat=ielmat;ea.ielorien=ielorien;ea.norien=norien;ea.orab=orab;ea.ntmat_=ntmat_;
+	ea.plicon=plicon;ea.nplicon=nplicon;ea.plkcon=plkcon;ea.nplkcon=nplkcon;ea.npmat_=npmat_;
+	ea.matname=matname;ea.ncmat_=ncmat_;ea.thicke=thicke;ea.ielprop=ielprop;ea.prop=prop;
+	ea.design=design;ea.penal=penal;ea.matdens=mat_dens;ea.physcon=physcon;
+	ea.ithermal=ithermal;ea.iprestr=iprestr;ea.nstate_=nstate_;ea.mortar=mortar;ea.nasym=nasym;
+	ea.ne0=ne0;ea.nbody=nbody;ea.nload=nload;ea.nmethod=nmethod;ea.iperturb=iperturb;ea.iexpl=iexpl;
+	ea.mass=mass;ea.stiffness=stiffness;ea.buckling=buckling;ea.intscheme=intscheme;ea.istep=istep;
+	ea.iinc=iinc;ea.coriolis=coriolis;ea.kscale=kscale;ea.network=network;ea.neq=neq;ea.nzs=nzs;
+	ea.dtime=dtime;ea.ttime=ttime;ea.time=time;ea.reltime=reltime;ea.vold=vold;ea.sti=sti;ea.xstiff=xstiff;
+	ct_dist=bddc_dist_asm(&ea);
+	for(j=0;j<num_cpus;j++) if(nmethod1[j]>*nmethod) nmethod1[j]=*nmethod;
+      }
+      if(ct_dist){
+	ct_stiff0=0;stiffness1=&ct_stiff0;
+	ct_rhs=(*rhsi==1)&&((*nbody>0)||(*nload>0)||(ithermal[0]!=0)||(*iprestr!=0));
+      }
+      if(ct_nfe==1&&num_cpus>1&&(!ct_dist||ct_rhs)){
+	printf(" *ERROR in mafillsmmain: one copy of fext but the element loop runs\n");
+	exit(1);
+      }
+
     /* calculating the stiffness/mass */
 
-    printf("Using up to %" ITGFORMAT " cpu(s) for the symmetric stiffness/mass contributions.\n", num_cpus);
+    if(ct_dist) printf("Element stiffness computed on the BDDC ranks; %s.\n",
+		       ct_rhs ? "distributed loads on rank 0" : "no distributed loads");
+    else printf("Using up to %" ITGFORMAT " cpu(s) for the symmetric stiffness/mass contributions.\n", num_cpus);
     fflush(stdout);
     /* create threads and wait */
 
     NNEW(ithread,ITG,num_cpus);
+    if(ct_rhs){
     for(i=0; i<num_cpus; i++)  {
 	ithread[i]=i;
 	pthread_create(&tid[i], NULL, (void *)mafillsmmt, (void *)&ithread[i]);
     }
     for(i=0; i<num_cpus; i++)  pthread_join(tid[i], NULL);
+    }
+    }
 
     SFREE(ithread);SFREE(neapar);SFREE(nebpar);
 
@@ -257,62 +319,45 @@ void mafillsmmain(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
     /* copying and accumulating the stiffnes and/or mass matrix
        for buckling the matrices have to be added*/
 
-    if(*buckling!=1){
+    /* CalTop: the per-thread copies are summed in parallel over the
+       entries (same order of additions per entry as before, so the result
+       is bit-identical); with 20 threads the serial loops summed 20
+       copies of the full matrix on one core */
 
-        /* no buckling */
-
-	for(i=0;i<neq[1];i++){
-	    ad[i]=ad1[i];
+    {
+	ITG nc=num_cpus,n1=neq[1],nz2=nzs[2],nobuck=(*buckling!=1);
+	long long ii;
+	double t_red=omp_get_wtime();
+	if(!ct_nok){
+#pragma omp parallel for private(j)
+	for(ii=0;ii<n1;ii++){
+	    double s=nobuck ? ad1[ii] : ad[ii]+ad1[ii];
+	    for(j=1;j<nc;j++) s+=ad1[ii+(long long)j*n1];
+	    ad[ii]=s;
 	}
-    }else{
-
-        /* buckling */
-
-	for(i=0;i<neq[1];i++){
-	    ad[i]+=ad1[i];
 	}
-    }
+	SFREE(ad1);
 
-    for(i=0;i<neq[1];i++){
-	for(j=1;j<num_cpus;j++){
-	    ad[i]+=ad1[i+j*neq[1]];
+	if(!ct_nok){
+#pragma omp parallel for private(j)
+	for(ii=0;ii<nz2;ii++){
+	    double s=nobuck ? au1[ii] : au[ii]+au1[ii];
+	    for(j=1;j<nc;j++) s+=au1[ii+(long long)j*nz2];
+	    au[ii]=s;
 	}
-    }
-    SFREE(ad1);
-
-    if(*buckling!=1){
-
-        /* no buckling */
-
-	for(i=0;i<nzs[2];i++){
-	    au[i]=au1[i];
 	}
-    }else{
+	SFREE(au1);
 
-        /* buckling */
-
-	for(i=0;i<nzs[2];i++){
-	    au[i]+=au1[i];
-	}
-    }
-
-    for(i=0;i<nzs[2];i++){
-	for(j=1;j<num_cpus;j++){
-	    au[i]+=au1[i+(long long)j*nzs[2]];
-	}
-    }
-    SFREE(au1);
-
-    if(*rhsi==1){
-	for(i=0;i<neq[1];i++){
-	    fext[i]=fext1[i];
-	}
-	for(i=0;i<neq[1];i++){
-	    for(j=1;j<num_cpus;j++){
-		fext[i]+=fext1[i+j*neq[1]];
+	if(*rhsi==1){
+#pragma omp parallel for private(j)
+	    for(ii=0;ii<n1;ii++){
+		double s=fext1[ii];
+		for(j=1;j<ct_nfe;j++) s+=fext1[ii+(long long)j*n1];
+		fext[ii]=s;
 	    }
+	    SFREE(fext1);
 	}
-	SFREE(fext1);
+	ct_t_asm_reduce+=omp_get_wtime()-t_red;
     }
 
     /* the heat capacity matrix and mass matrix must be treated
@@ -415,8 +460,10 @@ void *mafillsmmt(ITG *i){
     indexfnext=0;
 
 //    if(*buckling1!=1){
+    if(!ct_nok){
 	indexad=*i*neq1[1];
 	indexau=(long long)*i*nzs1[2];
+    }
 //    }
     if(*rhsi1==1){
 	indexfext=*i*neq1[1];

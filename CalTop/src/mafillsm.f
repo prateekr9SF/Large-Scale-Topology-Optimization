@@ -39,6 +39,11 @@
 !
       implicit none
 !
+!     CALTOP_SOLVER=bddc: ctnokmat()=1 skips adding the element matrices
+!     to au/ad (BDDC has them already); fext is assembled as before
+      integer ctnokmat,nokmat
+      external ctnokmat
+!
       integer mass(2),stiffness,buckling,rhsi,stiffonly(2),coriolis
 !
       character*8 lakon(*)
@@ -135,6 +140,7 @@ c      write(*,*) loc(index1)
 !
 !     mechanical analysis: loop over all elements
 !
+      nokmat=ctnokmat()
       do i=nea,neb
 !       for each element i, rhoi becomes the element density
         rhoi=design(i)
@@ -252,6 +258,8 @@ c           ndof=ichar(lakon(i)(6:6))-48
      &          integerglob,doubleglob,tieset,istartset,
      &          iendset,ialset,ntie,nasym,pslavsurf,pmastsurf,mortar,
      &          clearini,ielprop,prop,kscale,rhoi,penal,matdens)
+!          CALTOP_SOLVER=bddc: capture the element matrix (no-op otherwise)
+           call ctelemcapture(i,nope,ndof,s)
         else
            call e_c3d_u(co,kon,lakon(i),p1,p2,om,bodyf,nbody,s,sm,ff,i,
      &          nmethod,elcon,nelcon,rhcon,nrhcon,alcon,nalcon,
@@ -276,6 +284,7 @@ c           ndof=ichar(lakon(i)(6:6))-48
           node1=kon(indexe+j)
           jdof1=nactdof(k,node1)
 !
+          if(nokmat.ne.0) goto 7777
           do ll=jj,ndof*nope
 !
             l=(ll-1)/ndof+1
@@ -445,6 +454,7 @@ c           ndof=ichar(lakon(i)(6:6))-48
                endif
             endif
           enddo
+ 7777     continue
 !
           if(rhsi.eq.1) then
 !

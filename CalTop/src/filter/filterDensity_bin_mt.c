@@ -49,8 +49,8 @@ void *thread_filter_bin_worker_mutex(void *args_ptr)
 {
     ThreadArgs *args = (ThreadArgs *)args_ptr;
 
-    int start = (args->block_read * args->thread_id) / args->num_threads;
-    int end   = (args->block_read * (args->thread_id + 1)) / args->num_threads;
+    int start = (int)(((long long)args->block_read * args->thread_id) / args->num_threads);
+    int end   = (int)(((long long)args->block_read * (args->thread_id + 1)) / args->num_threads);
 
     for (int i = start; i < end; ++i)
     {

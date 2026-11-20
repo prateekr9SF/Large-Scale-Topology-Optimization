@@ -65,8 +65,8 @@ static long long count_nnz_from_files(void){
 static void *worker_build_row_sums(void *args_ptr)
 {
     ThreadArgs *a = (ThreadArgs*)args_ptr;
-    int s = (a->block_read * a->thread_id) / a->num_threads;
-    int e = (a->block_read * (a->thread_id + 1)) / a->num_threads;
+    int s = (int)(((long long)a->block_read * a->thread_id) / a->num_threads);
+    int e = (int)(((long long)a->block_read * (a->thread_id + 1)) / a->num_threads);
 
     for (int t = s; t < e; ++t) {
         int j = a->drow[t] - 1;    // donor row in H
@@ -82,8 +82,8 @@ static void *worker_build_row_sums(void *args_ptr)
 static void *worker_accumulate_sens(void *args_ptr)
 {
     ThreadArgs *a = (ThreadArgs*)args_ptr;
-    int s = (a->block_read * a->thread_id) / a->num_threads;
-    int e = (a->block_read * (a->thread_id + 1)) / a->num_threads;
+    int s = (int)(((long long)a->block_read * a->thread_id) / a->num_threads);
+    int e = (int)(((long long)a->block_read * (a->thread_id + 1)) / a->num_threads);
 
     for (int t = s; t < e; ++t) {
         int j = a->drow[t] - 1;   // donor j

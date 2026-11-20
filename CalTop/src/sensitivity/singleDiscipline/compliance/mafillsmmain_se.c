@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include "CalculiX.h"
 
@@ -166,12 +167,19 @@ void mafillsmmain_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
     if(!*cyclicsymmetry)
     {
 	    NNEW(dfl1,double,num_cpus*60*20);
-	    NNEW(df1,double,num_cpus**nzss);
+	    /* mafillsmse (topology optimization) never writes df: its writes are
+	       commented out and the element sensitivities go to per-element
+	       arrays. So no per-thread copies of df (num_cpus*nzss doubles); the
+	       threads get df itself. If the df writes in mafillsmse.f are ever
+	       restored, two threads could add to the same entry: bring back
+	       one copy per thread (64-bit size) and the summation below. */
+	    if(*ieigenfrequency==1) memset(df,0,sizeof(double)**nzss);
+	    df1=df;
     }
     else
     {
 	    NNEW(dfl1,double,num_cpus*120*20);
-	    NNEW(df1,double,num_cpus*2**nzss);
+	    NNEW(df1,double,(long long)num_cpus*2**nzss);
     }
 
     /* allocating memory for nmethod; if the Jacobian determinant
@@ -257,30 +265,7 @@ void mafillsmmain_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
     if(!*cyclicsymmetry)
     {
         //	if((iperturb[1]==1)&&(*ieigenfrequency!=1)){
-	    if(*ieigenfrequency!=1)
-        {
-
-            /* nonlinear geometric: add df to df from results_se */
-
-	        for(i=0;i<*nzss;i++)
-            {
-		        df[i]+=df1[i];
-	        }
-	    }
-        else
-        {
-	        for(i=0;i<*nzss;i++)
-            {
-		        df[i]=df1[i];
-	        }
-	    }
-	    for(i=0;i<*nzss;i++)
-        {
-	        for(j=1;j<num_cpus;j++)
-            {
-		        df[i]+=df1[i+j**nzss];
-	        }
-	    }
+	    /* threads wrote into df directly: nothing to sum */
     }
     else
     {
@@ -293,12 +278,13 @@ void mafillsmmain_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
         {
 	        for(j=1;j<num_cpus;j++)
             {
-		        df[i]+=df1[i+j*2**nzss];
+		        df[i]+=df1[i+(long long)j*2**nzss];
 	        }
 	    }
     }
 
-    SFREE(df1);
+    if(*cyclicsymmetry) SFREE(df1);
+    df1=NULL;
     SFREE(dfl1);
 
     return;
@@ -309,17 +295,18 @@ void mafillsmmain_se(double *co,ITG *nk,ITG *kon,ITG *ipkon,char *lakon,
 
 void *mafillsmsemt(ITG *i)
 {
-    ITG indexdf,indexdfl,nea,neb;
+    long long indexdf;
+    ITG indexdfl,nea,neb;
 
     if(!*cyclicsymmetry1)
     {
-	    indexdf=*i**nzss1;
+	    indexdf=0;    /* df shared (see mafillsmmain_se) */
 	    indexdfl=*i*60*20;
         //	indexdfl=*i*60**ndesi1;
     }
     else
     {
-	    indexdf=*i*2**nzss1;
+	    indexdf=(long long)*i*2**nzss1;
 	    indexdfl=*i*120*20;
         //	indexdfl=*i*120**ndesi1;
     }
